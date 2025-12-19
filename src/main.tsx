@@ -26,3 +26,10 @@ const p3 = scene.create("point3d", {
   coords: vec3(0, 1, 0),
   color: "green",
 });
+
+const line = scene.create("line3d", {
+  start: p1atom,
+  end: p2atom,
+  color: "yellow",
+  thickness: 2,
+});
