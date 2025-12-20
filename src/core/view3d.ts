@@ -34,7 +34,7 @@ export class View3D {
   // three.js specific fields
   // These will probably be extracted into a separate class, like "Renderer"
   threeScene: THREE.Scene;
-  threeCamera: THREE.Camera;
+  threeCamera: THREE.PerspectiveCamera;
   threeOrbitControls: OrbitControls;
   threeRenderer: THREE.WebGLRenderer;
   frameScheduled: boolean = false;
@@ -44,47 +44,53 @@ export class View3D {
   // Scene snapshots. Initially an empty list, so all items will be added
   lastSceneSnapshot: SceneSnapshot = { itemSnapshots: new Map() };
 
+  sizer: ReturnType<typeof createResponsiveThreeSizer>;
+
   constructor(scene: Scene3D, activeCamId: ItemId, containerElem: HTMLElement) {
     this.scene = scene;
     this.activeCam = scene.getCamera(activeCamId);
 
     // Initialize the three.js renderer
     this.containerElem = containerElem;
-    const size = [containerElem.clientWidth, containerElem.clientHeight];
     this.threeScene = new THREE.Scene();
 
     const camera = this.activeCam.getItemSnapshot();
     this.threeCamera = new THREE.PerspectiveCamera(
-      camera.fov,
-      size[0] / size[1],
-      camera.near,
-      camera.far,
+      camera.fov, 1, camera.near, camera.far,
     );
     this.threeCamera.position.set(...Vec3.asArray(camera.position))
     this.threeCamera.lookAt(...Vec3.asArray(camera.lookAt))
-
-    // TODO: We need a way to sync our camera object in the scene with
-    // This three.js camera as it's controlled.
-    this.threeOrbitControls = new OrbitControls(this.threeCamera, containerElem);
-    this.threeOrbitControls.enableDamping = true;
-    this.threeOrbitControls.target.set(0, 0, 0);
-    this.threeOrbitControls.update();
-    this.threeOrbitControls.addEventListener("change", () => this.requestRender())
-
-    // TEST: Adding a cube object just to test things
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: "red" });
-    const cube = new THREE.Mesh(geometry, material);
-    this.threeScene.add(cube);
 
     // Set up renderer
     this.threeRenderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: true,
     });
-    this.threeRenderer.setSize(size[0], size[1]);
-    this.threeRenderer.setPixelRatio(window.devicePixelRatio);
+    this.threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.threeRenderer.domElement.style.display = "block";
+    this.threeRenderer.domElement.style.width = "100%";
+    this.threeRenderer.domElement.style.height = "100%";
     containerElem.appendChild(this.threeRenderer.domElement);
+
+    // TODO: We need a way to sync our camera object in the scene with
+    // This three.js camera as it's controlled.
+    this.threeOrbitControls = new OrbitControls(this.threeCamera, this.threeRenderer.domElement);
+    this.threeOrbitControls.enableDamping = true;
+    this.threeOrbitControls.target.set(0, 0, 0);
+    this.threeOrbitControls.addEventListener("change", () => this.requestRender())
+
+    this.sizer = createResponsiveThreeSizer({
+      container: containerElem,
+      maxDpr: 2,
+      renderer: this.threeRenderer,
+      camera: this.threeCamera,
+      invalidate: () => this.requestRender(),
+    });
+
+
+    // Handle canvas resizing
+    // const resizeObserver = new ResizeObserver(() => this.onResize())
+    // resizeObserver.observe(containerElem);
 
     // Connect the scene's invalidate function to update the three.js scene and rerender
     scene.listenForSceneInvalidation(() => {
@@ -93,7 +99,7 @@ export class View3D {
 
     // Render the first frame
     this.onSceneChanged();
-    this.threeRenderer.render(this.threeScene, this.threeCamera);
+    this.requestRender();
   }
 
   changeActiveCam(cameraId: ItemId) {
@@ -169,7 +175,9 @@ export class View3D {
   }
 
   render() {
+    console.log("rendering");
     this.frameScheduled = false;
+    this.sizer.applyIfNeeded();
     const cameraUpdated = this.threeOrbitControls.update()
     this.threeRenderer.render(this.threeScene, this.threeCamera);
 
@@ -187,3 +195,89 @@ export class View3D {
     }
   }
 }
+
+
+// Resize helper
+function createResponsiveThreeSizer({
+  container,
+  renderer,
+  camera,
+  invalidate,
+  maxDpr = 2,
+}: {
+  container: HTMLElement,
+  renderer: THREE.WebGLRenderer,
+  camera: THREE.PerspectiveCamera,
+  invalidate: () => void;
+  maxDpr: number,
+  onSize: (w: number, h: number) => void,
+}) {
+  let pending = true;
+  let pendingW = 1;
+  let pendingH = 1;
+  let lastW = 0;
+  let lastH = 0;
+  let lastDpr = window.devicePixelRatio;
+
+  function measure() {
+    const rect = container.getBoundingClientRect();
+    const w = Math.floor(rect.width);
+    const h = Math.floor(rect.height);
+    if (w <= 0 || h <= 0) return false;
+    pendingW = w;
+    pendingH = h;
+    pending = true;
+    return true;
+  }
+
+  const ro = new ResizeObserver(() => {
+    if (measure()) invalidate();
+  });
+  ro.observe(container);
+
+  function applyIfNeeded() {
+    // DPR changes (zoom / different monitor) won’t trigger ResizeObserver reliably
+    const dpr = window.devicePixelRatio;
+    if (dpr !== lastDpr) {
+      lastDpr = dpr;
+      renderer.setPixelRatio(Math.min(dpr, maxDpr));
+      measure();
+      pending = true;
+      invalidate();
+    }
+
+    if (!pending) return false;
+    if (pendingW === lastW && pendingH === lastH) {
+      pending = false;
+      return false;
+    }
+
+    renderer.setSize(pendingW, pendingH, false);
+
+    // Perspective camera
+    if (camera && camera.isPerspectiveCamera) {
+      camera.aspect = pendingW / pendingH;
+      camera.updateProjectionMatrix();
+    }
+
+    // TODO: Handle orthographic camera
+    // if (camera && camera.isOrthographicCamera) { recompute frustum }
+
+    lastW = pendingW;
+    lastH = pendingH;
+    pending = false;
+
+    // onSize?.(lastW, lastH);
+    return true;
+  }
+
+  function dispose() {
+    ro.disconnect();
+  }
+
+  // Initialize measured size once
+  measure();
+
+  return { applyIfNeeded, dispose };
+}
+

@@ -6,7 +6,7 @@ import "./index.css";
 const scene = new Scene3D();
 
 // Atom set up
-const p1atom = scene.atom(vec3(1, 2, 3));
+const p1atom = scene.atom(vec3(1, 1, 1));
 const p2atom = scene.atom((get) => Vec3.scaled(get(p1atom), 2));
 
 // Connect it to the range input
@@ -34,8 +34,18 @@ const p2 = scene.create("point3d", {
 
 // Passing a plain value (should be converted to PrimitiveAtom)
 const p3 = scene.create("point3d", {
-  coords: vec3(0, 1, 0),
+  coords: vec3(0, 0, 0),
   color: "green",
+});
+
+// Connect the button to randomize the colors of the points
+const btnElem = document.querySelector("#button-input") as HTMLButtonElement;
+btnElem.addEventListener("click", () => {
+  const randomValue = () => Math.floor(Math.random() * 256)
+  const randomColor = () => `rgb(${randomValue()}, ${randomValue()}, ${randomValue()})`
+  p1.color.set(randomColor());
+  p2.color.set(randomColor());
+  p3.color.set(randomColor());
 });
 
 const line = scene.create("line3d", {
@@ -51,5 +61,5 @@ const cam1 = scene.create("camera3d", {
 });
 
 // View set up
-const container = document.querySelector("#board-container") as HTMLElement;
+const container = document.querySelector("#canvas-container") as HTMLElement;
 const view = new View3D(scene, cam1.id, container);

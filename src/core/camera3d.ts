@@ -1,7 +1,7 @@
-import type { AtomLikeOptions, Field } from "../atom-wrapper";
-import { vec3, type Vec3 } from "../common-types/vec3";
-import type { Scene3D } from "../scene3d";
-import { BaseItem } from "../item";
+import type { AtomLikeOptions, Field } from "./atom-wrapper";
+import { vec3, type Vec3 } from "./common-types/vec3";
+import type { Scene3D } from "./scene3d";
+import { BaseItem } from "./item";
 
 type CameraProjection = "perspective" | "orthogonal";
 type CameraControls = "orbit" | "pan";
@@ -20,11 +20,11 @@ export type Camera3DOptions = AtomLikeOptions<Camera3DFields>;
 
 function mergeDefaults<Opts extends Camera3DOptions>(options: Opts) {
   return {
-    position: options.position ?? vec3(20, 20, 20),
+    position: options.position ?? vec3(10, 10, 10),
     lookAt: options.lookAt ?? vec3(0, 0, 0),
     projection: options.projection ?? "perspective",
     controls: options.controls ?? "orbit",
-    fov: options.controls ?? 75,
+    fov: options.controls ?? 90,
     near: options.near ?? 0.1,
     far: options.far ?? 1000,
   };
