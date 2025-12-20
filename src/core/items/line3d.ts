@@ -6,7 +6,7 @@ import { vec3 } from "three/src/Three.TSL.js";
 import { BaseItem } from "../item";
 import type { Scene3D } from "../scene3d";
 
-type Line3DFields = {
+export type Line3DFields = {
   tags: ItemTags;
   start: Vec3;
   end: Vec3;
@@ -60,6 +60,7 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
     return {
       id: this.id,
       kind: this.kind,
+      isDirty: this.isDirty,
       tags: this.tags.get(),
       start: this.start.get(),
       end: this.end.get(),

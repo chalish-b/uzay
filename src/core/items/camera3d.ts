@@ -1,13 +1,12 @@
-import type { AtomLikeOptions, Field } from "./atom-wrapper";
-import { vec3, type Vec3 } from "./common-types/vec3";
-import type { Scene3D } from "./scene3d";
-import { BaseItem, type ItemSnapshot } from "./item";
-
-export type CameraId = string;
+import type { AtomLikeOptions, Field } from "../atom-wrapper";
+import { vec3, type Vec3 } from "../common-types/vec3";
+import type { Scene3D } from "../scene3d";
+import { BaseItem } from "../item";
 
 type CameraProjection = "perspective" | "orthogonal";
 type CameraControls = "orbit" | "pan";
-type Camera3DFields = {
+
+export type Camera3DFields = {
   position: Vec3;
   lookAt: Vec3;
   projection: CameraProjection;
@@ -69,6 +68,7 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
     return {
       id: this.id,
       kind: this.kind,
+      isDirty: this.isDirty,
       position: this.position.get(),
       lookAt: this.lookAt.get(),
       projection: this.projection.get(),

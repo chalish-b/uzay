@@ -11,13 +11,13 @@ const p2atom = scene.atom((get) => Vec3.scaled(get(p1atom), 2));
 
 // Connect it to the range input
 const rangeInput = document.querySelector("#slider-input") as HTMLInputElement;
-rangeInput.addEventListener("change", (e) => {
+rangeInput.addEventListener("input", (e) => {
   const value = +(e.target as HTMLInputElement).value;
-  p1atom.set((prev) => vec3(prev.x, value, prev.z))
-})
+  p1atom.set((prev) => vec3(prev.x, value, prev.z));
+});
 p1atom.sub(() => {
   rangeInput.value = p1atom.get().y.toFixed(2);
-})
+});
 
 // Scene objects set up
 // Passing a primitive atom
@@ -45,11 +45,11 @@ const line = scene.create("line3d", {
   thickness: 2,
 });
 
-const cam1 = scene.camera({
+const cam1 = scene.create("camera3d", {
   position: vec3(3, 5, 3),
   lookAt: vec3(0, 0, 1),
 });
 
 // View set up
 const container = document.querySelector("#board-container") as HTMLElement;
-const view = new View3D(scene, cam1, container);
+const view = new View3D(scene, cam1.id, container);

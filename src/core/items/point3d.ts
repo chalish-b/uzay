@@ -6,7 +6,7 @@ import { BaseItem } from "../item";
 import type { AtomLikeOptions, AtomizeResult, Field } from "../atom-wrapper";
 import type { Scene3D } from "../scene3d";
 
-type Point3DFields = {
+export type Point3DFields = {
   tags: ItemTags;
   coords: Vec3;
   draggable: PointDraggableDir;
@@ -21,7 +21,7 @@ function mergeDefaults<Opts extends Point3DOptions>(options: Opts) {
     coords: options.coords ?? vec3(0, 0, 0),
     draggable: options.draggable ?? "xyz",
     color: options.color ?? "white",
-    radius: options.radius ?? 5,
+    radius: options.radius ?? 0.1,
   };
 }
 
@@ -61,7 +61,7 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
     return {
       id: this.id,
       kind: this.kind,
-
+      isDirty: this.isDirty,
       coords: this.coords.get(),
       tags: this.tags.get(),
       draggable: this.draggable.get(),
