@@ -9,17 +9,27 @@ import {
   type Camera3DOptions,
   Camera3D,
 } from "../items/camera3d";
+import {
+  type ParametricFunction3DFields,
+  type ParametricFunction3DOptions,
+  ParametricFunction3D,
+} from "../items/parametric-function3d";
 
 import type { Scene3D } from "../scene3d";
 import type { AtomLikeOptions } from "../atom-wrapper";
 
 export type ItemId = string;
-export type ItemKind = "point3d" | "line3d" | "camera3d";
+export type ItemKind =
+  | "point3d"
+  | "line3d"
+  | "camera3d"
+  | "parametricfunction3d";
 
 export type ItemFieldsMap = {
   point3d: Point3DFields;
   line3d: Line3DFields;
   camera3d: Camera3DFields;
+  parametricfunction3d: ParametricFunction3DFields;
 };
 
 export type ItemFields<K extends ItemKind> = ItemFieldsMap[K];
@@ -40,6 +50,10 @@ export const itemFactory = {
     new Line3D(scene, options),
   camera3d: <Opts extends Camera3DOptions>(scene: Scene3D, options: Opts) =>
     new Camera3D(scene, options),
+  parametricfunction3d: <Opts extends ParametricFunction3DOptions>(
+    scene: Scene3D,
+    options: Opts
+  ) => new ParametricFunction3D(scene, options),
 } as const;
 
 export type ItemFactory<K extends ItemKind> = (typeof itemFactory)[K];
@@ -53,6 +67,8 @@ export type ItemInstance<
   ? Line3D<Opts>
   : K extends "camera3d"
   ? Camera3D<Opts>
+  : K extends "parametricfunction3d"
+  ? ParametricFunction3D<Opts>
   : never;
 
 export type ItemInstanceOf<K extends ItemKind = ItemKind> = K extends ItemKind

@@ -45,17 +45,35 @@ const line = scene.create("line3d", {
   thickness: 1,
 });
 
+const maxTAtom = scene.atom(10);
+rangeInput.addEventListener("input", (e) => {
+  const value = +(e.target as HTMLInputElement).value;
+  maxTAtom.set(value);
+});
+maxTAtom.sub(() => {
+  rangeInput.value = maxTAtom.get().toFixed(2);
+});
+const func = scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.sin(t) * 2, t, Math.cos(t) * 2),
+  tStart: 0,
+  tEnd: maxTAtom,
+  color: "purple",
+  thickness: 1,
+});
 
 // Connect the button to randomize the colors of the points
 const btnElem = document.querySelector("#button-input") as HTMLButtonElement;
 btnElem.addEventListener("click", () => {
-  const randomValue = () => Math.floor(Math.random() * 256)
-  const randomColor = () => `rgb(${randomValue()}, ${randomValue()}, ${randomValue()})`
+  const randomValue = () => Math.floor(Math.random() * 256);
+  const randomColor = () =>
+    `rgb(${randomValue()}, ${randomValue()}, ${randomValue()})`;
   p1.color.set(randomColor());
   p2.color.set(randomColor());
   p3.color.set(randomColor());
   line.color.set(randomColor());
   line.thickness.set(randomValue() / 150);
+  func.thickness.set(randomValue() / 150);
+  func.color.set(randomColor());
 });
 
 const cam1 = scene.create("camera3d", {

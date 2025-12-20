@@ -1,8 +1,7 @@
 import type { ItemTags } from "../common-types/tags";
-import type { Vec3 } from "../common-types/vec3";
+import { vec3, type Vec3 } from "../common-types/vec3";
 import type { Color } from "../common-types/colors";
 import type { AtomLikeOptions, Field } from "../atom-wrapper";
-import { vec3 } from "three/src/Three.TSL.js";
 import { BaseItem } from "../item";
 import type { Scene3D } from "../scene3d";
 

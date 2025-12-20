@@ -1,34 +1,42 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { Line2 } from "three/addons/lines/Line2.js";
-import { LineGeometry } from "three/addons/lines/LineGeometry.js";
-import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import type { Camera3D, Camera3DFields } from "./items/camera3d";
 import type { Scene3D, SceneSnapshot } from "./scene3d";
 import { Vec3 } from "./common-types/vec3";
-import type { ItemId, ItemKind, ItemSnapshot } from "./common-types/item-registry";
+import type {
+  ItemId,
+  ItemKind,
+  ItemSnapshot,
+} from "./common-types/item-registry";
 import type { AtomLikeOptions } from "./atom-wrapper";
 
 type ThreeSceneTypes = {
-  "point3d": {
-    kind: "point3d",
-    geometry: THREE.SphereGeometry,
-    material: THREE.MeshBasicMaterial,
-    mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>,
-  },
-  "line3d": {
-    kind: "line3d",
-    curve: THREE.CatmullRomCurve3,
-    geometry: THREE.TubeGeometry,
-    material: THREE.MeshBasicMaterial,
-    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>,
-  }
-  "camera3d": {
-    kind: "camera3d",
-  }
-}
+  point3d: {
+    kind: "point3d";
+    geometry: THREE.SphereGeometry;
+    material: THREE.MeshBasicMaterial;
+    mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+  };
+  line3d: {
+    kind: "line3d";
+    curve: THREE.CatmullRomCurve3;
+    geometry: THREE.TubeGeometry;
+    material: THREE.MeshBasicMaterial;
+    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+  };
+  camera3d: {
+    kind: "camera3d";
+  };
+  parametricfunction3d: {
+    kind: "parametricfunction3d";
+    curve: THREE.CatmullRomCurve3;
+    geometry: THREE.TubeGeometry;
+    material: THREE.MeshBasicMaterial;
+    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+  };
+};
 
-type ThreeSceneObject<K extends ItemKind = ItemKind> = ThreeSceneTypes[K]
+type ThreeSceneObject<K extends ItemKind = ItemKind> = ThreeSceneTypes[K];
 
 export class View3D {
   scene: Scene3D;
@@ -60,10 +68,13 @@ export class View3D {
 
     const camera = this.activeCam.getItemSnapshot();
     this.threeCamera = new THREE.PerspectiveCamera(
-      camera.fov, 1, camera.near, camera.far,
+      camera.fov,
+      1,
+      camera.near,
+      camera.far
     );
-    this.threeCamera.position.set(...Vec3.asArray(camera.position))
-    this.threeCamera.lookAt(...Vec3.asArray(camera.lookAt))
+    this.threeCamera.position.set(...Vec3.asArray(camera.position));
+    this.threeCamera.lookAt(...Vec3.asArray(camera.lookAt));
     this.threeCamera.zoom = camera.zoom;
 
     // Set up renderer
@@ -79,11 +90,16 @@ export class View3D {
 
     // TODO: We need a way to sync our camera object in the scene with
     // This three.js camera as it's controlled.
-    this.threeOrbitControls = new OrbitControls(this.threeCamera, this.threeRenderer.domElement);
+    this.threeOrbitControls = new OrbitControls(
+      this.threeCamera,
+      this.threeRenderer.domElement
+    );
     // TODO: Make damping an option
     this.threeOrbitControls.enableDamping = false;
     this.threeOrbitControls.target.set(0, 0, 0);
-    this.threeOrbitControls.addEventListener("change", () => this.requestRender())
+    this.threeOrbitControls.addEventListener("change", () =>
+      this.requestRender()
+    );
 
     this.sizer = createResponsiveThreeSizer({
       container: containerElem,
@@ -92,7 +108,6 @@ export class View3D {
       camera: this.threeCamera,
       invalidate: () => this.requestRender(),
     });
-
 
     // Handle canvas resizing
     // const resizeObserver = new ResizeObserver(() => this.onResize())
@@ -118,7 +133,9 @@ export class View3D {
 
     // Update threeScene data, comparing it to the last snapshot of scene
     // This is kinda like React's reconciliation algorithm.
-    const unrenderedItems = new Set(this.lastSceneSnapshot.itemSnapshots.keys());
+    const unrenderedItems = new Set(
+      this.lastSceneSnapshot.itemSnapshots.keys()
+    );
     for (const [id, item] of newSceneSnapshot.itemSnapshots.entries()) {
       if (unrenderedItems.has(id)) {
         // If it exists and it's dirty, we update it
@@ -149,7 +166,12 @@ export class View3D {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.scale.set(item.radius, item.radius, item.radius);
       mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
-      this.threeMeshes.set(item.id, { kind: item.kind, geometry, material, mesh })
+      this.threeMeshes.set(item.id, {
+        kind: item.kind,
+        geometry,
+        material,
+        mesh,
+      });
       this.threeScene.add(mesh);
     } else if (item.kind === "line3d") {
       const curve = new THREE.CatmullRomCurve3([
@@ -157,10 +179,49 @@ export class View3D {
         new THREE.Vector3(item.end.x, item.end.y, item.end.z),
       ]);
       // TODO: The line is very thick for some reason, figure out the cause
-      const geometry = new THREE.TubeGeometry(curve, 64, item.thickness / 20, 8, true);
+      const geometry = new THREE.TubeGeometry(
+        curve,
+        64,
+        item.thickness / 20,
+        8,
+        true
+      );
       const material = new THREE.MeshBasicMaterial({ color: item.color });
       const mesh = new THREE.Mesh(geometry, material);
-      this.threeMeshes.set(item.id, { kind: item.kind, curve, geometry, material, mesh })
+      this.threeMeshes.set(item.id, {
+        kind: item.kind,
+        curve,
+        geometry,
+        material,
+        mesh,
+      });
+      this.threeScene.add(mesh);
+    } else if (item.kind === "parametricfunction3d") {
+      // Calculate all the points based on the sample count
+      const points = [];
+      for (let i = 0; i < item.samples; i++) {
+        const t =
+          item.tStart + ((item.tEnd - item.tStart) * i) / (item.samples - 1);
+        const point = item.f(t);
+        points.push(new THREE.Vector3(point.x, point.y, point.z));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geometry = new THREE.TubeGeometry(
+        curve,
+        item.samples,
+        item.thickness / 20,
+        8,
+        false
+      );
+      const material = new THREE.MeshBasicMaterial({ color: item.color });
+      const mesh = new THREE.Mesh(geometry, material);
+      this.threeMeshes.set(item.id, {
+        kind: item.kind,
+        curve,
+        geometry,
+        material,
+        mesh,
+      });
       this.threeScene.add(mesh);
     } else {
       // Ignore the camera
@@ -181,8 +242,46 @@ export class View3D {
       obj.curve.points[0].set(item.start.x, item.start.y, item.start.z);
       obj.curve.points[1].set(item.end.x, item.end.y, item.end.z);
       // Unfortunately, we can't really change the radius of the tube geometry after creation. So we recreate it.
+      // TODO: Only do this if the position or the thickness changes
       const oldGeometry = obj.geometry;
-      const geometry = new THREE.TubeGeometry(obj.curve, 64, item.thickness / 20, 8, true);
+      const geometry = new THREE.TubeGeometry(
+        obj.curve,
+        64,
+        item.thickness / 20,
+        8,
+        true
+      );
+      obj.geometry = geometry;
+      obj.mesh.geometry = geometry;
+      oldGeometry.dispose();
+    } else if (
+      obj.kind === "parametricfunction3d" &&
+      item.kind === "parametricfunction3d"
+    ) {
+      // Update stuff that can be updated before recreating the geometry
+      obj.material.color.set(item.color);
+
+      // Calculate all the points based on the sample count
+      // We need to create a new curve here
+      const points = [];
+      for (let i = 0; i < item.samples; i++) {
+        const t =
+          item.tStart + ((item.tEnd - item.tStart) * i) / (item.samples - 1);
+        const point = item.f(t);
+        points.push(new THREE.Vector3(point.x, point.y, point.z));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+
+      // Update geometry (basically like the Line3D example)
+      const oldGeometry = obj.geometry;
+      const geometry = new THREE.TubeGeometry(
+        curve,
+        item.samples,
+        item.thickness / 20,
+        8,
+        false
+      );
+      obj.curve = curve;
       obj.geometry = geometry;
       obj.mesh.geometry = geometry;
       oldGeometry.dispose();
@@ -200,7 +299,7 @@ export class View3D {
     console.log("rendering");
     this.frameScheduled = false;
     this.sizer.applyIfNeeded();
-    const cameraUpdated = this.threeOrbitControls.update()
+    const cameraUpdated = this.threeOrbitControls.update();
     this.threeRenderer.render(this.threeScene, this.threeCamera);
 
     if (cameraUpdated) {
@@ -208,7 +307,6 @@ export class View3D {
       // This will probably cause an infinite loop
       // threejs camera updating -> scene camera updating -> causing a re-render -> ...
       // but I'm not sure, maybe cameraUpdated guard already handles this, idk.
-
       // TODO: Now that we're only passing snapshots to the renderer, find a way to
       // Pass the events like orbit back to the scene so it can update the items
       // (including the camera, which is now just an item)
@@ -218,7 +316,6 @@ export class View3D {
   }
 }
 
-
 // Resize helper
 function createResponsiveThreeSizer({
   container,
@@ -227,11 +324,11 @@ function createResponsiveThreeSizer({
   invalidate,
   maxDpr = 2,
 }: {
-  container: HTMLElement,
-  renderer: THREE.WebGLRenderer,
-  camera: THREE.PerspectiveCamera,
+  container: HTMLElement;
+  renderer: THREE.WebGLRenderer;
+  camera: THREE.PerspectiveCamera;
   invalidate: () => void;
-  maxDpr: number,
+  maxDpr: number;
 }) {
   let pending = true;
   let pendingW = 1;
@@ -301,4 +398,3 @@ function createResponsiveThreeSizer({
 
   return { applyIfNeeded, dispose };
 }
-

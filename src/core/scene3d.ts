@@ -86,6 +86,13 @@ export class Scene3D {
       return value;
     }
 
+    // When the value itself is a function (e.g. parametric function fields), we
+    // need to treat it as a plain value, not as a Jotai read function.
+    if (typeof value === "function") {
+      const fnValue = value;
+      return this.atom(() => fnValue);
+    }
+
     return this.atom(value as any);
   }
 
