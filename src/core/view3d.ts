@@ -82,7 +82,7 @@ export class View3D {
       alpha: true,
       antialias: true,
     });
-    this.threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.threeRenderer.setPixelRatio(Math.max(window.devicePixelRatio, 2));
     this.threeRenderer.domElement.style.display = "block";
     this.threeRenderer.domElement.style.width = "100%";
     this.threeRenderer.domElement.style.height = "100%";
@@ -164,7 +164,8 @@ export class View3D {
       const geometry = new THREE.SphereGeometry(1);
       const material = new THREE.MeshBasicMaterial({ color: item.color });
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.scale.set(item.radius, item.radius, item.radius);
+      const size = item.radius / 20;
+      mesh.scale.set(size, size, size);
       mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
       this.threeMeshes.set(item.id, {
         kind: item.kind,
@@ -229,7 +230,8 @@ export class View3D {
     if (!obj) return;
     if (obj.kind === "point3d" && item.kind === "point3d") {
       obj.material.color.set(item.color);
-      obj.mesh.scale.set(item.radius, item.radius, item.radius);
+      const size = item.radius / 20;
+      obj.mesh.scale.set(size, size, size);
       obj.mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
     } else if (obj.kind === "line3d" && item.kind === "line3d") {
       obj.material.color.set(item.color);

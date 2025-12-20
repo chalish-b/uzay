@@ -41,7 +41,7 @@ const p3 = scene.create("point3d", {
 const line = scene.create("line3d", {
   start: p1atom,
   end: p2atom,
-  color: "yellow",
+  color: "pink",
   thickness: 1,
 });
 

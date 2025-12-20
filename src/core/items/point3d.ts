@@ -21,7 +21,7 @@ function mergeDefaults<Opts extends Point3DOptions>(options: Opts) {
     coords: options.coords ?? vec3(0, 0, 0),
     draggable: options.draggable ?? "xyz",
     color: options.color ?? "white",
-    radius: options.radius ?? 0.1,
+    radius: options.radius ?? 2,
   };
 }
 
