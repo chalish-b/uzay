@@ -12,6 +12,7 @@ export type Camera3DFields = {
   projection: CameraProjection;
   controls: CameraControls;
   fov: number;
+  zoom: number;
   near: number;
   far: number;
 }
@@ -20,11 +21,12 @@ export type Camera3DOptions = AtomLikeOptions<Camera3DFields>;
 
 function mergeDefaults<Opts extends Camera3DOptions>(options: Opts) {
   return {
-    position: options.position ?? vec3(20, 20, 20),
+    position: options.position ?? vec3(10, 10, 10),
     lookAt: options.lookAt ?? vec3(0, 0, 0),
     projection: options.projection ?? "perspective",
     controls: options.controls ?? "orbit",
-    fov: options.controls ?? 75,
+    fov: options.fov ?? 60,
+    zoom: options.zoom ?? 1,
     near: options.near ?? 0.1,
     far: options.far ?? 1000,
   };
@@ -38,6 +40,7 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
   projection: Field<CameraProjection, "projection", Opts>;
   controls: Field<CameraControls, "controls", Opts>;
   fov: Field<number, "fov", Opts>;
+  zoom: Field<number, "zoom", Opts>;
   near: Field<number, "near", Opts>;
   far: Field<number, "far", Opts>;
 
@@ -51,6 +54,7 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
     this.projection = scene.atomize(opts.projection) as any;
     this.controls = scene.atomize(opts.controls) as any;
     this.fov = scene.atomize(opts.fov) as any;
+    this.zoom = scene.atomize(opts.zoom) as any;
     this.near = scene.atomize(opts.near) as any;
     this.far = scene.atomize(opts.far) as any;
     this.addAtomFields(
@@ -59,6 +63,7 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
       this.projection,
       this.controls,
       this.fov,
+      this.zoom,
       this.near,
       this.far
     );
@@ -74,6 +79,7 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
       projection: this.projection.get(),
       controls: this.controls.get(),
       fov: this.fov.get(),
+      zoom: this.zoom.get(),
       near: this.near.get(),
       far: this.far.get(),
     }

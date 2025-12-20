@@ -38,6 +38,14 @@ const p3 = scene.create("point3d", {
   color: "green",
 });
 
+const line = scene.create("line3d", {
+  start: p1atom,
+  end: p2atom,
+  color: "yellow",
+  thickness: 1,
+});
+
+
 // Connect the button to randomize the colors of the points
 const btnElem = document.querySelector("#button-input") as HTMLButtonElement;
 btnElem.addEventListener("click", () => {
@@ -46,18 +54,14 @@ btnElem.addEventListener("click", () => {
   p1.color.set(randomColor());
   p2.color.set(randomColor());
   p3.color.set(randomColor());
-});
-
-const line = scene.create("line3d", {
-  start: p1atom,
-  end: p2atom,
-  color: "yellow",
-  thickness: 2,
+  line.color.set(randomColor());
+  line.thickness.set(randomValue() / 150);
 });
 
 const cam1 = scene.create("camera3d", {
-  position: vec3(3, 5, 3),
-  lookAt: vec3(0, 0, 1),
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  zoom: 2,
 });
 
 // View set up
