@@ -59,7 +59,7 @@ const func = scene.create("parametricfunction3d", {
   tEnd: maxTAtom,
   color: scene.atom((get) => `hsl(50, ${get(maxTAtom) * 20}%, 50%)`),
   thickness: 1,
-  samples: scene.atom((get) => get(maxTAtom) * 10),
+  samples: scene.atom((get) => get(maxTAtom) * 11),
 });
 
 // Connect the button to randomize the colors of the points

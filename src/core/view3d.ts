@@ -179,13 +179,7 @@ export class View3D {
         new THREE.Vector3(item.end.x, item.end.y, item.end.z),
       ]);
       // TODO: The line is very thick for some reason, figure out the cause
-      const geometry = new THREE.TubeGeometry(
-        curve,
-        64,
-        item.thickness / 20,
-        8,
-        true
-      );
+      const geometry = new THREE.TubeGeometry(curve, 64, item.thickness / 20);
       const material = new THREE.MeshBasicMaterial({ color: item.color });
       const mesh = new THREE.Mesh(geometry, material);
       this.threeMeshes.set(item.id, {
@@ -200,7 +194,7 @@ export class View3D {
       // Calculate all the points based on the sample count
       const points = [];
       // TODO: Stop hardcoding this minimum sample count
-      const sampleCount = item.samples > 8 ? item.samples : 8;
+      const sampleCount = Math.round(Math.max(item.samples, 8));
       for (let i = 0; i < sampleCount; i++) {
         const t =
           item.tStart + ((item.tEnd - item.tStart) * i) / (sampleCount - 1);
@@ -211,9 +205,7 @@ export class View3D {
       const geometry = new THREE.TubeGeometry(
         curve,
         sampleCount,
-        item.thickness / 20,
-        8,
-        false
+        item.thickness / 20
       );
       const material = new THREE.MeshBasicMaterial({ color: item.color });
       const mesh = new THREE.Mesh(geometry, material);
@@ -249,9 +241,7 @@ export class View3D {
       const geometry = new THREE.TubeGeometry(
         obj.curve,
         64,
-        item.thickness / 20,
-        8,
-        true
+        item.thickness / 20
       );
       obj.geometry = geometry;
       obj.mesh.geometry = geometry;
@@ -267,7 +257,7 @@ export class View3D {
       // We need to create a new curve here
       const points = [];
       // TODO: Stop hardcoding this minimum sample count
-      const sampleCount = item.samples > 8 ? item.samples : 8;
+      const sampleCount = Math.round(Math.max(item.samples, 8));
       for (let i = 0; i < sampleCount; i++) {
         const t =
           item.tStart + ((item.tEnd - item.tStart) * i) / (sampleCount - 1);
@@ -275,15 +265,12 @@ export class View3D {
         points.push(new THREE.Vector3(point.x, point.y, point.z));
       }
       const curve = new THREE.CatmullRomCurve3(points);
-
       // Update geometry (basically like the Line3D example)
       const oldGeometry = obj.geometry;
       const geometry = new THREE.TubeGeometry(
         curve,
         sampleCount,
-        item.thickness / 20,
-        8,
-        false
+        item.thickness / 20
       );
       obj.curve = curve;
       obj.geometry = geometry;
