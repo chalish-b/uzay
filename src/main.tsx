@@ -55,10 +55,11 @@ maxTAtom.sub(() => {
 });
 const func = scene.create("parametricfunction3d", {
   f: (t) => vec3(Math.sin(t) * 2, t, Math.cos(t) * 2),
-  tStart: 0,
+  tStart: scene.atom((get) => -get(maxTAtom)),
   tEnd: maxTAtom,
-  color: "purple",
+  color: scene.atom((get) => `hsl(50, ${get(maxTAtom) * 20}%, 50%)`),
   thickness: 1,
+  samples: scene.atom((get) => get(maxTAtom) * 10),
 });
 
 // Connect the button to randomize the colors of the points
@@ -73,7 +74,6 @@ btnElem.addEventListener("click", () => {
   line.color.set(randomColor());
   line.thickness.set(randomValue() / 150);
   func.thickness.set(randomValue() / 150);
-  func.color.set(randomColor());
 });
 
 const cam1 = scene.create("camera3d", {

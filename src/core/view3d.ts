@@ -199,16 +199,18 @@ export class View3D {
     } else if (item.kind === "parametricfunction3d") {
       // Calculate all the points based on the sample count
       const points = [];
-      for (let i = 0; i < item.samples; i++) {
+      // TODO: Stop hardcoding this minimum sample count
+      const sampleCount = item.samples > 8 ? item.samples : 8;
+      for (let i = 0; i < sampleCount; i++) {
         const t =
-          item.tStart + ((item.tEnd - item.tStart) * i) / (item.samples - 1);
+          item.tStart + ((item.tEnd - item.tStart) * i) / (sampleCount - 1);
         const point = item.f(t);
         points.push(new THREE.Vector3(point.x, point.y, point.z));
       }
       const curve = new THREE.CatmullRomCurve3(points);
       const geometry = new THREE.TubeGeometry(
         curve,
-        item.samples,
+        sampleCount,
         item.thickness / 20,
         8,
         false
@@ -264,9 +266,11 @@ export class View3D {
       // Calculate all the points based on the sample count
       // We need to create a new curve here
       const points = [];
-      for (let i = 0; i < item.samples; i++) {
+      // TODO: Stop hardcoding this minimum sample count
+      const sampleCount = item.samples > 8 ? item.samples : 8;
+      for (let i = 0; i < sampleCount; i++) {
         const t =
-          item.tStart + ((item.tEnd - item.tStart) * i) / (item.samples - 1);
+          item.tStart + ((item.tEnd - item.tStart) * i) / (sampleCount - 1);
         const point = item.f(t);
         points.push(new THREE.Vector3(point.x, point.y, point.z));
       }
@@ -276,7 +280,7 @@ export class View3D {
       const oldGeometry = obj.geometry;
       const geometry = new THREE.TubeGeometry(
         curve,
-        item.samples,
+        sampleCount,
         item.thickness / 20,
         8,
         false
