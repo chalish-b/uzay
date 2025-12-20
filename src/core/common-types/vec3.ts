@@ -8,6 +8,10 @@ export namespace Vec3 {
   export const ZERO = Object.freeze(vec3(0, 0, 0));
   export const ONE = Object.freeze(vec3(1, 1, 1));
 
+  export function asArray(vec: Vec3): [number, number, number] {
+    return [vec.x, vec.y, vec.z];
+  }
+
   export function add(...vectors: Vec3[]): Vec3 {
     const result = vec3(0, 0, 0);
     for (const vec of vectors) {

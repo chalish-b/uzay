@@ -9,6 +9,16 @@ const scene = new Scene3D();
 const p1atom = scene.atom(vec3(1, 2, 3));
 const p2atom = scene.atom((get) => Vec3.scaled(get(p1atom), 2));
 
+// Connect it to the range input
+const rangeInput = document.querySelector("#slider-input") as HTMLInputElement;
+rangeInput.addEventListener("change", (e) => {
+  const value = +(e.target as HTMLInputElement).value;
+  p1atom.set((prev) => vec3(prev.x, value, prev.z))
+})
+p1atom.sub(() => {
+  rangeInput.value = p1atom.get().y.toFixed(2);
+})
+
 // Scene objects set up
 // Passing a primitive atom
 const p1 = scene.create("point3d", {
@@ -41,18 +51,5 @@ const cam1 = scene.camera({
 });
 
 // View set up
-const container = document.querySelector("#board-container");
+const container = document.querySelector("#board-container") as HTMLElement;
 const view = new View3D(scene, cam1, container);
-
-// Idea for cameras:
-// Cameras also live in the scene, but they aren't items.
-// They have a special set called "cameras" just like we have "items".
-// And each view can have a single camera it views through.
-//
-// Or, cameras are separate objects, and View takes in Scene + Camera
-// This way, different views can have a shared camera but different scenes.
-//
-// Actually, since camera has atom fields, it also requires a store, which
-// is tied to a scene.
-// I guess having something like scene.camera() is the best option, just like how
-// we have scene.create() for items

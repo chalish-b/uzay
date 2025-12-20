@@ -5,7 +5,9 @@ import {
   type WritableAtom,
 } from "jotai";
 
-import { type Store } from "jotai/vanilla/store";
+import { type createStore } from "jotai/vanilla";
+
+export type Store = ReturnType<typeof createStore>;
 
 // Copied from Jotai source code since these are not public
 type Getter = <Value>(atom: Atom<Value>) => Value;

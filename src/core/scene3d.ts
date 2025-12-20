@@ -1,4 +1,4 @@
-import { createStore, type Store } from "jotai/vanilla/store";
+import { createStore } from "jotai/vanilla";
 import { type ItemId } from "./item";
 import {
   type ItemKind,
@@ -7,7 +7,7 @@ import {
   type ItemInstance,
   itemFactory,
 } from "./common-types/item-registry";
-import type { SceneAtomFunction, BoundAtom } from "./atom-wrapper";
+import type { SceneAtomFunction, BoundAtom, Store } from "./atom-wrapper";
 import { createSceneAtom } from "./atom-wrapper";
 import type { Atom, PrimitiveAtom } from "jotai";
 import { Camera3D, type Camera3DOptions, type CameraId } from "./camera3d";
@@ -24,7 +24,7 @@ export class Scene3D {
   // Called by items when their state changes.
   // Signals the View / Renderer to schedule a re-render.
   // This is manually assigned by the View object. It's not in the constructor.
-  invalidateScene = () => { };
+  invalidateScene = () => {};
 
   constructor() {
     this.store = createStore();
@@ -36,10 +36,12 @@ export class Scene3D {
     options: Opts,
     ..._check: Opts extends ItemOptions<K> ? [] : ["Invalid options for kind"]
   ): ItemInstance<K, Opts> {
-    const item = (itemFactory[kind] as (scene: Scene3D, options: Opts) => ItemInstance<K, Opts>)(this, options as any) as ItemInstance<
-      K,
-      Opts
-    >;
+    const item = (
+      itemFactory[kind] as (
+        scene: Scene3D,
+        options: Opts
+      ) => ItemInstance<K, Opts>
+    )(this, options as any) as ItemInstance<K, Opts>;
     this.items.set(item.id, item);
     item.store = this.store;
 
@@ -68,9 +70,7 @@ export class Scene3D {
   atomize<V, A extends Atom<V>>(value: BoundAtom<A>): BoundAtom<A>;
   atomize<T>(value: T): BoundAtom<PrimitiveAtom<T>>;
   atomize(value: unknown): any {
-    const isBoundAtom = <T>(
-      value: unknown
-    ): value is BoundAtom<Atom<unknown>> => {
+    const isBoundAtom = (value: unknown): value is BoundAtom<Atom<unknown>> => {
       return (
         value !== null &&
         typeof value === "object" &&
