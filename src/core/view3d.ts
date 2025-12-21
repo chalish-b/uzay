@@ -34,6 +34,27 @@ type ThreeSceneTypes = {
     material: THREE.MeshBasicMaterial;
     mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
   };
+  axes3d: {
+    kind: "axes3d";
+    x: {
+      curve: THREE.CatmullRomCurve3;
+      geometry: THREE.TubeGeometry;
+      material: THREE.MeshBasicMaterial;
+      mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+    };
+    y: {
+      curve: THREE.CatmullRomCurve3;
+      geometry: THREE.TubeGeometry;
+      material: THREE.MeshBasicMaterial;
+      mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+    };
+    z: {
+      curve: THREE.CatmullRomCurve3;
+      geometry: THREE.TubeGeometry;
+      material: THREE.MeshBasicMaterial;
+      mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+    };
+  };
 };
 
 type ThreeSceneObject<K extends ItemKind = ItemKind> = ThreeSceneTypes[K];
@@ -218,6 +239,68 @@ export class View3D {
         mesh,
       });
       this.threeScene.add(mesh);
+    } else if (item.kind === "axes3d") {
+      const xRange =
+        typeof item.x !== "boolean" ? item.x : ([-100, 100] as const);
+      const yRange =
+        typeof item.y !== "boolean" ? item.y : ([-100, 100] as const);
+      const zRange =
+        typeof item.z !== "boolean" ? item.z : ([-100, 100] as const);
+      const xCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(xRange[0], 0, 0),
+        new THREE.Vector3(xRange[1], 0, 0),
+      ]);
+      const yCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, yRange[0], 0),
+        new THREE.Vector3(0, yRange[1], 0),
+      ]);
+      const zCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0, zRange[0]),
+        new THREE.Vector3(0, 0, zRange[1]),
+      ]);
+      const xGeometry = new THREE.TubeGeometry(xCurve, 64, item.thickness / 20);
+      const yGeometry = new THREE.TubeGeometry(yCurve, 64, item.thickness / 20);
+      const zGeometry = new THREE.TubeGeometry(zCurve, 64, item.thickness / 20);
+      const xMaterial = new THREE.MeshBasicMaterial({ color: item.color });
+      const yMaterial = new THREE.MeshBasicMaterial({ color: item.color });
+      const zMaterial = new THREE.MeshBasicMaterial({ color: item.color });
+      const xMesh = new THREE.Mesh(xGeometry, xMaterial);
+      const yMesh = new THREE.Mesh(yGeometry, yMaterial);
+      const zMesh = new THREE.Mesh(zGeometry, zMaterial);
+      this.threeMeshes.set(item.id, {
+        kind: item.kind,
+        x: {
+          curve: xCurve,
+          geometry: xGeometry,
+          material: xMaterial,
+          mesh: xMesh,
+        },
+        y: {
+          curve: yCurve,
+          geometry: yGeometry,
+          material: yMaterial,
+          mesh: yMesh,
+        },
+        z: {
+          curve: zCurve,
+          geometry: zGeometry,
+          material: zMaterial,
+          mesh: zMesh,
+        },
+      });
+      this.threeScene.add(xMesh);
+      this.threeScene.add(yMesh);
+      this.threeScene.add(zMesh);
+      // If the axes are "false", just hide the meshes
+      if (item.x === false) {
+        xMesh.visible = false;
+      }
+      if (item.y === false) {
+        yMesh.visible = false;
+      }
+      if (item.z === false) {
+        zMesh.visible = false;
+      }
     } else {
       // Ignore the camera
     }

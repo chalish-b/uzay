@@ -53,6 +53,7 @@ rangeInput.addEventListener("input", (e) => {
 maxTAtom.sub(() => {
   rangeInput.value = maxTAtom.get().toFixed(2);
 });
+
 const func = scene.create("parametricfunction3d", {
   f: (t) => vec3(Math.sin(t) * 2, t, Math.cos(t) * 2),
   tStart: scene.atom((get) => -get(maxTAtom)),
@@ -60,6 +61,19 @@ const func = scene.create("parametricfunction3d", {
   color: scene.atom((get) => `hsl(50, ${get(maxTAtom) * 20}%, 50%)`),
   thickness: 1,
   samples: scene.atom((get) => get(maxTAtom) * 11),
+});
+
+const funcAtom = scene.atom((get) => {
+  const a = get(maxTAtom);
+  return (t: number) => vec3(t, Math.sin(t * a), 0);
+});
+const func2 = scene.create("parametricfunction3d", {
+  f: funcAtom,
+  tStart: -20,
+  tEnd: 20,
+  color: "white",
+  thickness: 0.5,
+  samples: scene.atom((get) => get(maxTAtom) * 256),
 });
 
 // Connect the button to randomize the colors of the points
@@ -74,6 +88,10 @@ btnElem.addEventListener("click", () => {
   line.color.set(randomColor());
   line.thickness.set(randomValue() / 150);
   func.thickness.set(randomValue() / 150);
+});
+
+const axes = scene.create("axes3d", {
+  y: false,
 });
 
 const cam1 = scene.create("camera3d", {
