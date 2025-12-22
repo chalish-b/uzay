@@ -14,6 +14,7 @@ export type Grid3DFields = {
   // Should probably replace this with just an "infinite" string.
   range1: boolean | [number, number];
   range2: boolean | [number, number];
+  offset: number;
   gap: number;
   color: Color;
   thickness: number;
@@ -26,6 +27,7 @@ function mergeDefaults<Opts extends Grid3DOptions>(options: Opts) {
     plane: options.plane ?? "xz",
     range1: options.range1 ?? true,
     range2: options.range2 ?? true,
+    offset: options.offset ?? 0,
     gap: options.gap ?? 1,
     color: options.color ?? "white",
     thickness: options.thickness ?? 1,
@@ -43,6 +45,7 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
   range1: Field<boolean | [number, number], "range1", Opts>;
   range2: Field<boolean | [number, number], "range2", Opts>;
   gap: Field<number, "gap", Opts>;
+  offset: Field<number, "offset", Opts>;
   color: Field<Color, "color", Opts>;
   thickness: Field<number, "thickness", Opts>;
 
@@ -56,6 +59,7 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
     this.range1 = scene.atomize(opts.range1) as any;
     this.range2 = scene.atomize(opts.range2) as any;
     this.gap = scene.atomize(opts.gap) as any;
+    this.offset = scene.atomize(opts.offset) as any;
     this.color = scene.atomize(opts.color) as any;
     this.thickness = scene.atomize(opts.thickness) as any;
     this.addAtomFields(
@@ -64,6 +68,7 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
       this.range1,
       this.range2,
       this.gap,
+      this.offset,
       this.color,
       this.thickness
     );
@@ -78,6 +83,7 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
       plane: this.plane.get(),
       range1: this.range1.get(),
       range2: this.range2.get(),
+      offset: this.offset.get(),
       gap: this.gap.get(),
       color: this.color.get(),
       thickness: this.thickness.get(),

@@ -132,16 +132,24 @@ const line = scene.create("line3d", {
 
 const axes = scene.create("axes3d", {
   x: [-10, 10],
-  y: false,
-  z: [-10, 10],
+  y: [-10, 10],
+  z: false,
   thickness: 0.5,
 });
 
 const grid = scene.create("grid3d", {
+  plane: "xy",
   thickness: 2,
   range1: [-10, 10],
-  range2: [-10, 10],
-  color: "#aaa",
+  range2: [0, 10],
+  color: "#555",
+})
+const grid2 = scene.create("grid3d", {
+  plane: "xz",
+  thickness: 2,
+  range1: [-10, 10],
+  range2: [0, 10],
+  color: "#555",
 })
 
 const cam1 = scene.create("camera3d", {

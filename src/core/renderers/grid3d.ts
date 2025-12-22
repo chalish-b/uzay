@@ -15,36 +15,36 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
     for (let i = range1[0]; i <= range1[1]; i += item.gap) {
       if (item.plane === "xz") {
         positions.push([
-          vec3(i, 0, range2[0]),
-          vec3(i, 0, range2[1]),
+          vec3(i, item.offset, range2[0]),
+          vec3(i, item.offset, range2[1]),
         ]);
       } else if (item.plane === "xy") {
         positions.push([
-          vec3(i, range2[0], 0),
-          vec3(i, range2[1], 0),
+          vec3(i, range2[0], item.offset),
+          vec3(i, range2[1], item.offset),
         ]);
       } else if (item.plane === "yz") {
         positions.push([
-          vec3(0, i, range2[0]),
-          vec3(0, i, range2[1]),
+          vec3(item.offset, i, range2[0]),
+          vec3(item.offset, i, range2[1]),
         ]);
       }
     }
     for (let i = range2[0]; i <= range2[1]; i += item.gap) {
       if (item.plane === "xz") {
         positions.push([
-          vec3(range1[0], 0, i),
-          vec3(range1[1], 0, i),
+          vec3(range1[0], item.offset, i),
+          vec3(range1[1], item.offset, i),
         ]);
       } else if (item.plane === "xy") {
         positions.push([
-          vec3(range1[0], i, 0),
-          vec3(range1[1], i, 0),
+          vec3(range1[0], i, item.offset),
+          vec3(range1[1], i, item.offset),
         ]);
       } else if (item.plane === "yz") {
         positions.push([
-          vec3(0, range1[0], i),
-          vec3(0, range1[1], i),
+          vec3(item.offset, range1[0], i),
+          vec3(item.offset, range1[1], i),
         ]);
       }
     }
@@ -88,12 +88,8 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
   },
 
   dispose(obj: ThreeSceneTypes["grid3d"], threeScene: THREE.Scene): void {
-    for (const mesh of obj.meshes) {
-      threeScene.remove(mesh);
-    }
-    for (const geometry of obj.geometries) {
-      geometry.dispose();
-    }
+    threeScene.remove(obj.mesh);
+    obj.geometry.dispose();
     obj.material.dispose();
   },
 };
