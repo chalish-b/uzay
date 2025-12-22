@@ -62,7 +62,8 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
     geometry.setPositions(flatPos);
     const material = new LineMaterial({
       color: item.color,
-      linewidth: item.thickness
+      linewidth: item.thickness,
+      fog: true,
     });
 
     // TODO: Make sure you call this based on the container element's size,

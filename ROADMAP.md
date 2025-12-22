@@ -44,7 +44,8 @@
 ## Future
 
 - Infinite grid and axes
-- Instead of gap, do something like "lines per unit" so that it's never misaligned.
+- Camera controls and syncing between `Scene <-> View`
+  - Add some kind of camera reset button while you're at it, it's really easy to lose track of the position and stuff.
 - Axes labels
 - Filled in shaped / functions
 - Opacity option for stuff
