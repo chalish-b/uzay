@@ -30,7 +30,7 @@ function mergeDefaults<Opts extends Grid3DOptions>(options: Opts) {
     offset: options.offset ?? 0,
     gap: options.gap ?? 1,
     color: options.color ?? "white",
-    thickness: options.thickness ?? 1,
+    thickness: options.thickness ?? 2,
   };
 }
 

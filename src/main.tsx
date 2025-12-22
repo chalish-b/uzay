@@ -59,7 +59,7 @@ const helix = scene.create("parametricfunction3d", {
   f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
   tStart: 0,
   tEnd: xAtom,
-  color: "blue",
+  color: "dodgerblue",
   thickness: 1,
   samples: scene.atom((get) => get(xAtom) * 16),
 });
@@ -69,7 +69,7 @@ const point = scene.create("point3d", {
     const x = get(xAtom);
     return vec3(x, Math.sin(x), Math.cos(x));
   }),
-  color: "yellow",
+  color: "gold",
   radius: 2,
 });
 
@@ -81,7 +81,7 @@ const circle = scene.create("parametricfunction3d", {
   f: circleAtom,
   tStart: 0,
   tEnd: Math.PI * 2 + 0.01,
-  color: "red",
+  color: "crimson",
   thickness: 1,
   samples: 32,
 });
@@ -99,7 +99,7 @@ const line = scene.create("line3d", {
   end: scene.atom((get) =>
     vec3(get(xAtom), Math.sin(get(xAtom)), Math.cos(get(xAtom)))
   ),
-  color: "yellow",
+  color: "gold",
   thickness: 1,
 });
 
@@ -132,23 +132,21 @@ const line = scene.create("line3d", {
 
 const axes = scene.create("axes3d", {
   x: [-10, 10],
-  y: [-10, 10],
-  z: false,
+  y: [0, 10],
+  z: [0, 10],
   thickness: 0.5,
 });
 
-const grid = scene.create("grid3d", {
-  plane: "xy",
-  thickness: 2,
-  range1: [-10, 10],
-  range2: [0, 10],
-  color: "#555",
-})
+// const grid = scene.create("grid3d", {
+//   plane: "xy",
+//   range1: [-10, 10],
+//   range2: [0, 10],
+//   color: "#555",
+// })
 const grid2 = scene.create("grid3d", {
   plane: "xz",
-  thickness: 2,
   range1: [-10, 10],
-  range2: [0, 10],
+  range2: [-10, 10],
   color: "#555",
 })
 
