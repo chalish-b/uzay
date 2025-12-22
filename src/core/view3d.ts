@@ -3,61 +3,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { Camera3D, Camera3DFields } from "./items/camera3d";
 import type { Scene3D, SceneSnapshot } from "./scene3d";
 import { Vec3 } from "./common-types/vec3";
-import type {
-  ItemId,
-  ItemKind,
-  ItemSnapshot,
-} from "./common-types/item-registry";
+import type { ItemId, ItemSnapshot } from "./common-types/item-registry";
 import type { AtomLikeOptions } from "./atom-wrapper";
-
-type ThreeSceneTypes = {
-  point3d: {
-    kind: "point3d";
-    geometry: THREE.SphereGeometry;
-    material: THREE.MeshBasicMaterial;
-    mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
-  };
-  line3d: {
-    kind: "line3d";
-    curve: THREE.CatmullRomCurve3;
-    geometry: THREE.TubeGeometry;
-    material: THREE.MeshBasicMaterial;
-    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
-  };
-  camera3d: {
-    kind: "camera3d";
-  };
-  parametricfunction3d: {
-    kind: "parametricfunction3d";
-    curve: THREE.CatmullRomCurve3;
-    geometry: THREE.TubeGeometry;
-    material: THREE.MeshBasicMaterial;
-    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
-  };
-  axes3d: {
-    kind: "axes3d";
-    x: {
-      curve: THREE.CatmullRomCurve3;
-      geometry: THREE.TubeGeometry;
-      material: THREE.MeshBasicMaterial;
-      mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
-    };
-    y: {
-      curve: THREE.CatmullRomCurve3;
-      geometry: THREE.TubeGeometry;
-      material: THREE.MeshBasicMaterial;
-      mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
-    };
-    z: {
-      curve: THREE.CatmullRomCurve3;
-      geometry: THREE.TubeGeometry;
-      material: THREE.MeshBasicMaterial;
-      mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
-    };
-  };
-};
-
-type ThreeSceneObject<K extends ItemKind = ItemKind> = ThreeSceneTypes[K];
+import { getRenderer, type ThreeSceneObject } from "./renderers";
 
 export class View3D {
   scene: Scene3D;
@@ -171,7 +119,7 @@ export class View3D {
     // If after going through all the items in the new snapshot, we still have unrendered
     // items, that means that item was removed from the scene. We remove it as well.
     for (const id of unrenderedItems) {
-      // this.removeItem(id);
+      this.removeItem(id);
     }
 
     // Render the updated scene and finish
@@ -181,187 +129,28 @@ export class View3D {
   }
 
   createItem(item: ItemSnapshot) {
-    if (item.kind === "point3d") {
-      const geometry = new THREE.SphereGeometry(1);
-      const material = new THREE.MeshBasicMaterial({ color: item.color });
-      const mesh = new THREE.Mesh(geometry, material);
-      const size = item.radius / 20;
-      mesh.scale.set(size, size, size);
-      mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
-      this.threeMeshes.set(item.id, {
-        kind: item.kind,
-        geometry,
-        material,
-        mesh,
-      });
-      this.threeScene.add(mesh);
-    } else if (item.kind === "line3d") {
-      const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(item.start.x, item.start.y, item.start.z),
-        new THREE.Vector3(item.end.x, item.end.y, item.end.z),
-      ]);
-      // TODO: The line is very thick for some reason, figure out the cause
-      const geometry = new THREE.TubeGeometry(curve, 64, item.thickness / 20);
-      const material = new THREE.MeshBasicMaterial({ color: item.color });
-      const mesh = new THREE.Mesh(geometry, material);
-      this.threeMeshes.set(item.id, {
-        kind: item.kind,
-        curve,
-        geometry,
-        material,
-        mesh,
-      });
-      this.threeScene.add(mesh);
-    } else if (item.kind === "parametricfunction3d") {
-      // Calculate all the points based on the sample count
-      const points = [];
-      // TODO: Stop hardcoding this minimum sample count
-      const sampleCount = Math.round(Math.max(item.samples, 8));
-      for (let i = 0; i < sampleCount; i++) {
-        const t =
-          item.tStart + ((item.tEnd - item.tStart) * i) / (sampleCount - 1);
-        const point = item.f(t);
-        points.push(new THREE.Vector3(point.x, point.y, point.z));
-      }
-      const curve = new THREE.CatmullRomCurve3(points);
-      const geometry = new THREE.TubeGeometry(
-        curve,
-        sampleCount,
-        item.thickness / 20
-      );
-      const material = new THREE.MeshBasicMaterial({ color: item.color });
-      const mesh = new THREE.Mesh(geometry, material);
-      this.threeMeshes.set(item.id, {
-        kind: item.kind,
-        curve,
-        geometry,
-        material,
-        mesh,
-      });
-      this.threeScene.add(mesh);
-    } else if (item.kind === "axes3d") {
-      const xRange =
-        typeof item.x !== "boolean" ? item.x : ([-100, 100] as const);
-      const yRange =
-        typeof item.y !== "boolean" ? item.y : ([-100, 100] as const);
-      const zRange =
-        typeof item.z !== "boolean" ? item.z : ([-100, 100] as const);
-      const xCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(xRange[0], 0, 0),
-        new THREE.Vector3(xRange[1], 0, 0),
-      ]);
-      const yCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, yRange[0], 0),
-        new THREE.Vector3(0, yRange[1], 0),
-      ]);
-      const zCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0, zRange[0]),
-        new THREE.Vector3(0, 0, zRange[1]),
-      ]);
-      const xGeometry = new THREE.TubeGeometry(xCurve, 64, item.thickness / 20);
-      const yGeometry = new THREE.TubeGeometry(yCurve, 64, item.thickness / 20);
-      const zGeometry = new THREE.TubeGeometry(zCurve, 64, item.thickness / 20);
-      const xMaterial = new THREE.MeshBasicMaterial({ color: item.color });
-      const yMaterial = new THREE.MeshBasicMaterial({ color: item.color });
-      const zMaterial = new THREE.MeshBasicMaterial({ color: item.color });
-      const xMesh = new THREE.Mesh(xGeometry, xMaterial);
-      const yMesh = new THREE.Mesh(yGeometry, yMaterial);
-      const zMesh = new THREE.Mesh(zGeometry, zMaterial);
-      this.threeMeshes.set(item.id, {
-        kind: item.kind,
-        x: {
-          curve: xCurve,
-          geometry: xGeometry,
-          material: xMaterial,
-          mesh: xMesh,
-        },
-        y: {
-          curve: yCurve,
-          geometry: yGeometry,
-          material: yMaterial,
-          mesh: yMesh,
-        },
-        z: {
-          curve: zCurve,
-          geometry: zGeometry,
-          material: zMaterial,
-          mesh: zMesh,
-        },
-      });
-      this.threeScene.add(xMesh);
-      this.threeScene.add(yMesh);
-      this.threeScene.add(zMesh);
-      // If the axes are "false", just hide the meshes
-      if (item.x === false) {
-        xMesh.visible = false;
-      }
-      if (item.y === false) {
-        yMesh.visible = false;
-      }
-      if (item.z === false) {
-        zMesh.visible = false;
-      }
-    } else {
-      // Ignore the camera
-    }
+    const renderer = getRenderer(item.kind);
+    const obj = renderer.create(item, this.threeScene);
+    this.threeMeshes.set(item.id, obj);
   }
 
   updateItem(item: ItemSnapshot) {
-    // If we call this function, we can assume that the item exists in the scene
-    // And also assume its "kind" is the same as the mesh.kind
     const obj = this.threeMeshes.get(item.id);
     if (!obj) return;
-    if (obj.kind === "point3d" && item.kind === "point3d") {
-      obj.material.color.set(item.color);
-      const size = item.radius / 20;
-      obj.mesh.scale.set(size, size, size);
-      obj.mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
-    } else if (obj.kind === "line3d" && item.kind === "line3d") {
-      obj.material.color.set(item.color);
-      obj.curve.points[0].set(item.start.x, item.start.y, item.start.z);
-      obj.curve.points[1].set(item.end.x, item.end.y, item.end.z);
-      // Unfortunately, we can't really change the radius of the tube geometry after creation. So we recreate it.
-      // TODO: Only do this if the position or the thickness changes
-      const oldGeometry = obj.geometry;
-      const geometry = new THREE.TubeGeometry(
-        obj.curve,
-        64,
-        item.thickness / 20
-      );
-      obj.geometry = geometry;
-      obj.mesh.geometry = geometry;
-      oldGeometry.dispose();
-    } else if (
-      obj.kind === "parametricfunction3d" &&
-      item.kind === "parametricfunction3d"
-    ) {
-      // Update stuff that can be updated before recreating the geometry
-      obj.material.color.set(item.color);
+    // Ensure the kind matches
+    if (obj.kind !== item.kind) return;
+    const renderer = getRenderer(item.kind);
+    renderer.update(item, obj);
+  }
 
-      // Calculate all the points based on the sample count
-      // We need to create a new curve here
-      const points = [];
-      // TODO: Stop hardcoding this minimum sample count
-      const sampleCount = Math.round(Math.max(item.samples, 8));
-      for (let i = 0; i < sampleCount; i++) {
-        const t =
-          item.tStart + ((item.tEnd - item.tStart) * i) / (sampleCount - 1);
-        const point = item.f(t);
-        points.push(new THREE.Vector3(point.x, point.y, point.z));
-      }
-      const curve = new THREE.CatmullRomCurve3(points);
-      // Update geometry (basically like the Line3D example)
-      const oldGeometry = obj.geometry;
-      const geometry = new THREE.TubeGeometry(
-        curve,
-        sampleCount,
-        item.thickness / 20
-      );
-      obj.curve = curve;
-      obj.geometry = geometry;
-      obj.mesh.geometry = geometry;
-      oldGeometry.dispose();
+  removeItem(id: ItemId) {
+    const obj = this.threeMeshes.get(id);
+    if (!obj) return;
+    const renderer = getRenderer(obj.kind);
+    if (renderer.dispose) {
+      renderer.dispose(obj, this.threeScene);
     }
+    this.threeMeshes.delete(id);
   }
 
   requestRender() {
@@ -430,7 +219,7 @@ function createResponsiveThreeSizer({
   ro.observe(container);
 
   function applyIfNeeded() {
-    // DPR changes (zoom / different monitor) won’t trigger ResizeObserver reliably
+    // DPR changes (zoom / different monitor) won't trigger ResizeObserver reliably
     const dpr = window.devicePixelRatio;
     if (dpr !== lastDpr) {
       lastDpr = dpr;

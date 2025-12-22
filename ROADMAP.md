@@ -1,6 +1,7 @@
 ## Version 0.1
 
 ### Features
+
 - Orbit and zoom camera
 - A grid on the xy plane
   - No infinity yet, just a limited value
@@ -18,6 +19,7 @@
 - No atom abstractions. Just raw Jotai atom
 
 ### Implementation Details
+
 - The `Scene` and `View` objects exposed as the API. Nothing else.
 - The `View` manages the three.js renderer. It's not exposed to the user.
 - `View` handles the coordinate system transformations.
@@ -25,12 +27,37 @@
   - Every field in `Item` is an atom. It's a single, unified system for all reactive stuff.
 
 ### MVP
+
 - A demo where you can move points around using sliders
 - The line defined by the end points is also updated as we move the points.
 - We can orbit around the 3D scene
 - There is a grid and axis lines
 
-
 ## Version 0.2
 
 ### Features
+
+- Interactions
+  - Being able to drag points, and having those changes reflected back in the atoms / updating other relations.
+
+
+## Future
+
+- Infinite grid and axes
+- Axes labels
+- Filled in shaped / functions
+- Better looking visuals
+  - Better materials with shaders and stuff
+  - Custom shader support
+  - Options like glow, bloom etc.
+  - More granular customization, like a function plot having a color gradient for the curve (not just a single color)
+- Helper functions to encapsulate some complex logic
+  - In React wrapper, these would just be some components that include the primitives.
+  - For vanilla library these are function that can take the scene object, and some options, and set up some complex scenarios.
+  - Basically just helper functions that you can technically do yourself, but provided for common use cases.
+  - I think this could simplify some of the stuff, and help us move things from the renderer / scene to the application logic.
+    - For example, maybe an "Axis" object could just be a single axis. But we can create a helper function to create three different axes at the same time for common configs
+    - Same with grids, a grid could just be a 2D plane, and we can have a function to set up a common grid + axes scene.
+  - Ideas:
+    - Function plot with area under it filled in
+    - Line with two points at the ends
