@@ -134,8 +134,15 @@ const axes = scene.create("axes3d", {
   x: [-1, 50],
   y: [-1, 50],
   z: [-1, 50],
-  thickness: 0.3,
+  thickness: 0.5,
 });
+
+const grid = scene.create("grid3d", {
+  thickness: 0.3,
+  range1: [-10, 10],
+  range2: [-10, 10],
+  color: "#555",
+})
 
 const cam1 = scene.create("camera3d", {
   position: vec3(10, 10, 10),

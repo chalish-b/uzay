@@ -19,7 +19,6 @@ export class View3D {
   threeOrbitControls: OrbitControls;
   threeRenderer: THREE.WebGLRenderer;
   frameScheduled: boolean = false;
-
   threeMeshes: Map<ItemId, ThreeSceneObject> = new Map();
 
   // Scene snapshots. Initially an empty list, so all items will be added
@@ -70,6 +69,11 @@ export class View3D {
       this.requestRender()
     );
 
+    // Add fog with the same background color so that things fade out
+    // TODO: The View3D class probably needs some options as well, preferrably reactive / atomic
+    // Or put stuff like this into the Scene, idk
+    // this.threeScene.fog = new THREE.Fog("black", 1, 100);
+
     this.sizer = createResponsiveThreeSizer({
       container: containerElem,
       maxDpr: 2,
@@ -77,10 +81,6 @@ export class View3D {
       camera: this.threeCamera,
       invalidate: () => this.requestRender(),
     });
-
-    // Handle canvas resizing
-    // const resizeObserver = new ResizeObserver(() => this.onResize())
-    // resizeObserver.observe(containerElem);
 
     // Connect the scene's invalidate function to update the three.js scene and rerender
     scene.listenForSceneInvalidation(() => {

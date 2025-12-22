@@ -53,9 +53,9 @@ export type ThreeSceneTypes = {
   };
   grid3d: {
     kind: "grid3d";
-    geometry: THREE.BufferGeometry;
-    material: THREE.LineBasicMaterial;
-    mesh: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+    geometries: THREE.TubeGeometry[];
+    material: THREE.MeshBasicMaterial;
+    meshes: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>[];
   };
 };
 

@@ -46,6 +46,8 @@
 - Infinite grid and axes
 - Axes labels
 - Filled in shaped / functions
+- Opacity option for stuff
+  - We can't directly pass an rgba color to the color property, so we need a separate field
 - Better looking visuals
   - Better materials with shaders and stuff
   - Custom shader support
