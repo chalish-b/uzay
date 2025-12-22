@@ -44,6 +44,8 @@
 ## Future
 
 - Infinite grid and axes
+- An "offset" option for grid to shift it along an axis
+  - Like, if the plane is "xz", then the offset would move it on the y axis, up and down.
 - Axes labels
 - Filled in shaped / functions
 - Opacity option for stuff

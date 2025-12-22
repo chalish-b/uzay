@@ -47,7 +47,10 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     threeScene.add(xMesh);
     threeScene.add(yMesh);
     threeScene.add(zMesh);
+
     // If the axes are "false", just hide the meshes
+    // TODO: This is inefficient. It would just be better to not construct the axis
+    // in the first place if it's disabled. But it's fine for now.
     if (item.x === false) {
       xMesh.visible = false;
     }

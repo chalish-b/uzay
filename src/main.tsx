@@ -131,17 +131,17 @@ const line = scene.create("line3d", {
 // });
 
 const axes = scene.create("axes3d", {
-  x: [-1, 50],
-  y: [-1, 50],
-  z: [-1, 50],
+  x: [-10, 10],
+  y: false,
+  z: [-10, 10],
   thickness: 0.5,
 });
 
 const grid = scene.create("grid3d", {
-  thickness: 0.3,
+  thickness: 2,
   range1: [-10, 10],
   range2: [-10, 10],
-  color: "#555",
+  color: "#aaa",
 })
 
 const cam1 = scene.create("camera3d", {

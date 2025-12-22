@@ -1,5 +1,8 @@
 import * as THREE from "three";
 import type { ItemKind, ItemSnapshot } from "../common-types/item-registry";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 // Shared constants for renderers
 export const pointScaleDown = 25;
@@ -53,9 +56,9 @@ export type ThreeSceneTypes = {
   };
   grid3d: {
     kind: "grid3d";
-    geometries: THREE.TubeGeometry[];
-    material: THREE.MeshBasicMaterial;
-    meshes: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>[];
+    geometry: LineGeometry
+    material: LineMaterial
+    mesh: Line2,
   };
 };
 

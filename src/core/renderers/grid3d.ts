@@ -1,7 +1,10 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../common-types/item-registry";
-import { lineThicknessScaleDown, type ItemRenderer, type ThreeSceneTypes } from "./index";
+import { type ItemRenderer, type ThreeSceneTypes } from "./index";
 import { vec3, type Vec3 } from "../common-types/vec3";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 export const grid3dRenderer: ItemRenderer<"grid3d"> = {
   create(item: ItemSnapshot<"grid3d">, threeScene: THREE.Scene): ThreeSceneTypes["grid3d"] {
@@ -46,29 +49,36 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
       }
     }
 
-    // Material
-    const material = new THREE.MeshBasicMaterial({ color: item.color });
-    const geometries: ThreeSceneTypes["grid3d"]["geometries"] = []
-    const meshes: ThreeSceneTypes["grid3d"]["meshes"] = []
+    // Line2 Experiment
+    const geometry = new LineGeometry();
+    const flatPos = positions.flatMap((elem) => ([
+      elem[0].x, elem[0].y, elem[0].z,
+      elem[1].x, elem[1].y, elem[1].z,
 
-    // Create the lines from the positions
-    for (const line of positions) {
-      const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(line[0].x, line[0].y, line[0].z),
-        new THREE.Vector3(line[1].x, line[1].y, line[1].z),
-      ]);
-      const geometry = new THREE.TubeGeometry(curve, 16, item.thickness / lineThicknessScaleDown);
-      const mesh = new THREE.Mesh(geometry, material);
-      geometries.push(geometry);
-      meshes.push(mesh);
-      threeScene.add(mesh);
-    }
+      // Hack to make each line separate
+      // We should probably use LineSegments2 for this purpose, but this works for now.
+      NaN, NaN, NaN,
+    ]));
+    geometry.setPositions(flatPos);
+    const material = new LineMaterial({
+      color: item.color,
+      linewidth: item.thickness
+    });
+
+    // TODO: Make sure you call this based on the container element's size,
+    // and on each update / viewport change.
+    // Currently the create and update functions can't access those values
+    // so idk how this can be done.
+    // lineMaterial.resolution.set()
+
+    const mesh = new Line2(geometry, material);
+    threeScene.add(mesh);
 
     return {
       kind: "grid3d",
-      geometries,
+      geometry,
       material,
-      meshes,
+      mesh,
     };
   },
 

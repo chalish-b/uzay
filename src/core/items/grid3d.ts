@@ -8,6 +8,10 @@ type PlaneDir = "xy" | "xz" | "yz";
 export type Grid3DFields = {
   tags: ItemTags;
   plane: PlaneDir;
+
+  // TODO: This having a boolean doesn't really make sense (unlike axes)
+  // because we can't "disable" one axis. It's just that "true" means infinite here.
+  // Should probably replace this with just an "infinite" string.
   range1: boolean | [number, number];
   range2: boolean | [number, number];
   gap: number;
