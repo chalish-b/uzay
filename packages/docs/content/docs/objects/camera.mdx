@@ -1,0 +1,221 @@
+---
+title: Camera
+description: 3D viewpoint and projection
+---
+
+## What is Camera3D?
+
+`Camera3D` defines the viewpoint from which a scene is rendered. Unlike most 3D libraries where cameras are separate from scene objects, in MathLib cameras are items that live in the scene — which means they can be reactive too.
+
+Every View requires a camera. Without one, you can't render the scene.
+
+## Basic Usage
+
+```typescript
+const camera = scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+});
+
+// Use this camera for the view
+const view = new View3D(scene, camera.id, containerElement);
+```
+
+## Camera Position and Target
+
+The camera's view is defined by two vectors:
+
+- `position` — Where the camera is located in 3D space
+- `lookAt` — The point the camera is aimed at
+
+```typescript
+// Looking at the origin from the front-right
+scene.create("camera3d", {
+  position: vec3(10, 5, 10),
+  lookAt: vec3(0, 0, 0),
+});
+
+// Top-down view
+scene.create("camera3d", {
+  position: vec3(0, 20, 0),
+  lookAt: vec3(0, 0, 0),
+});
+
+// Front view
+scene.create("camera3d", {
+  position: vec3(0, 0, 15),
+  lookAt: vec3(0, 0, 0),
+});
+```
+
+## Zoom
+
+The `zoom` property scales the view:
+
+```typescript
+// Default zoom
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  zoom: 1,
+});
+
+// Zoomed in (objects appear larger)
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  zoom: 2,
+});
+
+// Zoomed out (objects appear smaller)
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  zoom: 0.5,
+});
+```
+
+## Field of View
+
+The `fov` property controls the vertical field of view in degrees:
+
+```typescript
+// Wide angle (more visible, more distortion)
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  fov: 90,
+});
+
+// Narrow angle (telephoto look)
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  fov: 30,
+});
+```
+
+## Clipping Planes
+
+Objects closer than `near` or farther than `far` are not rendered:
+
+```typescript
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  near: 0.1,   // Don't render objects closer than 0.1 units
+  far: 1000,   // Don't render objects farther than 1000 units
+});
+```
+
+Adjust these if you see objects disappearing unexpectedly.
+
+## Multiple Cameras
+
+You can create multiple cameras and switch between them:
+
+```typescript
+const frontCamera = scene.create("camera3d", {
+  position: vec3(0, 0, 20),
+  lookAt: vec3(0, 0, 0),
+});
+
+const topCamera = scene.create("camera3d", {
+  position: vec3(0, 20, 0),
+  lookAt: vec3(0, 0, 0),
+});
+
+const sideCamera = scene.create("camera3d", {
+  position: vec3(20, 0, 0),
+  lookAt: vec3(0, 0, 0),
+});
+
+// Start with front camera
+const view = new View3D(scene, frontCamera.id, container);
+
+// Switch to top view
+view.changeActiveCam(topCamera.id);
+```
+
+## Reactive Camera
+
+Since cameras are scene items, their properties can be atoms:
+
+```typescript
+const cameraY = scene.atom(10);
+
+const camera = scene.create("camera3d", {
+  position: scene.atom((get) => vec3(10, get(cameraY), 10)),
+  lookAt: vec3(0, 0, 0),
+});
+
+// Camera smoothly moves up
+function animate() {
+  cameraY.set(cameraY.get() + 0.01);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+### Camera Following an Object
+
+```typescript
+const targetPos = scene.atom(vec3(0, 0, 0));
+
+// A point that moves
+const point = scene.create("point3d", {
+  coords: targetPos,
+  color: "gold",
+});
+
+// Camera that follows the point
+const camera = scene.create("camera3d", {
+  position: scene.atom((get) => {
+    const target = get(targetPos);
+    return Vec3.add(target, vec3(5, 5, 5)); // Offset from target
+  }),
+  lookAt: targetPos,
+});
+```
+
+## Orbit Controls
+
+Views come with built-in orbit controls that let users interact with the camera:
+
+- **Left-click + drag** — Rotate around the `lookAt` point
+- **Right-click + drag** — Pan the camera
+- **Scroll** — Zoom in/out
+
+These controls modify the Three.js camera directly. Note that the orbit controls don't currently sync back to the `Camera3D` item's atoms.
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `position` | `Vec3` | `{ x: 10, y: 10, z: 10 }` | Camera location |
+| `lookAt` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Point the camera aims at |
+| `projection` | `"perspective" \| "orthogonal"` | `"perspective"` | Projection type |
+| `controls` | `"orbit" \| "pan"` | `"orbit"` | Control mode |
+| `fov` | `number` | `60` | Vertical field of view (degrees) |
+| `zoom` | `number` | `1` | Zoom level |
+| `near` | `number` | `0.1` | Near clipping plane |
+| `far` | `number` | `1000` | Far clipping plane |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier (pass to `View3D`) |
+| `position` | `BoundAtom<Vec3>` | Position atom |
+| `lookAt` | `BoundAtom<Vec3>` | Target atom |
+| `projection` | `BoundAtom<"perspective" \| "orthogonal">` | Projection atom |
+| `controls` | `BoundAtom<"orbit" \| "pan">` | Controls atom |
+| `fov` | `BoundAtom<number>` | FOV atom |
+| `zoom` | `BoundAtom<number>` | Zoom atom |
+| `near` | `BoundAtom<number>` | Near plane atom |
+| `far` | `BoundAtom<number>` | Far plane atom |
+

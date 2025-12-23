@@ -3,21 +3,112 @@ title: Lines
 description: 3D line segments
 ---
 
-## Basic Line
+## What is a Line3D?
+
+A `Line3D` renders as a line segment between two 3D points. Lines are useful for:
+
+- Connecting points
+- Visualizing vectors
+- Drawing edges of shapes
+- Construction lines
+
+## Basic Usage
 
 ```typescript
 const line = scene.create("line3d", {
   start: vec3(0, 0, 0),
-  end: vec3(1, 1, 1),
-  color: "pink",
+  end: vec3(5, 3, 2),
+  color: "cyan",
   thickness: 1,
 });
 ```
 
-## Reactive Endpoints
+## Styling Lines
+
+### Color
+
+Any CSS color string:
+
+```typescript
+scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(1, 0, 0),
+  color: "red",
+});
+```
+
+### Thickness
+
+Control the line width:
+
+```typescript
+scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(1, 0, 0),
+  thickness: 0.5, // Thin
+});
+
+scene.create("line3d", {
+  start: vec3(0, 1, 0),
+  end: vec3(1, 1, 0),
+  thickness: 2, // Thick
+});
+```
+
+## Reactive Lines
+
+### Reactive Endpoints
+
+Make a line where one or both endpoints depend on atoms:
 
 ```typescript
 const t = scene.atom(0);
+
+const line = scene.create("line3d", {
+  start: vec3(0, 0, 0), // Fixed
+  end: scene.atom((get) => {
+    const time = get(t);
+    return vec3(Math.cos(time), Math.sin(time), 0);
+  }),
+  color: "yellow",
+});
+```
+
+### Connecting Two Points
+
+A line that always connects two point objects:
+
+```typescript
+const p1Coords = scene.atom(vec3(0, 0, 0));
+const p2Coords = scene.atom(vec3(3, 3, 3));
+
+const point1 = scene.create("point3d", { coords: p1Coords, color: "red" });
+const point2 = scene.create("point3d", { coords: p2Coords, color: "blue" });
+
+const line = scene.create("line3d", {
+  start: p1Coords,
+  end: p2Coords,
+  color: "white",
+  thickness: 0.5,
+});
+```
+
+When either point moves, the line updates automatically.
+
+### Tangent Line on a Curve
+
+Draw a line from a point on a curve to the origin:
+
+```typescript
+const t = scene.atom(0);
+
+const point = scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const x = get(t);
+    return vec3(x, Math.sin(x), Math.cos(x));
+  }),
+  color: "gold",
+});
 
 const line = scene.create("line3d", {
   start: scene.atom((get) => vec3(get(t), 0, 0)),
@@ -30,4 +121,45 @@ const line = scene.create("line3d", {
 });
 ```
 
+## Updating Properties
 
+```typescript
+const line = scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(1, 1, 1),
+  color: "white",
+});
+
+// Update endpoints
+line.start.set(vec3(-1, -1, -1));
+line.end.set(vec3(2, 2, 2));
+
+// Update styling
+line.color.set("pink");
+line.thickness.set(2);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `start` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Starting point |
+| `end` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Ending point |
+| `color` | `string` | `"white"` | CSS color string |
+| `thickness` | `number` | `1` | Line width |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `start` | `BoundAtom<Vec3>` | Start point atom |
+| `end` | `BoundAtom<Vec3>` | End point atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

@@ -1,0 +1,221 @@
+---
+title: Grid
+description: Reference grids on planes
+---
+
+## What is Grid3D?
+
+`Grid3D` renders a grid on one of the three principal planes (XY, XZ, or YZ). Grids help provide spatial reference and are commonly used as "floors" or "walls" in 3D scenes.
+
+## Basic Usage
+
+```typescript
+const grid = scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10],
+  range2: [-10, 10],
+  color: "#555",
+});
+```
+
+This creates a floor grid on the XZ plane (horizontal).
+
+## Plane Orientation
+
+The `plane` property determines which plane the grid lies on:
+
+| Value | Plane | Common Use |
+|-------|-------|------------|
+| `"xz"` | Horizontal (floor) | Default, ground plane |
+| `"xy"` | Vertical (back wall) | Front-facing visualization |
+| `"yz"` | Vertical (side wall) | Side-facing visualization |
+
+```typescript
+// Floor grid
+scene.create("grid3d", { plane: "xz", range1: [-5, 5], range2: [-5, 5] });
+
+// Back wall
+scene.create("grid3d", { plane: "xy", range1: [-5, 5], range2: [0, 5] });
+
+// Side wall
+scene.create("grid3d", { plane: "yz", range1: [0, 5], range2: [-5, 5] });
+```
+
+## Range Configuration
+
+- `range1` — Range along the first axis of the plane
+- `range2` — Range along the second axis of the plane
+
+The axis mapping depends on the plane:
+
+| Plane | `range1` axis | `range2` axis |
+|-------|---------------|---------------|
+| `"xz"` | X | Z |
+| `"xy"` | X | Y |
+| `"yz"` | Y | Z |
+
+```typescript
+// Floor from x=-10 to x=10, z=-5 to z=5
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10], // X range
+  range2: [-5, 5],   // Z range
+});
+```
+
+## Grid Spacing
+
+The `gap` property controls the distance between grid lines:
+
+```typescript
+// Fine grid (lines every 0.5 units)
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-5, 5],
+  range2: [-5, 5],
+  gap: 0.5,
+});
+
+// Coarse grid (lines every 2 units)
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10],
+  range2: [-10, 10],
+  gap: 2,
+});
+```
+
+## Offset
+
+Move the grid along its perpendicular axis with `offset`:
+
+```typescript
+// Floor at y=0 (default)
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10],
+  range2: [-10, 10],
+  offset: 0,
+});
+
+// Floor at y=-2
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10],
+  range2: [-10, 10],
+  offset: -2,
+});
+```
+
+## Styling
+
+### Color
+
+```typescript
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10],
+  range2: [-10, 10],
+  color: "#333",     // Dark gray
+});
+```
+
+### Thickness
+
+```typescript
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10],
+  range2: [-10, 10],
+  thickness: 1,      // Thinner lines
+});
+```
+
+## Common Patterns
+
+### Floor with Axes
+
+```typescript
+scene.create("axes3d", {
+  x: [-10, 10],
+  y: [0, 10],
+  z: [0, 10],
+  thickness: 0.5,
+});
+
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-10, 10],
+  range2: [-10, 10],
+  color: "#444",
+});
+```
+
+### Multiple Grids (Room)
+
+```typescript
+// Floor
+scene.create("grid3d", {
+  plane: "xz",
+  range1: [-5, 5],
+  range2: [-5, 5],
+  color: "#444",
+});
+
+// Back wall
+scene.create("grid3d", {
+  plane: "xy",
+  range1: [-5, 5],
+  range2: [0, 5],
+  offset: -5, // At z=-5
+  color: "#333",
+});
+```
+
+## Reactive Grid
+
+```typescript
+const size = scene.atom(5);
+
+const grid = scene.create("grid3d", {
+  plane: "xz",
+  range1: scene.atom((get) => [-get(size), get(size)]),
+  range2: scene.atom((get) => [-get(size), get(size)]),
+  color: "#555",
+});
+
+// Grid expands as size increases
+size.set(10);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `plane` | `"xy" \| "xz" \| "yz"` | `"xz"` | Which plane the grid lies on |
+| `range1` | `boolean \| [number, number]` | `true` | Range along first axis |
+| `range2` | `boolean \| [number, number]` | `true` | Range along second axis |
+| `offset` | `number` | `0` | Offset along perpendicular axis |
+| `gap` | `number` | `1` | Distance between grid lines |
+| `color` | `string` | `"white"` | Grid line color |
+| `thickness` | `number` | `2` | Line width |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `plane` | `BoundAtom<"xy" \| "xz" \| "yz">` | Plane atom |
+| `range1` | `BoundAtom<boolean \| [number, number]>` | Range1 atom |
+| `range2` | `BoundAtom<boolean \| [number, number]>` | Range2 atom |
+| `offset` | `BoundAtom<number>` | Offset atom |
+| `gap` | `BoundAtom<number>` | Gap atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |
+

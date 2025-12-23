@@ -1,0 +1,138 @@
+---
+title: Vec2
+description: 2D vector type and operations
+---
+
+## What is Vec2?
+
+`Vec2` is a simple object type representing a 2D vector with `x` and `y` components:
+
+```typescript
+type Vec2 = { x: number; y: number };
+```
+
+While MathLib primarily works in 3D, Vec2 is useful for 2D calculations, screen coordinates, or planar math.
+
+## Creating Vectors
+
+Use the `vec2()` helper function to create vectors:
+
+```typescript
+import { vec2 } from "mathlib";
+
+const origin = vec2(0, 0);
+const position = vec2(3, 4);
+```
+
+## Vector Operations
+
+The `Vec2` namespace provides common 2D vector operations. All operations return new vectors.
+
+### Addition
+
+```typescript
+const a = vec2(1, 0);
+const b = vec2(0, 1);
+
+const sum = Vec2.add(a, b);     // { x: 1, y: 1 }
+const total = Vec2.add(a, b, a); // { x: 2, y: 1 }
+```
+
+### Subtraction
+
+```typescript
+const a = vec2(5, 3);
+const b = vec2(1, 1);
+
+const diff = Vec2.subtract(a, b); // { x: 4, y: 2 }
+```
+
+### Scaling
+
+```typescript
+const v = vec2(3, 4);
+
+const doubled = Vec2.scaled(v, 2);  // { x: 6, y: 8 }
+const halved = Vec2.scaled(v, 0.5); // { x: 1.5, y: 2 }
+```
+
+### Normalization
+
+Get a unit vector (length = 1):
+
+```typescript
+const v = vec2(3, 4);
+const unit = Vec2.normalized(v); // { x: 0.6, y: 0.8 }
+```
+
+### Dot Product
+
+```typescript
+const a = vec2(1, 0);
+const b = vec2(0, 1);
+
+Vec2.dot(a, b); // 0 (perpendicular)
+Vec2.dot(a, a); // 1 (parallel)
+```
+
+### Cross Product (2D)
+
+In 2D, the cross product returns a scalar (the z-component of the 3D cross product):
+
+```typescript
+const a = vec2(1, 0);
+const b = vec2(0, 1);
+
+Vec2.cross(a, b); // 1
+Vec2.cross(b, a); // -1
+```
+
+This is useful for determining winding order or signed area.
+
+### Distance
+
+```typescript
+const a = vec2(0, 0);
+const b = vec2(3, 4);
+
+Vec2.distance(a, b);        // 5
+Vec2.distanceSquared(a, b); // 25 (faster, no sqrt)
+```
+
+## Constants
+
+```typescript
+Vec2.ZERO // { x: 0, y: 0 }
+Vec2.ONE  // { x: 1, y: 1 }
+```
+
+---
+
+## API Reference
+
+### Constructor
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `vec2` | `(x: number, y: number) => Vec2` | Create a Vec2 object |
+
+### Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `Vec2.ZERO` | `{ x: 0, y: 0 }` | Origin / zero vector (frozen) |
+| `Vec2.ONE` | `{ x: 1, y: 1 }` | Unit vector in both directions (frozen) |
+
+### Operations
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `Vec2.add` | `(...vectors: Vec2[]) => Vec2` | Sum of all input vectors |
+| `Vec2.subtract` | `(a: Vec2, b: Vec2) => Vec2` | Vector subtraction `a - b` |
+| `Vec2.scaled` | `(v: Vec2, scalar: number) => Vec2` | Multiply vector by scalar |
+| `Vec2.normalized` | `(v: Vec2) => Vec2` | Unit vector in same direction |
+| `Vec2.dot` | `(a: Vec2, b: Vec2) => number` | Dot product |
+| `Vec2.cross` | `(a: Vec2, b: Vec2) => number` | 2D cross product (scalar) |
+| `Vec2.distance` | `(a: Vec2, b: Vec2) => number` | Euclidean distance |
+| `Vec2.distanceSquared` | `(a: Vec2, b: Vec2) => number` | Squared distance (faster) |
+

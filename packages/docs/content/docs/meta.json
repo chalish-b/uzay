@@ -1,3 +1,3 @@
 {
-  "pages": ["index", "scenes", "atoms", "objects"]
+  "pages": ["index", "getting-started", "core-concepts", "utilities", "objects"]
 }

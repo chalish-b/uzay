@@ -1,17 +1,19 @@
 ---
-title: Parametric Functions
-description: 3D parametric curves
+title: Parametric Curves
+description: 3D curves defined by parametric equations
 ---
 
-## Definition
+## What is a Parametric Curve?
 
-A parametric curve is defined as:
+A parametric curve is defined by a function that maps a parameter $t$ to a 3D point:
 
 $$
-\vec{r}(t) = (x(t), y(t), z(t)), \quad t \in [t_0, t_1]
+\vec{r}(t) = (x(t), y(t), z(t)), \quad t \in [t_{\text{start}}, t_{\text{end}}]
 $$
 
-## Basic Curve
+Instead of defining $y$ as a function of $x$, you define each coordinate independently as a function of the parameter. This allows for curves that loop back on themselves or form complex shapes.
+
+## Basic Usage
 
 ```typescript
 const helix = scene.create("parametricfunction3d", {
@@ -24,44 +26,189 @@ const helix = scene.create("parametricfunction3d", {
 });
 ```
 
-## Reactive Parameters
+This draws a helix where:
+- $x = t$ (moves forward)
+- $y = \sin(t)$ (oscillates vertically)
+- $z = \cos(t)$ (oscillates in depth)
 
-Animate the curve by making `tEnd` reactive:
+## How Sampling Works
+
+The curve is approximated by connecting discrete sample points. The `samples` property controls how many points are computed:
 
 ```typescript
-const maxT = scene.atom(10);
+// Low samples: jaggy curve
+scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.cos(t), Math.sin(t), 0),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 8, // Octagon-ish
+});
+
+// High samples: smooth curve
+scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.cos(t), Math.sin(t), 0),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 64, // Smooth circle
+});
+```
+
+Higher sample counts look better but use more memory and compute time.
+
+## Common Curves
+
+### Circle
+
+```typescript
+scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.cos(t), Math.sin(t), 0),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 64,
+});
+```
+
+### Helix
+
+```typescript
+scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.cos(t), t * 0.2, Math.sin(t)),
+  tStart: 0,
+  tEnd: Math.PI * 6,
+  samples: 128,
+});
+```
+
+### Lissajous Curve
+
+```typescript
+scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.sin(3 * t), Math.sin(4 * t), Math.sin(5 * t)),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 256,
+});
+```
+
+## Reactive Curves
+
+### Reactive Parameter Range
+
+Animate a curve by making `tEnd` reactive:
+
+```typescript
+const maxT = scene.atom(0);
 
 const helix = scene.create("parametricfunction3d", {
   f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
   tStart: 0,
   tEnd: maxT,
   color: "dodgerblue",
-  thickness: 1,
-  samples: scene.atom((get) => get(maxT) * 16),
+  samples: scene.atom((get) => Math.max(16, get(maxT) * 16)),
+});
+
+// Animate: curve grows over time
+function animate() {
+  maxT.set(maxT.get() + 0.05);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+Notice how `samples` is also reactive — it increases as the curve gets longer to maintain smoothness.
+
+### Reactive Function
+
+The function itself can be an atom. This is powerful for curves that fundamentally change shape:
+
+```typescript
+const offset = scene.atom(0);
+
+const curve = scene.create("parametricfunction3d", {
+  f: scene.atom((get) => {
+    const x = get(offset);
+    // Return a new function that depends on offset
+    return (t: number) => vec3(x + t, Math.sin(t), Math.cos(t));
+  }),
+  tStart: 0,
+  tEnd: 10,
+  samples: 160,
 });
 ```
 
-## Reactive Function
+### Moving Circle
 
-The function itself can be an atom:
+A circle that slides along the x-axis:
+
+```typescript
+const x = scene.atom(0);
+
+const circleFunc = scene.atom((get) => {
+  const xPos = get(x);
+  return (t: number) => vec3(xPos, Math.cos(t), Math.sin(t));
+});
+
+const circle = scene.create("parametricfunction3d", {
+  f: circleFunc,
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  color: "crimson",
+  samples: 64,
+});
+```
+
+## Combining with Points
+
+Highlight a point on a curve:
 
 ```typescript
 const t = scene.atom(0);
 
-const circleAtom = scene.atom((get) => {
-  const x = get(t);
-  return (u: number) => vec3(x, Math.cos(u), Math.sin(u));
+// The curve
+const curve = scene.create("parametricfunction3d", {
+  f: (u) => vec3(u, Math.sin(u), Math.cos(u)),
+  tStart: 0,
+  tEnd: 10,
+  color: "dodgerblue",
+  samples: 160,
 });
 
-const circle = scene.create("parametricfunction3d", {
-  f: circleAtom,
-  tStart: 0,
-  tEnd: Math.PI * 2,
-  color: "crimson",
-  samples: 32,
+// A point that traces the curve
+const point = scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const u = get(t);
+    return vec3(u, Math.sin(u), Math.cos(u));
+  }),
+  color: "gold",
+  radius: 2,
 });
 ```
 
-This draws a circle in the YZ plane at position $x = t$.
+---
 
+## API Reference
 
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(t: number) => Vec3` | `(t) => vec3(t, t, t)` | The parametric function |
+| `tStart` | `number` | `0` | Parameter start value |
+| `tEnd` | `number` | `1` | Parameter end value |
+| `samples` | `number` | `64` | Number of sample points |
+| `color` | `string` | `"white"` | CSS color string |
+| `thickness` | `number` | `1` | Line width |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `f` | `BoundAtom<(t: number) => Vec3>` | Function atom |
+| `tStart` | `BoundAtom<number>` | Start parameter atom |
+| `tEnd` | `BoundAtom<number>` | End parameter atom |
+| `samples` | `BoundAtom<number>` | Sample count atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

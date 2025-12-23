@@ -1,0 +1,6 @@
+{
+  "title": "Utilities",
+  "icon": "Wrench",
+  "pages": ["index", "vec3", "vec2"]
+}
+

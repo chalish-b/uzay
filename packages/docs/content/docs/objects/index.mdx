@@ -1,17 +1,98 @@
 ---
 title: Objects
-description: 3D scene objects
+description: 3D scene objects — points, lines, curves, and more
 ---
 
-Create objects using `scene.create()`:
+Objects are the visual elements that make up your 3D scene. MathLib provides several types of objects for different purposes.
+
+## Creating Objects
+
+Use `scene.create(kind, options)` to add objects to a scene:
 
 ```typescript
-scene.create("point3d", { coords: vec3(0, 0, 0), color: "red" });
-scene.create("line3d", { start: vec3(0, 0, 0), end: vec3(1, 1, 1) });
-scene.create("axes3d", { x: [-10, 10], y: [0, 10], z: [0, 10] });
-scene.create("grid3d", { plane: "xz", range1: [-10, 10], range2: [-10, 10] });
+const point = scene.create("point3d", {
+  coords: vec3(1, 2, 3),
+  color: "red",
+  radius: 2,
+});
 ```
 
-All properties can be atoms for reactive updates.
+The first argument is the object type, and the second is an options object where you configure the object's properties.
 
+## Reactive Properties
 
+Every property can be either a plain value or an atom:
+
+```typescript
+// Static: radius never changes
+scene.create("point3d", { radius: 2 });
+
+// Reactive: radius can be updated
+const r = scene.atom(2);
+scene.create("point3d", { radius: r });
+
+// Later
+r.set(5); // Point radius updates automatically
+```
+
+You can also use derived atoms for computed properties:
+
+```typescript
+const t = scene.atom(0);
+
+scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const time = get(t);
+    return vec3(Math.cos(time), Math.sin(time), 0);
+  }),
+});
+```
+
+## Available Objects
+
+| Object | Description | Common Use Cases |
+|--------|-------------|------------------|
+| [Point3D](/docs/objects/points) | A sphere at a 3D position | Markers, vertices, handles |
+| [Line3D](/docs/objects/lines) | A line segment between two points | Connections, vectors, edges |
+| [ParametricFunction3D](/docs/objects/parametric) | A curve defined by a parametric equation | Helixes, spirals, paths |
+| [Axes3D](/docs/objects/axes) | Coordinate axes | Reference, orientation |
+| [Grid3D](/docs/objects/grid) | A grid on a plane | Reference planes, floors |
+| [Camera3D](/docs/objects/camera) | A viewpoint into the scene | Required for rendering |
+
+## Removing Objects
+
+Remove objects from the scene with `scene.remove()`:
+
+```typescript
+const point = scene.create("point3d", { coords: vec3(1, 1, 1) });
+
+// Later
+scene.remove(point);
+```
+
+## Tags
+
+All objects support a `tags` property for categorization:
+
+```typescript
+const p1 = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  tags: ["vertex", "selected"],
+});
+
+const p2 = scene.create("point3d", {
+  coords: vec3(1, 0, 0),
+  tags: ["vertex"],
+});
+```
+
+Tags are useful for grouping objects and applying operations to multiple objects at once.
+
+<Cards>
+  <Card title="Points" href="/docs/objects/points" />
+  <Card title="Lines" href="/docs/objects/lines" />
+  <Card title="Parametric Curves" href="/docs/objects/parametric" />
+  <Card title="Axes" href="/docs/objects/axes" />
+  <Card title="Grid" href="/docs/objects/grid" />
+  <Card title="Camera" href="/docs/objects/camera" />
+</Cards>

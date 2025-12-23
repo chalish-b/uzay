@@ -1,0 +1,160 @@
+---
+title: Scenes & Views
+description: Creating scenes and rendering them to the DOM
+---
+
+## What is a Scene?
+
+A **Scene** is the container that holds all your 3D objects. Think of it as a stage where you place your mathematical visualizations. The scene manages:
+
+- **Items** — All 3D objects (points, lines, curves, axes, grids, cameras)
+- **State** — Reactive atoms that drive dynamic updates
+- **Invalidation** — Tracking what needs to re-render
+
+Every MathLib application starts with creating a scene:
+
+```typescript
+import { Scene3D } from "mathlib";
+
+const scene = new Scene3D();
+```
+
+## Creating Objects
+
+Use `scene.create()` to add objects to the scene. The first argument is the object type, and the second is an options object:
+
+```typescript
+// Create a point
+const point = scene.create("point3d", {
+  coords: vec3(1, 2, 3),
+  color: "red",
+  radius: 2,
+});
+
+// Create a line
+const line = scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(5, 5, 5),
+  color: "blue",
+});
+
+// Create coordinate axes
+const axes = scene.create("axes3d", {
+  x: [-10, 10],
+  y: [-10, 10],
+  z: [-10, 10],
+});
+```
+
+The `create()` method returns the created object, which you can use to access its reactive properties later.
+
+## Removing Objects
+
+Remove objects from the scene with `scene.remove()`:
+
+```typescript
+const point = scene.create("point3d", { coords: vec3(1, 1, 1) });
+
+// Later: remove the point
+scene.remove(point);
+```
+
+## What is a View?
+
+A **View** is the renderer that displays a scene in the browser. It:
+
+- Attaches to a DOM container element
+- Uses Three.js for WebGL rendering
+- Automatically re-renders when the scene changes
+- Provides orbit controls for camera manipulation
+
+## Creating a View
+
+To render a scene, create a View with three arguments:
+
+1. The scene to render
+2. The ID of the camera to use
+3. The DOM container element
+
+```typescript
+import { Scene3D, View3D, vec3 } from "mathlib";
+
+const scene = new Scene3D();
+
+// You must create a camera first
+const camera = scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+});
+
+// Get the container element
+const container = document.getElementById("canvas-container") as HTMLElement;
+
+// Create the view
+const view = new View3D(scene, camera.id, container);
+```
+
+The view will fill its container and automatically resize when the container size changes.
+
+## Multiple Views
+
+You can create multiple views of the same scene with different cameras:
+
+```typescript
+const scene = new Scene3D();
+
+const frontCamera = scene.create("camera3d", {
+  position: vec3(0, 0, 10),
+  lookAt: vec3(0, 0, 0),
+});
+
+const topCamera = scene.create("camera3d", {
+  position: vec3(0, 10, 0),
+  lookAt: vec3(0, 0, 0),
+});
+
+const frontView = new View3D(scene, frontCamera.id, document.getElementById("front"));
+const topView = new View3D(scene, topCamera.id, document.getElementById("top"));
+```
+
+Both views will update when the scene changes.
+
+## Switching Cameras
+
+Change the active camera of a view:
+
+```typescript
+view.changeActiveCam(topCamera.id);
+```
+
+## Orbit Controls
+
+Views come with built-in orbit controls:
+
+- **Left-click + drag** — Rotate the camera around the target
+- **Right-click + drag** — Pan the camera
+- **Scroll** — Zoom in/out
+
+---
+
+## API Reference
+
+### Scene3D
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `create` | `create(kind, options)` | Create a new object in the scene |
+| `remove` | `remove(item)` | Remove an object from the scene |
+| `atom` | `atom(value)` or `atom((get) => value)` | Create a reactive atom |
+| `atomize` | `atomize(value)` | Convert a plain value to an atom |
+
+### View3D
+
+| Constructor | Description |
+|-------------|-------------|
+| `new View3D(scene, cameraId, container)` | Create a view rendering `scene` using the camera with `cameraId` into `container` |
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `changeActiveCam` | `changeActiveCam(cameraId)` | Switch to a different camera |
+

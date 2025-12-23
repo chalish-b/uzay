@@ -1,0 +1,128 @@
+---
+title: Getting Started
+description: Install MathLib and create your first 3D visualization
+---
+
+## Installation
+
+Install the library using your preferred package manager:
+
+```bash tab="npm"
+npm install mathlib
+```
+
+```bash tab="pnpm"
+pnpm add mathlib
+```
+
+```bash tab="bun"
+bun add mathlib
+```
+
+## HTML Setup
+
+MathLib renders to a container element. Create an HTML file with a container div:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MathLib Demo</title>
+    <style>
+      #container {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
+```
+
+## Your First Scene
+
+Create a `main.ts` file with a minimal scene:
+
+```typescript
+import { Scene3D, View3D, vec3 } from "mathlib";
+
+// 1. Create a scene
+const scene = new Scene3D();
+
+// 2. Add a camera
+const camera = scene.create("camera3d", {
+  position: vec3(5, 5, 5),
+  lookAt: vec3(0, 0, 0),
+});
+
+// 3. Add some objects
+scene.create("axes3d", {
+  x: [-5, 5],
+  y: [-5, 5],
+  z: [-5, 5],
+});
+
+scene.create("point3d", {
+  coords: vec3(1, 2, 1),
+  color: "crimson",
+  radius: 3,
+});
+
+// 4. Render to the container
+const container = document.getElementById("container") as HTMLElement;
+const view = new View3D(scene, camera.id, container);
+```
+
+This creates a 3D scene with coordinate axes and a red point. You can orbit the camera by dragging the mouse.
+
+## Adding Reactivity
+
+The power of MathLib comes from reactive atoms. Let's make the point move:
+
+```typescript
+import { Scene3D, View3D, vec3 } from "mathlib";
+
+const scene = new Scene3D();
+
+// Create a reactive time value
+const time = scene.atom(0);
+
+// The point's position depends on time
+const point = scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const t = get(time);
+    return vec3(Math.cos(t), Math.sin(t), t * 0.1);
+  }),
+  color: "gold",
+  radius: 2,
+});
+
+const camera = scene.create("camera3d", {
+  position: vec3(5, 5, 5),
+  lookAt: vec3(0, 0, 0),
+});
+
+const container = document.getElementById("container") as HTMLElement;
+const view = new View3D(scene, camera.id, container);
+
+// Animate by updating the time atom
+function animate() {
+  time.set(time.get() + 0.02);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+When `time` changes, the point's position automatically updates and the scene re-renders.
+
+## Next Steps
+
+Now that you have a basic scene running, explore the core concepts:
+
+- [**Core Concepts**](/docs/core-concepts) — Understand Scenes, Views, and Atoms
+- [**Objects**](/docs/objects) — Learn about all available 3D objects
+- [**Utilities**](/docs/utilities) — Vector math helpers
+

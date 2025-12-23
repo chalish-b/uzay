@@ -1,25 +1,59 @@
 ---
-title: Math Library
-description: 3D visualization library with reactive atoms
+title: MathLib
+description: Reactive 3D mathematical visualizations
 ---
 
-A library for creating reactive 3D mathematical visualizations.
+MathLib is a library for creating interactive 3D mathematical visualizations with reactive state management. Built on Three.js, it provides a declarative API where your visualizations automatically update when underlying data changes.
+
+## Quick Example
 
 ```typescript
 import { Scene3D, View3D, vec3 } from "mathlib";
 
+// Create a scene to hold all objects
 const scene = new Scene3D();
-const cam = scene.create("camera3d", {
-  position: vec3(10, 10, 10),
-  lookAt: vec3(0, 0, 0),
-  zoom: 2,
+
+// Create a reactive value
+const t = scene.atom(0);
+
+// Create a helix curve that grows as t increases
+const helix = scene.create("parametricfunction3d", {
+  f: (u) => vec3(u, Math.sin(u), Math.cos(u)),
+  tStart: 0,
+  tEnd: t,  // Reactive! Curve updates when t changes
+  color: "dodgerblue",
+  samples: scene.atom((get) => get(t) * 16),
 });
 
-const view = new View3D(scene, cam.id, document.getElementById("container"));
+// Add a camera and render to the DOM
+const camera = scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+});
+
+const view = new View3D(scene, camera.id, document.getElementById("container"));
+
+// Animate the curve
+let frame = 0;
+function animate() {
+  t.set(frame * 0.05);
+  frame++;
+  requestAnimationFrame(animate);
+}
+animate();
 ```
 
+## Key Features
+
+- **Reactive by design** — Values are atoms that automatically trigger re-renders when updated
+- **Declarative API** — Describe what you want, not how to render it
+- **TypeScript-first** — Full type safety and autocomplete support
+- **Three.js powered** — Hardware-accelerated 3D rendering
+
+## Learn More
+
 <Cards>
-  <Card title="Scenes & Views" href="/docs/scenes" />
-  <Card title="Atoms" href="/docs/atoms" />
-  <Card title="Objects" href="/docs/objects" />
+  <Card title="Getting Started" href="/docs/getting-started" description="Installation and first steps" />
+  <Card title="Core Concepts" href="/docs/core-concepts" description="Scenes, Views, and Atoms" />
+  <Card title="Objects" href="/docs/objects" description="Points, Lines, Curves, and more" />
 </Cards>

@@ -1,21 +1,78 @@
 ---
 title: Points
-description: 3D points
+description: 3D point objects
 ---
 
-## Basic Point
+## What is a Point3D?
+
+A `Point3D` renders as a sphere at a specific 3D position. Points are the most basic visual element and are commonly used for:
+
+- Marking specific locations in space
+- Representing vertices of shapes
+- Creating interactive handles
+- Tracing paths along curves
+
+## Basic Usage
 
 ```typescript
 const point = scene.create("point3d", {
   coords: vec3(1, 2, 3),
-  color: "red",
+  color: "crimson",
   radius: 2,
 });
 ```
 
-## Reactive Point
+## Styling Points
 
-Point that follows a parametric curve:
+### Color
+
+Any CSS color string works:
+
+```typescript
+scene.create("point3d", { coords: vec3(0, 0, 0), color: "red" });
+scene.create("point3d", { coords: vec3(1, 0, 0), color: "#ff6b6b" });
+scene.create("point3d", { coords: vec3(2, 0, 0), color: "rgb(255, 107, 107)" });
+scene.create("point3d", { coords: vec3(3, 0, 0), color: "hsl(0, 100%, 70%)" });
+```
+
+### Size
+
+The `radius` property controls the visual size:
+
+```typescript
+scene.create("point3d", { coords: vec3(0, 0, 0), radius: 1 });  // Small
+scene.create("point3d", { coords: vec3(2, 0, 0), radius: 3 });  // Medium
+scene.create("point3d", { coords: vec3(4, 0, 0), radius: 5 });  // Large
+```
+
+## Reactive Points
+
+### Reactive Position
+
+Make a point that moves based on an atom:
+
+```typescript
+const t = scene.atom(0);
+
+const point = scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const time = get(t);
+    return vec3(time, Math.sin(time), 0);
+  }),
+  color: "gold",
+});
+
+// Animate
+function animate() {
+  t.set(t.get() + 0.02);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+### Point Following a Helix
+
+A point that traces a helix curve:
 
 ```typescript
 const t = scene.atom(0);
@@ -30,6 +87,69 @@ const point = scene.create("point3d", {
 });
 ```
 
-The position $(x, \sin x, \cos x)$ traces a helix as $t$ changes.
+The position $(x, \sin x, \cos x)$ traces a helix as $t$ increases.
 
+### Reactive Color
 
+Colors can also be reactive:
+
+```typescript
+const hue = scene.atom(0);
+
+const point = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  color: scene.atom((get) => `hsl(${get(hue)}, 70%, 60%)`),
+  radius: 3,
+});
+
+// Cycle through colors
+function animate() {
+  hue.set((hue.get() + 1) % 360);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+## Updating Properties
+
+Access the atom fields on the returned object to update properties:
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  color: "red",
+  radius: 2,
+});
+
+// Update properties
+point.coords.set(vec3(5, 5, 5));
+point.color.set("blue");
+point.radius.set(4);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `coords` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Position in 3D space |
+| `color` | `string` | `"white"` | CSS color string |
+| `radius` | `number` | `2` | Visual size of the sphere |
+| `draggable` | `"xyz" \| "xy" \| "xz" \| "yz" \| "x" \| "y" \| "z" \| false` | `"xyz"` | Axes the point can be dragged along |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Object
+
+The `scene.create("point3d", options)` call returns a `Point3D` object with these atom fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `coords` | `BoundAtom<Vec3>` | Position atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `radius` | `BoundAtom<number>` | Size atom |
+| `draggable` | `BoundAtom<...>` | Draggable constraint atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

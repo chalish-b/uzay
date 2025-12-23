@@ -1,0 +1,222 @@
+---
+title: Atoms
+description: Reactive state primitives for dynamic visualizations
+---
+
+## What are Atoms?
+
+Atoms are reactive state containers inspired by [Jotai](https://jotai.org/). They hold values that, when changed, automatically trigger updates to any objects that depend on them.
+
+The key insight is that any property of any scene object can be an atom. When that atom changes, MathLib automatically:
+
+1. Marks the affected objects as dirty
+2. Schedules a re-render
+3. Updates only what changed
+
+This makes it trivial to create dynamic, interactive visualizations.
+
+## Creating Atoms
+
+Use `scene.atom()` to create atoms. There are two types:
+
+### Primitive Atoms
+
+Primitive atoms hold a value directly and can be updated with `.set()`:
+
+```typescript
+const scene = new Scene3D();
+
+// Create a primitive atom with initial value 0
+const x = scene.atom(0);
+
+// Read the value
+console.log(x.get()); // 0
+
+// Update the value
+x.set(5);
+console.log(x.get()); // 5
+```
+
+### Derived Atoms
+
+Derived atoms compute their value from other atoms. They update automatically when their dependencies change:
+
+```typescript
+const x = scene.atom(1);
+const y = scene.atom(2);
+
+// Derived atom that depends on x and y
+const sum = scene.atom((get) => get(x) + get(y));
+
+console.log(sum.get()); // 3
+
+x.set(10);
+console.log(sum.get()); // 12 (automatically updated)
+```
+
+The `get` function tells the atom which other atoms to subscribe to. Whenever any dependency changes, the derived atom recomputes.
+
+## Bound Atoms
+
+Unlike regular Jotai atoms, MathLib atoms are "bound" to the scene's store. This means you can call `.get()`, `.set()`, and `.sub()` directly on them without passing a store:
+
+```typescript
+// Jotai (requires store)
+const value = store.get(myAtom);
+store.set(myAtom, newValue);
+
+// MathLib (bound to scene)
+const value = myAtom.get();
+myAtom.set(newValue);
+```
+
+This makes the API much cleaner when working with many atoms.
+
+## Using Atoms with Objects
+
+Any property of a scene object can be an atom. This is where the magic happens:
+
+```typescript
+const radius = scene.atom(2);
+
+const point = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  color: "red",
+  radius: radius,  // Pass the atom, not the value
+});
+
+// The point automatically updates when radius changes
+radius.set(5);
+```
+
+You can also create derived atoms inline:
+
+```typescript
+const t = scene.atom(0);
+
+const point = scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const time = get(t);
+    return vec3(Math.cos(time), Math.sin(time), 0);
+  }),
+  color: "gold",
+});
+
+// The point moves in a circle as t changes
+t.set(Math.PI / 2);
+```
+
+## Subscribing to Changes
+
+Use `.sub()` to run a callback whenever an atom changes:
+
+```typescript
+const value = scene.atom(0);
+
+const unsubscribe = value.sub(() => {
+  console.log("Value changed to:", value.get());
+});
+
+value.set(1); // Logs: "Value changed to: 1"
+value.set(2); // Logs: "Value changed to: 2"
+
+// Stop listening
+unsubscribe();
+```
+
+## Connecting to the DOM
+
+Atoms make it easy to connect UI elements to your visualization:
+
+```typescript
+const slider = document.querySelector("#my-slider") as HTMLInputElement;
+const t = scene.atom(0);
+
+// Update atom when slider changes
+slider.addEventListener("input", (e) => {
+  const value = parseFloat((e.target as HTMLInputElement).value);
+  t.set(value);
+});
+
+// Update slider when atom changes (two-way binding)
+t.sub(() => {
+  slider.value = t.get().toString();
+});
+```
+
+## Derived Atoms with Multiple Dependencies
+
+Derived atoms can depend on any number of other atoms:
+
+```typescript
+const a = scene.atom(1);
+const b = scene.atom(2);
+const c = scene.atom(3);
+
+const combined = scene.atom((get) => {
+  return vec3(get(a), get(b), get(c));
+});
+
+// combined updates when any of a, b, or c change
+a.set(10);
+console.log(combined.get()); // { x: 10, y: 2, z: 3 }
+```
+
+## Atoms with Functions
+
+When an object property expects a function (like `f` in parametric curves), you can make the function itself reactive:
+
+```typescript
+const offset = scene.atom(0);
+
+// The parametric function changes based on offset
+const f = scene.atom((get) => {
+  const x = get(offset);
+  return (t: number) => vec3(x + t, Math.sin(t), Math.cos(t));
+});
+
+const curve = scene.create("parametricfunction3d", {
+  f: f,
+  tStart: 0,
+  tEnd: 10,
+});
+
+// The entire curve shifts when offset changes
+offset.set(5);
+```
+
+## Automatic Atomization
+
+If you pass a plain value where an atom is expected, MathLib automatically wraps it in a primitive atom:
+
+```typescript
+// These are equivalent:
+scene.create("point3d", { radius: 2 });
+scene.create("point3d", { radius: scene.atom(2) });
+```
+
+The difference is that with a plain value, you can't update it later. Pass an atom if you need reactivity.
+
+---
+
+## API Reference
+
+### Creating Atoms
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `scene.atom(value)` | `<T>(value: T) => BoundAtom<PrimitiveAtom<T>>` | Create a primitive atom |
+| `scene.atom(fn)` | `<T>((get) => T) => BoundAtom<Atom<T>>` | Create a derived atom |
+
+### Atom Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `.get()` | `() => T` | Read the current value |
+| `.set(value)` | `(value: T) => void` | Update a primitive atom's value |
+| `.sub(callback)` | `(fn: () => void) => () => void` | Subscribe to changes; returns unsubscribe function |
+
+<Callout type="info">
+Derived atoms are read-only. Calling `.set()` on a derived atom will throw an error.
+</Callout>
+

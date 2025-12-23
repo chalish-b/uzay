@@ -1,6 +1,5 @@
 {
   "title": "Objects",
   "icon": "Shapes",
-  "pages": ["index", "points", "lines", "parametric"]
+  "pages": ["index", "points", "lines", "parametric", "axes", "grid", "camera"]
 }
-

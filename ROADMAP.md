@@ -40,9 +40,12 @@
 - Interactions
   - Being able to drag points, and having those changes reflected back in the atoms / updating other relations.
 
-
 ## Future
 
+- Documentation improvements
+  - Add an "examples" section that shows demos and their source code.
+  - In addition to a separate examples section, add small examples inside the pages themselves. Currently we do this, but the examples are kind of mixed with the explanations.
+  - Convert the API reference stuff to "type tables" in Fumadocs.
 - Infinite grid and axes
 - Camera controls and syncing between `Scene <-> View`
   - Add some kind of camera reset button while you're at it, it's really easy to lose track of the position and stuff.

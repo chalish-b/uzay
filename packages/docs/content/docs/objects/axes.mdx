@@ -1,0 +1,169 @@
+---
+title: Axes
+description: 3D coordinate axes
+---
+
+## What is Axes3D?
+
+`Axes3D` renders coordinate axes to provide orientation and scale reference in your 3D scene. By default, it shows the standard X, Y, and Z axes extending from the origin.
+
+## Basic Usage
+
+```typescript
+const axes = scene.create("axes3d", {
+  x: [-10, 10],
+  y: [-10, 10],
+  z: [-10, 10],
+});
+```
+
+This creates axes extending from -10 to 10 on each axis.
+
+## Axis Configuration
+
+Each axis can be configured independently with three possible values:
+
+- **`true`** — Show the axis extending infinitely (or to scene bounds)
+- **`false`** — Hide this axis
+- **`[min, max]`** — Show the axis within a specific range
+
+```typescript
+// Full axes with specific ranges
+scene.create("axes3d", {
+  x: [-5, 5],
+  y: [0, 10],  // Only positive Y
+  z: [-5, 5],
+});
+
+// Only X and Y axes (for 2D-style visualization)
+scene.create("axes3d", {
+  x: [-10, 10],
+  y: [-10, 10],
+  z: false,
+});
+
+// Infinite axes
+scene.create("axes3d", {
+  x: true,
+  y: true,
+  z: true,
+});
+```
+
+## Styling
+
+### Color
+
+By default, axes are white. Set a custom color:
+
+```typescript
+scene.create("axes3d", {
+  x: [-10, 10],
+  y: [-10, 10],
+  z: [-10, 10],
+  color: "#888",
+});
+```
+
+### Thickness
+
+Control the line width:
+
+```typescript
+scene.create("axes3d", {
+  x: [-10, 10],
+  y: [-10, 10],
+  z: [-10, 10],
+  thickness: 0.5, // Thin axes
+});
+```
+
+## Common Patterns
+
+### Standard 3D Axes
+
+```typescript
+scene.create("axes3d", {
+  x: [-10, 10],
+  y: [0, 10],
+  z: [0, 10],
+  thickness: 0.5,
+});
+```
+
+### Positive Quadrant Only
+
+For visualizations where only positive values matter:
+
+```typescript
+scene.create("axes3d", {
+  x: [0, 10],
+  y: [0, 10],
+  z: [0, 10],
+});
+```
+
+### 2D Mode (XY Plane)
+
+For planar visualizations:
+
+```typescript
+scene.create("axes3d", {
+  x: [-10, 10],
+  y: [-10, 10],
+  z: false,
+});
+```
+
+## Reactive Axes
+
+Axis ranges can be reactive:
+
+```typescript
+const scale = scene.atom(5);
+
+const axes = scene.create("axes3d", {
+  x: scene.atom((get) => [-get(scale), get(scale)]),
+  y: scene.atom((get) => [-get(scale), get(scale)]),
+  z: scene.atom((get) => [-get(scale), get(scale)]),
+});
+
+// Axes expand/contract as scale changes
+scale.set(10);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `x` | `boolean \| [number, number]` | `true` | X-axis configuration |
+| `y` | `boolean \| [number, number]` | `true` | Y-axis configuration |
+| `z` | `boolean \| [number, number]` | `true` | Z-axis configuration |
+| `color` | `string` | `"white"` | Axis color |
+| `thickness` | `number` | `1` | Line width |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Axis Configuration Values
+
+| Value | Meaning |
+|-------|---------|
+| `true` | Show axis (infinite extent) |
+| `false` | Hide axis |
+| `[min, max]` | Show axis from min to max |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `x` | `BoundAtom<boolean \| [number, number]>` | X-axis config atom |
+| `y` | `BoundAtom<boolean \| [number, number]>` | Y-axis config atom |
+| `z` | `BoundAtom<boolean \| [number, number]>` | Z-axis config atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |
+
