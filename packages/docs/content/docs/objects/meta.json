@@ -1,0 +1,6 @@
+{
+  "title": "Objects",
+  "icon": "Shapes",
+  "pages": ["index", "points", "lines", "parametric"]
+}
+

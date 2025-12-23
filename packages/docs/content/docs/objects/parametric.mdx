@@ -1,0 +1,67 @@
+---
+title: Parametric Functions
+description: 3D parametric curves
+---
+
+## Definition
+
+A parametric curve is defined as:
+
+$$
+\vec{r}(t) = (x(t), y(t), z(t)), \quad t \in [t_0, t_1]
+$$
+
+## Basic Curve
+
+```typescript
+const helix = scene.create("parametricfunction3d", {
+  f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
+  tStart: 0,
+  tEnd: 10,
+  color: "dodgerblue",
+  thickness: 1,
+  samples: 160,
+});
+```
+
+## Reactive Parameters
+
+Animate the curve by making `tEnd` reactive:
+
+```typescript
+const maxT = scene.atom(10);
+
+const helix = scene.create("parametricfunction3d", {
+  f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
+  tStart: 0,
+  tEnd: maxT,
+  color: "dodgerblue",
+  thickness: 1,
+  samples: scene.atom((get) => get(maxT) * 16),
+});
+```
+
+## Reactive Function
+
+The function itself can be an atom:
+
+```typescript
+const t = scene.atom(0);
+
+const circleAtom = scene.atom((get) => {
+  const x = get(t);
+  return (u: number) => vec3(x, Math.cos(u), Math.sin(u));
+});
+
+const circle = scene.create("parametricfunction3d", {
+  f: circleAtom,
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  color: "crimson",
+  samples: 32,
+});
+```
+
+This draws a circle in the YZ plane at position $x = t$.
+
+

@@ -1,0 +1,17 @@
+---
+title: Objects
+description: 3D scene objects
+---
+
+Create objects using `scene.create()`:
+
+```typescript
+scene.create("point3d", { coords: vec3(0, 0, 0), color: "red" });
+scene.create("line3d", { start: vec3(0, 0, 0), end: vec3(1, 1, 1) });
+scene.create("axes3d", { x: [-10, 10], y: [0, 10], z: [0, 10] });
+scene.create("grid3d", { plane: "xz", range1: [-10, 10], range2: [-10, 10] });
+```
+
+All properties can be atoms for reactive updates.
+
+

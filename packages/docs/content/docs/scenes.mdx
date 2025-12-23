@@ -1,0 +1,35 @@
+---
+title: Scenes & Views
+description: Setting up scenes and views
+---
+
+## Creating a Scene
+
+```typescript
+import { Scene3D } from "mathlib";
+
+const scene = new Scene3D();
+```
+
+## Creating a View
+
+Attach a scene to a DOM element:
+
+```typescript
+import { View3D } from "mathlib";
+
+const container = document.getElementById("canvas-container");
+const view = new View3D(scene, cam.id, container);
+```
+
+## Camera Setup
+
+```typescript
+const cam = scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  zoom: 2,
+});
+```
+
+

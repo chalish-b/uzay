@@ -1,0 +1,35 @@
+---
+title: Points
+description: 3D points
+---
+
+## Basic Point
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(1, 2, 3),
+  color: "red",
+  radius: 2,
+});
+```
+
+## Reactive Point
+
+Point that follows a parametric curve:
+
+```typescript
+const t = scene.atom(0);
+
+const point = scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const x = get(t);
+    return vec3(x, Math.sin(x), Math.cos(x));
+  }),
+  color: "gold",
+  radius: 2,
+});
+```
+
+The position $(x, \sin x, \cos x)$ traces a helix as $t$ changes.
+
+

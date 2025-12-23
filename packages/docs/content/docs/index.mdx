@@ -1,13 +1,25 @@
 ---
-title: Hello World
-description: Your first document
+title: Math Library
+description: 3D visualization library with reactive atoms
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+A library for creating reactive 3D mathematical visualizations.
 
-## What is Next?
+```typescript
+import { Scene3D, View3D, vec3 } from "mathlib";
+
+const scene = new Scene3D();
+const cam = scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  zoom: 2,
+});
+
+const view = new View3D(scene, cam.id, document.getElementById("container"));
+```
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
+  <Card title="Scenes & Views" href="/docs/scenes" />
+  <Card title="Atoms" href="/docs/atoms" />
+  <Card title="Objects" href="/docs/objects" />
 </Cards>

@@ -1,0 +1,33 @@
+---
+title: Lines
+description: 3D line segments
+---
+
+## Basic Line
+
+```typescript
+const line = scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(1, 1, 1),
+  color: "pink",
+  thickness: 1,
+});
+```
+
+## Reactive Endpoints
+
+```typescript
+const t = scene.atom(0);
+
+const line = scene.create("line3d", {
+  start: scene.atom((get) => vec3(get(t), 0, 0)),
+  end: scene.atom((get) => {
+    const x = get(t);
+    return vec3(x, Math.sin(x), Math.cos(x));
+  }),
+  color: "gold",
+  thickness: 1,
+});
+```
+
+

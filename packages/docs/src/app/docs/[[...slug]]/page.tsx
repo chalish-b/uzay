@@ -15,10 +15,11 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const MDX = page.data.body;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { body: MDX, toc, full } = page.data as any;
 
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
+    <DocsPage toc={toc} full={full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
