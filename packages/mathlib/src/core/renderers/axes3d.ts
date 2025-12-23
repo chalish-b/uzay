@@ -4,7 +4,10 @@ import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { lineThicknessScaleDown } from "./index";
 
 export const axes3dRenderer: ItemRenderer<"axes3d"> = {
-  create(item: ItemSnapshot<"axes3d">, threeScene: THREE.Scene): ThreeSceneTypes["axes3d"] {
+  create(
+    item: ItemSnapshot<"axes3d">,
+    threeScene: THREE.Scene
+  ): ThreeSceneTypes["axes3d"] {
     const xRange =
       typeof item.x !== "boolean" ? item.x : ([-100, 100] as const);
     const yRange =
@@ -84,7 +87,71 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
   },
 
   update(item: ItemSnapshot<"axes3d">, obj: ThreeSceneTypes["axes3d"]): void {
-    // TODO: Update the axes
+    // Update material colors
+    obj.x.material.color.set(item.color);
+    obj.y.material.color.set(item.color);
+    obj.z.material.color.set(item.color);
+
+    // Update visibility
+    obj.x.mesh.visible = item.x !== false;
+    obj.y.mesh.visible = item.y !== false;
+    obj.z.mesh.visible = item.z !== false;
+
+    // Recalculate ranges
+    const xRange =
+      typeof item.x !== "boolean" ? item.x : ([-100, 100] as const);
+    const yRange =
+      typeof item.y !== "boolean" ? item.y : ([-100, 100] as const);
+    const zRange =
+      typeof item.z !== "boolean" ? item.z : ([-100, 100] as const);
+
+    // Update X axis
+    const xCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(xRange[0], 0, 0),
+      new THREE.Vector3(xRange[1], 0, 0),
+    ]);
+    const oldXGeometry = obj.x.geometry;
+    const xGeometry = new THREE.TubeGeometry(
+      xCurve,
+      64,
+      item.thickness / lineThicknessScaleDown
+    );
+    obj.x.curve = xCurve;
+    obj.x.geometry = xGeometry;
+    obj.x.mesh.geometry = xGeometry;
+    oldXGeometry.dispose();
+
+    // Update Y axis
+    const yCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, yRange[0], 0),
+      new THREE.Vector3(0, yRange[1], 0),
+    ]);
+    const oldYGeometry = obj.y.geometry;
+    const yGeometry = new THREE.TubeGeometry(
+      yCurve,
+      64,
+      item.thickness / lineThicknessScaleDown
+    );
+    obj.y.curve = yCurve;
+    obj.y.geometry = yGeometry;
+    obj.y.mesh.geometry = yGeometry;
+    oldYGeometry.dispose();
+
+    // Update Z axis
+    const zCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 0, zRange[0]),
+      new THREE.Vector3(0, 0, zRange[1]),
+    ]);
+    const oldZGeometry = obj.z.geometry;
+    const zGeometry = new THREE.TubeGeometry(
+      zCurve,
+      64,
+      item.thickness / lineThicknessScaleDown
+    );
+    obj.z.curve = zCurve;
+    obj.z.geometry = zGeometry;
+    obj.z.mesh.geometry = zGeometry;
+    oldZGeometry.dispose();
   },
 
   dispose(obj: ThreeSceneTypes["axes3d"], threeScene: THREE.Scene): void {
@@ -99,4 +166,3 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     obj.z.material.dispose();
   },
 };
-

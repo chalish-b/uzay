@@ -7,10 +7,15 @@ import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 export const grid3dRenderer: ItemRenderer<"grid3d"> = {
-  create(item: ItemSnapshot<"grid3d">, threeScene: THREE.Scene): ThreeSceneTypes["grid3d"] {
+  create(
+    item: ItemSnapshot<"grid3d">,
+    threeScene: THREE.Scene
+  ): ThreeSceneTypes["grid3d"] {
     // Create position vectors for both axes
-    const range1 = typeof item.range1 !== "boolean" ? item.range1 : ([-100, 100] as const);
-    const range2 = typeof item.range2 !== "boolean" ? item.range2 : ([-100, 100] as const);
+    const range1 =
+      typeof item.range1 !== "boolean" ? item.range1 : ([-100, 100] as const);
+    const range2 =
+      typeof item.range2 !== "boolean" ? item.range2 : ([-100, 100] as const);
     const positions: [Vec3, Vec3][] = [];
     for (let i = range1[0]; i <= range1[1]; i += item.gap) {
       if (item.plane === "xz") {
@@ -51,14 +56,20 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
 
     // Line2 Experiment
     const geometry = new LineGeometry();
-    const flatPos = positions.flatMap((elem) => ([
-      elem[0].x, elem[0].y, elem[0].z,
-      elem[1].x, elem[1].y, elem[1].z,
+    const flatPos = positions.flatMap((elem) => [
+      elem[0].x,
+      elem[0].y,
+      elem[0].z,
+      elem[1].x,
+      elem[1].y,
+      elem[1].z,
 
       // Hack to make each line separate
       // We should probably use LineSegments2 for this purpose, but this works for now.
-      NaN, NaN, NaN,
-    ]));
+      NaN,
+      NaN,
+      NaN,
+    ]);
     geometry.setPositions(flatPos);
     const material = new LineMaterial({
       color: item.color,
@@ -84,8 +95,71 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
   },
 
   update(item: ItemSnapshot<"grid3d">, obj: ThreeSceneTypes["grid3d"]): void {
-    // TODO: Implement grid3d update
+    // Update material properties
     obj.material.color.set(item.color);
+    obj.material.linewidth = item.thickness;
+
+    // Recalculate positions
+    const range1 =
+      typeof item.range1 !== "boolean" ? item.range1 : ([-100, 100] as const);
+    const range2 =
+      typeof item.range2 !== "boolean" ? item.range2 : ([-100, 100] as const);
+    const positions: [Vec3, Vec3][] = [];
+    for (let i = range1[0]; i <= range1[1]; i += item.gap) {
+      if (item.plane === "xz") {
+        positions.push([
+          vec3(i, item.offset, range2[0]),
+          vec3(i, item.offset, range2[1]),
+        ]);
+      } else if (item.plane === "xy") {
+        positions.push([
+          vec3(i, range2[0], item.offset),
+          vec3(i, range2[1], item.offset),
+        ]);
+      } else if (item.plane === "yz") {
+        positions.push([
+          vec3(item.offset, i, range2[0]),
+          vec3(item.offset, i, range2[1]),
+        ]);
+      }
+    }
+    for (let i = range2[0]; i <= range2[1]; i += item.gap) {
+      if (item.plane === "xz") {
+        positions.push([
+          vec3(range1[0], item.offset, i),
+          vec3(range1[1], item.offset, i),
+        ]);
+      } else if (item.plane === "xy") {
+        positions.push([
+          vec3(range1[0], i, item.offset),
+          vec3(range1[1], i, item.offset),
+        ]);
+      } else if (item.plane === "yz") {
+        positions.push([
+          vec3(item.offset, range1[0], i),
+          vec3(item.offset, range1[1], i),
+        ]);
+      }
+    }
+
+    // Update geometry
+    const oldGeometry = obj.geometry;
+    const geometry = new LineGeometry();
+    const flatPos = positions.flatMap((elem) => [
+      elem[0].x,
+      elem[0].y,
+      elem[0].z,
+      elem[1].x,
+      elem[1].y,
+      elem[1].z,
+      NaN,
+      NaN,
+      NaN,
+    ]);
+    geometry.setPositions(flatPos);
+    obj.geometry = geometry;
+    obj.mesh.geometry = geometry;
+    oldGeometry.dispose();
   },
 
   dispose(obj: ThreeSceneTypes["grid3d"], threeScene: THREE.Scene): void {
@@ -94,4 +168,3 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
     obj.material.dispose();
   },
 };
-

@@ -132,7 +132,7 @@ const line = scene.create("line3d", {
 
 const axes = scene.create("axes3d", {
   x: [-10, 10],
-  y: [0, 10],
+  y: scene.atom((get) => [-get(xAtom), get(xAtom)]),
   z: [0, 10],
   thickness: 0.5,
 });
@@ -145,10 +145,10 @@ const axes = scene.create("axes3d", {
 // })
 const grid2 = scene.create("grid3d", {
   plane: "xz",
-  range1: [-10, 10],
-  range2: [-10, 10],
+  range1: scene.atom((get) => [-get(xAtom), get(xAtom)]),
+  range2: scene.atom((get) => [-get(xAtom), get(xAtom)]),
   color: "#555",
-})
+});
 
 const cam1 = scene.create("camera3d", {
   position: vec3(10, 10, 10),
