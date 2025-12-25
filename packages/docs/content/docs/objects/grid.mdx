@@ -18,7 +18,7 @@ const grid = scene.create("grid3d", {
 });
 ```
 
-This creates a floor grid on the XZ plane (horizontal).
+This creates a floor grid on the XZ plane (horizontal). **Y axis is up in Three.js.**
 
 ## Plane Orientation
 
@@ -43,8 +43,8 @@ scene.create("grid3d", { plane: "yz", range1: [0, 5], range2: [-5, 5] });
 
 ## Range Configuration
 
-- `range1` — Range along the first axis of the plane
-- `range2` — Range along the second axis of the plane
+- `range1`: Range along the first axis of the plane
+- `range2`: Range along the second axis of the plane
 
 The axis mapping depends on the plane:
 

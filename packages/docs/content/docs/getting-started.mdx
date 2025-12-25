@@ -110,7 +110,7 @@ const view = new View3D(scene, camera.id, container);
 
 // Animate by updating the time atom
 function animate() {
-  time.set(time.get() + 0.02);
+  time.set((prev) => prev + 0.02);
   requestAnimationFrame(animate);
 }
 animate();
@@ -122,7 +122,7 @@ When `time` changes, the point's position automatically updates and the scene re
 
 Now that you have a basic scene running, explore the core concepts:
 
-- [**Core Concepts**](/docs/core-concepts) — Understand Scenes, Views, and Atoms
-- [**Objects**](/docs/objects) — Learn about all available 3D objects
-- [**Utilities**](/docs/utilities) — Vector math helpers
+- [**Core Concepts**](/docs/core-concepts): Understand Scenes, Views, and Atoms
+- [**Objects**](/docs/objects): Learn about all available 3D objects
+- [**Utilities**](/docs/utilities): Vector math helpers
 

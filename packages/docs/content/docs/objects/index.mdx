@@ -1,6 +1,6 @@
 ---
 title: Objects
-description: 3D scene objects — points, lines, curves, and more
+description: 3D scene objects. Points, lines, curves, and more
 ---
 
 Objects are the visual elements that make up your 3D scene. MathLib provides several types of objects for different purposes.
@@ -24,15 +24,12 @@ The first argument is the object type, and the second is an options object where
 Every property can be either a plain value or an atom:
 
 ```typescript
-// Static: radius never changes
 scene.create("point3d", { radius: 2 });
 
-// Reactive: radius can be updated
 const r = scene.atom(2);
 scene.create("point3d", { radius: r });
 
-// Later
-r.set(5); // Point radius updates automatically
+r.set(5);
 ```
 
 You can also use derived atoms for computed properties:
@@ -77,16 +74,16 @@ All objects support a `tags` property for categorization:
 ```typescript
 const p1 = scene.create("point3d", {
   coords: vec3(0, 0, 0),
-  tags: ["vertex", "selected"],
+  tags: ["3d", "2d"],
 });
 
 const p2 = scene.create("point3d", {
   coords: vec3(1, 0, 0),
-  tags: ["vertex"],
+  tags: ["3d"],
 });
 ```
 
-Tags are useful for grouping objects and applying operations to multiple objects at once.
+Tags are currently unused. In the future, it'll be used for grouping objects, and different views and cameras will be able to filter items by tag.
 
 <Cards>
   <Card title="Points" href="/docs/objects/points" />

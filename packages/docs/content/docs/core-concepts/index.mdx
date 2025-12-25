@@ -5,28 +5,6 @@ description: Understanding Scenes, Views, and Atoms
 
 MathLib is built around three core concepts that work together to create reactive 3D visualizations.
 
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────────────┐
-│                    Scene3D                       │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐            │
-│  │ Point3D │ │ Line3D  │ │ Camera  │  ...items  │
-│  └────┬────┘ └────┬────┘ └────┬────┘            │
-│       │           │           │                  │
-│       └───────────┼───────────┘                  │
-│                   │                              │
-│            Atoms (reactive state)                │
-└─────────────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────┐
-│                    View3D                        │
-│         Renders scene to DOM container           │
-│              (powered by Three.js)               │
-└─────────────────────────────────────────────────┘
-```
-
 ## The Three Pillars
 
 ### Scene
@@ -38,6 +16,8 @@ const scene = new Scene3D();
 const point = scene.create("point3d", { coords: vec3(1, 2, 3) });
 ```
 
+The elements in the scene are all in world coordinates. The scene knows nothing about the view or the rendering logic, it only holds the state.
+
 ### View
 
 A **View** connects a Scene to a DOM element and handles rendering. It uses Three.js under the hood to render the scene with WebGL. When anything in the scene changes, the view automatically re-renders.
@@ -45,6 +25,8 @@ A **View** connects a Scene to a DOM element and handles rendering. It uses Thre
 ```typescript
 const view = new View3D(scene, camera.id, containerElement);
 ```
+
+A scene can have multiple different views, each with different cameras and rendering to different canvas elements.
 
 ### Atoms
 

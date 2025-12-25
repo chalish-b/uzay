@@ -64,11 +64,25 @@ const helix = scene.create("parametricfunction3d", {
   samples: scene.atom((get) => get(xAtom) * 16),
 });
 
-const point = scene.create("point3d", {
-  coords: scene.atom((get) => {
+const timeAtom = scene.atom(0);
+const pointAtom = scene.atom((get) => {
+  const x = get(xAtom);
+  const time = get(timeAtom);
+  return vec3(x, Math.sin(time), Math.cos(time));
+});
+
+const pointTwiceAtom = scene.atom(
+  (get) => {
     const x = get(xAtom);
-    return vec3(x, Math.sin(x), Math.cos(x));
-  }),
+    return vec3(x, x * 2, x * 3);
+  },
+  (get, set, value: Vec3) => {
+    set(xAtom, value.x / 2);
+  }
+);
+
+const point = scene.create("point3d", {
+  coords: pointAtom,
   color: "gold",
   radius: 2,
 });
@@ -96,9 +110,7 @@ const circle = scene.create("parametricfunction3d", {
 
 const line = scene.create("line3d", {
   start: scene.atom((get) => vec3(get(xAtom), 0, 0)),
-  end: scene.atom((get) =>
-    vec3(get(xAtom), Math.sin(get(xAtom)), Math.cos(get(xAtom)))
-  ),
+  end: pointAtom,
   color: "gold",
   thickness: 1,
 });
@@ -132,7 +144,7 @@ const line = scene.create("line3d", {
 
 const axes = scene.create("axes3d", {
   x: [-10, 10],
-  y: scene.atom((get) => [-get(xAtom), get(xAtom)]),
+  y: [0, 10],
   z: [0, 10],
   thickness: 0.5,
 });
@@ -145,8 +157,8 @@ const axes = scene.create("axes3d", {
 // })
 const grid2 = scene.create("grid3d", {
   plane: "xz",
-  range1: scene.atom((get) => [-get(xAtom), get(xAtom)]),
-  range2: scene.atom((get) => [-get(xAtom), get(xAtom)]),
+  range1: [-10, 10],
+  range2: [-10, 10],
   color: "#555",
 });
 
@@ -159,3 +171,9 @@ const cam1 = scene.create("camera3d", {
 // View set up
 const container = document.querySelector("#canvas-container") as HTMLElement;
 const view = new View3D(scene, cam1.id, container);
+
+function animate() {
+  timeAtom.set((prev) => prev + 0.01);
+  requestAnimationFrame(animate);
+}
+animate();

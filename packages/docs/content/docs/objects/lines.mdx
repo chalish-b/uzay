@@ -95,32 +95,6 @@ const line = scene.create("line3d", {
 
 When either point moves, the line updates automatically.
 
-### Tangent Line on a Curve
-
-Draw a line from a point on a curve to the origin:
-
-```typescript
-const t = scene.atom(0);
-
-const point = scene.create("point3d", {
-  coords: scene.atom((get) => {
-    const x = get(t);
-    return vec3(x, Math.sin(x), Math.cos(x));
-  }),
-  color: "gold",
-});
-
-const line = scene.create("line3d", {
-  start: scene.atom((get) => vec3(get(t), 0, 0)),
-  end: scene.atom((get) => {
-    const x = get(t);
-    return vec3(x, Math.sin(x), Math.cos(x));
-  }),
-  color: "gold",
-  thickness: 1,
-});
-```
-
 ## Updating Properties
 
 ```typescript

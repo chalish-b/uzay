@@ -16,11 +16,11 @@ MathLib provides lightweight vector types for working with 2D and 3D coordinates
 
 The vector types are plain JavaScript objects, not classes. This design choice has several benefits:
 
-1. **Works with atoms** — Jotai (and MathLib atoms) work best with immutable data. Plain objects are easy to create and compare.
+1. **Works with atoms**: Jotai (and MathLib atoms) work best with immutable data. Plain objects are easy to create and compare.
 
-2. **Simple to use** — No `new` keyword needed, just call `vec3(x, y, z)`.
+2. **Simple to use**: No `new` keyword needed, just call `vec3(x, y, z)`.
 
-3. **Serializable** — Plain objects can be easily logged, stored, or transmitted.
+3. **Serializable**: Plain objects can be easily logged, stored, or transmitted.
 
 ```typescript
 // Creating vectors
@@ -31,7 +31,7 @@ const velocity = vec3(0.1, 0, 0);
 const posAtom = scene.atom(vec3(0, 0, 0));
 
 // Updating (create a new object)
-posAtom.set(Vec3.add(posAtom.get(), velocity));
+posAtom.set((prev) => Vec3.add(prev, velocity));
 ```
 
 ## Immutability
@@ -42,8 +42,8 @@ All vector operations return new objects instead of mutating the input:
 const a = vec3(1, 0, 0);
 const b = Vec3.scaled(a, 2);
 
-console.log(a); // { x: 1, y: 0, z: 0 } — unchanged
-console.log(b); // { x: 2, y: 0, z: 0 } — new object
+console.log(a); // { x: 1, y: 0, z: 0 }
+console.log(b); // { x: 2, y: 0, z: 0 }
 ```
 
 This makes them safe to use with reactive state.

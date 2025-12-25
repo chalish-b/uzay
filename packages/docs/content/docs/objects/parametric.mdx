@@ -53,7 +53,7 @@ scene.create("parametricfunction3d", {
 });
 ```
 
-Higher sample counts look better but use more memory and compute time.
+Higher sample counts look better but has performance impacts.
 
 ## Common Curves
 
@@ -109,13 +109,13 @@ const helix = scene.create("parametricfunction3d", {
 
 // Animate: curve grows over time
 function animate() {
-  maxT.set(maxT.get() + 0.05);
+  maxT.set((prev) => prev + 0.05);
   requestAnimationFrame(animate);
 }
 animate();
 ```
 
-Notice how `samples` is also reactive — it increases as the curve gets longer to maintain smoothness.
+Notice how `samples` is also reactive, it increases as the curve gets longer to maintain smoothness.
 
 ### Reactive Function
 
@@ -126,6 +126,7 @@ const offset = scene.atom(0);
 
 const curve = scene.create("parametricfunction3d", {
   f: scene.atom((get) => {
+    // Important: Get the value of the dependency outside the function
     const x = get(offset);
     // Return a new function that depends on offset
     return (t: number) => vec3(x + t, Math.sin(t), Math.cos(t));

@@ -22,7 +22,7 @@ const helix = scene.create("parametricfunction3d", {
   tStart: 0,
   tEnd: t,  // Reactive! Curve updates when t changes
   color: "dodgerblue",
-  samples: scene.atom((get) => get(t) * 16),
+  samples: scene.atom((get) => get(t) * 16), // Dynamic sample count
 });
 
 // Add a camera and render to the DOM
@@ -34,10 +34,8 @@ const camera = scene.create("camera3d", {
 const view = new View3D(scene, camera.id, document.getElementById("container"));
 
 // Animate the curve
-let frame = 0;
 function animate() {
-  t.set(frame * 0.05);
-  frame++;
+  t.set((prev) => prev + 0.05);
   requestAnimationFrame(animate);
 }
 animate();
@@ -45,10 +43,10 @@ animate();
 
 ## Key Features
 
-- **Reactive by design** — Values are atoms that automatically trigger re-renders when updated
-- **Declarative API** — Describe what you want, not how to render it
-- **TypeScript-first** — Full type safety and autocomplete support
-- **Three.js powered** — Hardware-accelerated 3D rendering
+- **Reactive by design**: Values are atoms that automatically trigger re-renders when updated
+- **Declarative API**: Describe what you want, not how to render it
+- **TypeScript-first**: Full type safety and autocomplete support
+- **Three.js powered**: Hardware-accelerated 3D rendering
 
 ## Learn More
 

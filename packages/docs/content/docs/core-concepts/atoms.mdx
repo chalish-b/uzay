@@ -5,7 +5,7 @@ description: Reactive state primitives for dynamic visualizations
 
 ## What are Atoms?
 
-Atoms are reactive state containers inspired by [Jotai](https://jotai.org/). They hold values that, when changed, automatically trigger updates to any objects that depend on them.
+Atoms are reactive state containers, based on [Jotai](https://jotai.org/)'s implementation. They hold values that, when changed, automatically trigger updates to any objects that depend on them.
 
 The key insight is that any property of any scene object can be an atom. When that atom changes, MathLib automatically:
 
@@ -15,9 +15,11 @@ The key insight is that any property of any scene object can be an atom. When th
 
 This makes it trivial to create dynamic, interactive visualizations.
 
+To learn more about atoms, check out [Jotai](https://jotai.org). The atom implementation in MathLib is a simple wrapper around it, which binds atoms to the scene's `store`.
+
 ## Creating Atoms
 
-Use `scene.atom()` to create atoms. There are two types:
+Use `scene.atom()` to create atoms. There are three types:
 
 ### Primitive Atoms
 
@@ -52,20 +54,47 @@ console.log(sum.get()); // 3
 
 x.set(10);
 console.log(sum.get()); // 12 (automatically updated)
+
+sum.set(67); // ERROR: Derived atoms don't have a set method
 ```
 
 The `get` function tells the atom which other atoms to subscribe to. Whenever any dependency changes, the derived atom recomputes.
+
+Derived atoms can't be written to, since their value is computed based on the value of other atoms.
+
+### Writable Atoms
+
+Writable atoms are created similar to derived atoms, but with a second argument that is a write function:
+
+```typescript
+const x = scene.atom(1);
+
+// When x changes, y will be updated to x * 2
+// But we can also update y, and x will be updated to y / 2
+const y = scene.atom(
+  (get) => get(x) * 2,
+  (get, set, value: number) => {
+    set(x, value / 2);
+  }
+);
+```
+
+This is useful for creating two-way bindings between atoms.
+
 
 ## Bound Atoms
 
 Unlike regular Jotai atoms, MathLib atoms are "bound" to the scene's store. This means you can call `.get()`, `.set()`, and `.sub()` directly on them without passing a store:
 
 ```typescript
-// Jotai (requires store)
+// Jotai (requires a separate store)
+const store = createStore();
+const myAtom = atom(42);
 const value = store.get(myAtom);
 store.set(myAtom, newValue);
 
-// MathLib (bound to scene)
+// MathLib (bound to scene's store)
+const myAtom = scene.atom(42);
 const value = myAtom.get();
 myAtom.set(newValue);
 ```
@@ -74,7 +103,7 @@ This makes the API much cleaner when working with many atoms.
 
 ## Using Atoms with Objects
 
-Any property of a scene object can be an atom. This is where the magic happens:
+Any property of a scene object can be an atom. This is where reactivity happens:
 
 ```typescript
 const radius = scene.atom(2);
@@ -87,6 +116,9 @@ const point = scene.create("point3d", {
 
 // The point automatically updates when radius changes
 radius.set(5);
+
+// We can also update it this way, since they refer to the same atom
+point.radius.set(5);
 ```
 
 You can also create derived atoms inline:
@@ -185,17 +217,51 @@ const curve = scene.create("parametricfunction3d", {
 offset.set(5);
 ```
 
+<Callout type="warning" title="Important Note About Function Atoms">
+  When using functions as atoms, **you must get the value of all the dependencies outside of the function** you're returning:
+
+  ```typescript
+  const myAtom = scene.atom(0);
+
+  // BAD
+  const f = scene.atom((get) => {
+    // Don't directly access the dependency inside the function
+    return (t: number) => vec3(get(myAtom), Math.sin(t), Math.cos(t));
+  });
+
+  // GOOD
+  const f = scene.atom((get) => {
+    // Get the value first
+    const x = get(myAtom);
+
+    // Then refer to the value directly in the function
+    return (t: number) => vec3(x, Math.sin(t), Math.cos(t));
+  });
+  ```
+
+  This still keeps the reactivity, meaning the function will update when the dependency atom changes. It's just a small quirk with how atoms work.
+</Callout>
+
 ## Automatic Atomization
 
-If you pass a plain value where an atom is expected, MathLib automatically wraps it in a primitive atom:
+If you pass a plain value where an atom is expected, MathLib automatically wraps it in a primitive atom.
+
+These methods are all equivalent:
 
 ```typescript
-// These are equivalent:
-scene.create("point3d", { radius: 2 });
-scene.create("point3d", { radius: scene.atom(2) });
+const point1 = scene.create("point3d", { radius: 2 });
+point1.radius.set(5);
+
+const point2 = scene.create("point3d", { radius: scene.atom(2) });
+point2.radius.set(5);
+
+const myAtom = scene.atom(2);
+const point3 = scene.create("point3d", { radius: myAtom });
+myAtom.set(5);
 ```
 
-The difference is that with a plain value, you can't update it later. Pass an atom if you need reactivity.
+You can still access the atom with `point1.radius`.
+It's just that if you're going to use the atom in multiple places (like dependencies for other atoms), defining it separately might be more convenient.
 
 ---
 
@@ -206,7 +272,8 @@ The difference is that with a plain value, you can't update it later. Pass an at
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `scene.atom(value)` | `<T>(value: T) => BoundAtom<PrimitiveAtom<T>>` | Create a primitive atom |
-| `scene.atom(fn)` | `<T>((get) => T) => BoundAtom<Atom<T>>` | Create a derived atom |
+| `scene.atom(readFn)` | `<T>((get) => T) => BoundAtom<Atom<T>>` | Create a derived atom |
+| `scene.atom(readFn, writeFn)` | `<T>((get) => T, (set) => void) => BoundAtom<WritableAtom<T>>` | Create a writable atom |
 
 ### Atom Methods
 

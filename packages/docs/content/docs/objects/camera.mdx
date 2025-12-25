@@ -5,7 +5,7 @@ description: 3D viewpoint and projection
 
 ## What is Camera3D?
 
-`Camera3D` defines the viewpoint from which a scene is rendered. Unlike most 3D libraries where cameras are separate from scene objects, in MathLib cameras are items that live in the scene — which means they can be reactive too.
+`Camera3D` defines the viewpoint from which a scene is rendered. Unlike most 3D libraries where cameras are separate from scene objects, in MathLib cameras are items that live in the scene, which means they can be reactive too.
 
 Every View requires a camera. Without one, you can't render the scene.
 
@@ -25,8 +25,8 @@ const view = new View3D(scene, camera.id, containerElement);
 
 The camera's view is defined by two vectors:
 
-- `position` — Where the camera is located in 3D space
-- `lookAt` — The point the camera is aimed at
+- `position`: Where the camera is located in 3D space
+- `lookAt`: The point the camera is aimed at
 
 ```typescript
 // Looking at the origin from the front-right
@@ -182,9 +182,9 @@ const camera = scene.create("camera3d", {
 
 Views come with built-in orbit controls that let users interact with the camera:
 
-- **Left-click + drag** — Rotate around the `lookAt` point
-- **Right-click + drag** — Pan the camera
-- **Scroll** — Zoom in/out
+- **Left-click + drag**: Rotate around the `lookAt` point
+- **Right-click + drag**: Pan the camera
+- **Scroll**: Zoom in/out
 
 These controls modify the Three.js camera directly. Note that the orbit controls don't currently sync back to the `Camera3D` item's atoms.
 

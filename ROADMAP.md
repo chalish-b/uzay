@@ -42,6 +42,8 @@
 
 ## Future
 
+- We should separate orthographic and perspective cameras to be different items.
+  - There isn't really a good way to switch between them, because they are fundamentally different objects in Three.js. Since a scene can have multiple cameras, and we will have a `view.changeCam` method, the API will still be nice.
 - Documentation improvements
   - Add an "examples" section that shows demos and their source code.
   - In addition to a separate examples section, add small examples inside the pages themselves. Currently we do this, but the examples are kind of mixed with the explanations.

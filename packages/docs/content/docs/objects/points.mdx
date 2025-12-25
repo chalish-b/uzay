@@ -64,7 +64,7 @@ const point = scene.create("point3d", {
 
 // Animate
 function animate() {
-  t.set(t.get() + 0.02);
+  t.set((prev) => prev + 0.02);
   requestAnimationFrame(animate);
 }
 animate();
@@ -104,7 +104,7 @@ const point = scene.create("point3d", {
 
 // Cycle through colors
 function animate() {
-  hue.set((hue.get() + 1) % 360);
+  hue.set((prev) => (prev + 1) % 360);
   requestAnimationFrame(animate);
 }
 animate();
