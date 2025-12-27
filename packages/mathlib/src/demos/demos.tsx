@@ -1,16 +1,21 @@
 import { useState } from "react";
 import Demo1 from "./demo1";
+import Demo2 from "./demo2";
 
 const demos = {
   demo1: {
-    title: "Demo 1",
+    title: "Demo 1 - Helix",
     component: <Demo1 />,
+  },
+  demo2: {
+    title: "Lorenz Attractor",
+    component: <Demo2 />,
   },
 };
 
 // A tab bar with buttons to switch between demos
 export default function Demos() {
-  const [demo, setDemo] = useState<keyof typeof demos>("demo1");
+  const [demo, setDemo] = useState<keyof typeof demos>("demo2");
   return (
     <div
       style={{
@@ -18,11 +23,34 @@ export default function Demos() {
         height: "100%",
         display: "flex",
         flexDirection: "column",
+        backgroundColor: "#111",
       }}
     >
-      <div>
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          padding: "8px 12px",
+          backgroundColor: "#1a1a1a",
+          borderBottom: "1px solid #2a2a2a",
+        }}
+      >
         {Object.entries(demos).map(([key, value]) => (
-          <button key={key} onClick={() => setDemo(key as keyof typeof demos)}>
+          <button
+            key={key}
+            onClick={() => setDemo(key as keyof typeof demos)}
+            style={{
+              padding: "6px 14px",
+              border: "none",
+              borderRadius: 4,
+              backgroundColor: demo === key ? "#333" : "transparent",
+              color: demo === key ? "#fff" : "#888",
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "system-ui, sans-serif",
+              transition: "background-color 0.15s, color 0.15s",
+            }}
+          >
             {value.title}
           </button>
         ))}
