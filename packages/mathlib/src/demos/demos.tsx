@@ -3,6 +3,7 @@ import Demo1 from "./demo1";
 import Demo2 from "./demo2";
 import Demo3 from "./demo3";
 import Demo4 from "./demo4";
+import Demo5 from "./demo5";
 
 const demos = {
   demo1: {
@@ -21,11 +22,15 @@ const demos = {
     title: "Double Pendulum",
     component: <Demo4 />,
   },
+  demo5: {
+    title: "Lissajous Lab",
+    component: <Demo5 />,
+  },
 };
 
 // A tab bar with buttons to switch between demos
 export default function Demos() {
-  const [demo, setDemo] = useState<keyof typeof demos>("demo4");
+  const [demo, setDemo] = useState<keyof typeof demos>("demo5");
   return (
     <div
       style={{
