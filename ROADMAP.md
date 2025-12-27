@@ -39,9 +39,18 @@
 
 - Interactions
   - Being able to drag points, and having those changes reflected back in the atoms / updating other relations.
+- Camera improvements
+  - Updating the camera using atoms
+  - Switching between multiple cameras
+  - A single scene having multiple views
+  - Perspective / Orthographics camera choice
+- Function improvements
+  - Handling discontinuities (just allow the user to pass discontinuous t values manually)
 
 ## Future
 
+- Unify the "thickness" values for axes and grid.
+  - Since grid uses Line2 instead of a 3D geometry, its thickness is different.
 - We should separate orthographic and perspective cameras to be different items.
   - There isn't really a good way to switch between them, because they are fundamentally different objects in Three.js. Since a scene can have multiple cameras, and we will have a `view.changeCam` method, the API will still be nice.
 - Documentation improvements
