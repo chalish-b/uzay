@@ -4,6 +4,8 @@ import Demo2 from "./demo2";
 import Demo3 from "./demo3";
 import Demo4 from "./demo4";
 import Demo5 from "./demo5";
+import Demo6 from "./demo6";
+import Demo7 from "./demo7";
 
 const demos = {
   demo1: {
@@ -26,11 +28,19 @@ const demos = {
     title: "Lissajous Lab",
     component: <Demo5 />,
   },
+  demo6: {
+    title: "Bezier Workshop",
+    component: <Demo6 />,
+  },
+  demo7: {
+    title: "Superformula",
+    component: <Demo7 />,
+  },
 };
 
 // A tab bar with buttons to switch between demos
 export default function Demos() {
-  const [demo, setDemo] = useState<keyof typeof demos>("demo5");
+  const [demo, setDemo] = useState<keyof typeof demos>("demo7");
   return (
     <div
       style={{
