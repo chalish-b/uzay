@@ -49,6 +49,11 @@
 
 ## Future
 
+- Vectors and vector fields
+  - I think making a vector field a special (separate) item is more useful (so that we can have a single geometry, if that's possible)
+  - The arrow heads are kind of a problem though if we're going with the 2D Line approach. We can use a texture or something, or maybe a custom shader
+- Groups
+  - Items can be added to groups instead of the scene. The group has a coordinate. The child items' coordinates are relative to the group
 - Unify the "thickness" values for axes and grid.
   - Since grid uses Line2 instead of a 3D geometry, its thickness is different.
 - We should separate orthographic and perspective cameras to be different items.

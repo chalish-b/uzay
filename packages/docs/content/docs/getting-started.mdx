@@ -88,13 +88,13 @@ import { Scene3D, View3D, vec3 } from "mathlib";
 const scene = new Scene3D();
 
 // Create a reactive time value
-const time = scene.atom(0);
+const time = scene.atom(0); // [!code highlight]
 
 // The point's position depends on time
 const point = scene.create("point3d", {
   coords: scene.atom((get) => {
-    const t = get(time);
-    return vec3(Math.cos(t), Math.sin(t), t * 0.1);
+    const t = get(time); // [!code highlight]
+    return vec3(Math.cos(t), Math.sin(t), t * 0.1); // [!code highlight]
   }),
   color: "gold",
   radius: 2,
@@ -110,7 +110,7 @@ const view = new View3D(scene, camera.id, container);
 
 // Animate by updating the time atom
 function animate() {
-  time.set((prev) => prev + 0.02);
+  time.set((prev) => prev + 0.02); // [!code highlight]
   requestAnimationFrame(animate);
 }
 animate();

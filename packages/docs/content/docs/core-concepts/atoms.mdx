@@ -48,7 +48,7 @@ const x = scene.atom(1);
 const y = scene.atom(2);
 
 // Derived atom that depends on x and y
-const sum = scene.atom((get) => get(x) + get(y));
+const sum = scene.atom((get) => get(x) + get(y)); // [!code highlight]
 
 console.log(sum.get()); // 3
 
@@ -111,7 +111,7 @@ const radius = scene.atom(2);
 const point = scene.create("point3d", {
   coords: vec3(0, 0, 0),
   color: "red",
-  radius: radius,  // Pass the atom, not the value
+  radius: radius,  // Pass the atom, not the value // [!code highlight]
 });
 
 // The point automatically updates when radius changes
@@ -232,10 +232,10 @@ offset.set(5);
   // GOOD
   const f = scene.atom((get) => {
     // Get the value first
-    const x = get(myAtom);
+    const x = get(myAtom); // [!code highlight]
 
-    // Then refer to the value directly in the function
-    return (t: number) => vec3(x, Math.sin(t), Math.cos(t));
+    // Then use that value in the function
+    return (t: number) => vec3(x, Math.sin(t), Math.cos(t)); // [!code word:x]
   });
   ```
 

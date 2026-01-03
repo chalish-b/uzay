@@ -40,7 +40,7 @@ const demos = {
 
 // A tab bar with buttons to switch between demos
 export default function Demos() {
-  const [demo, setDemo] = useState<keyof typeof demos>("demo7");
+  const [demo, setDemo] = useState<keyof typeof demos>("demo5");
   return (
     <div
       style={{

@@ -141,9 +141,11 @@ export default function Demo7() {
       lookAt: vec3(0, 0, 0),
     });
 
-    new View3D(scene, camera.id, containerRef.current);
+    const view = new View3D(scene, camera.id, containerRef.current);
 
-    // Cleanup not strictly necessary in this demo framework as it re-mounts
+    return() => {
+      view.dispose();      
+    }
   }, []);
 
   // Update atoms when React state changes

@@ -179,6 +179,11 @@ export class View3D {
       // this.camera.lookAt.set(this.threeOrbitControls.target);
     }
   }
+
+  dispose() {
+    this.threeRenderer.dispose();
+    this.threeOrbitControls.dispose();
+  }
 }
 
 // Resize helper

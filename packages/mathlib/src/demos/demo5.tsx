@@ -404,8 +404,7 @@ export default function Demo5() {
     viewRef.current = view;
 
     return () => {
-      view.threeRenderer.dispose();
-      view.threeOrbitControls.dispose();
+	  view.dispose();
       if (
         containerRef.current &&
         view.threeRenderer.domElement.parentNode === containerRef.current
