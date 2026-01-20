@@ -38,6 +38,13 @@ export default function Demo1() {
       thickness: 1,
     });
 
+	const helix = scene.create("parametricfunction3d", {
+	  f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
+	  tStart: 0,
+	  tEnd: xAtom,
+	  color: "crimson",
+	});
+
     // Axes and grid
     scene.create("axes3d", {
       x: [-10, 10],
