@@ -3,7 +3,7 @@
 export type Vec2 = { x: number; y: number };
 
 // This is just a convenience function to create vectors easily,
-// without the new keyword: Vec2(1, 2)
+// without the new keyword: vec2(1, 2)
 export function vec2(x: number, y: number): Vec2 {
   // TODO: Should we freeze this object?
   // Should vectors be immutable?

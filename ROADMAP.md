@@ -33,7 +33,29 @@
 - We can orbit around the 3D scene
 - There is a grid and axis lines
 
-## Version 0.2
+## Version 0.2: Architecture Refactoring
+
+### Features
+
+- View3D refactor: split into smaller, focused modules
+- Two-way data flow: renderer → scene communication
+- Item lifecycle: proper removal and cleanup API
+- Mesh-to-item mapping: preparation for hit testing
+
+### Implementation Details
+
+- Extract `ThreeContext` to manage Three.js renderer, camera, and controls
+- Extract reconciliation logic into separate module
+- Add `userData.itemId` on all Three.js objects for future raycasting
+- Camera state syncs back to Camera3D item after orbit controls move
+- Add `scene.remove(item)` method with proper cleanup
+
+### Bug Fixes
+
+- Fix resize observer triggering unnecessary renders
+- Fix hot reload state corruption
+
+## Version 0.3: Interactions
 
 ### Features
 
@@ -88,8 +110,3 @@
   - Ideas:
     - Function plot with area under it filled in
     - Line with two points at the ends
-
-### Bugs
-
-- Resizing the window messes up the view a lot. Almost unusable without refresh
-- Hot reload after editing something creates a weird state and sometimes crashes the tab.

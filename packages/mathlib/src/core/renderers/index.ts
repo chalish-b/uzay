@@ -5,6 +5,7 @@ import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 // Shared constants for renderers
+// Since these things are in world units, a value of 1 takes up a space of 1 unit, which is huge
 export const pointScaleDown = 25;
 export const lineThicknessScaleDown = 25;
 
