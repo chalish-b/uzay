@@ -1,4 +1,4 @@
-## Version 0.1
+## Version 0.1 (DONE)
 
 ### Features
 
@@ -49,13 +49,17 @@
 
 ## Future
 
+- React wrapper
+  - Just start with normal components + `useEffect` for now
+  - In the future, we can actually implement a proper thing with React reconciler.
+- 2D scenes
 - Vectors and vector fields
   - I think making a vector field a special (separate) item is more useful (so that we can have a single geometry, if that's possible)
   - The arrow heads are kind of a problem though if we're going with the 2D Line approach. We can use a texture or something, or maybe a custom shader
 - Groups
   - Items can be added to groups instead of the scene. The group has a coordinate. The child items' coordinates are relative to the group
 - Unify the "thickness" values for axes and grid.
-  - Since grid uses Line2 instead of a 3D geometry, its thickness is different.
+  - Since grid uses Line2 instead of a 3D geometry, its thickness is different (pixels vs. world units).
 - We should separate orthographic and perspective cameras to be different items.
   - There isn't really a good way to switch between them, because they are fundamentally different objects in Three.js. Since a scene can have multiple cameras, and we will have a `view.changeCam` method, the API will still be nice.
 - Documentation improvements
@@ -84,3 +88,8 @@
   - Ideas:
     - Function plot with area under it filled in
     - Line with two points at the ends
+
+### Bugs
+
+- Resizing the window messes up the view a lot. Almost unusable without refresh
+- Hot reload after editing something creates a weird state and sometimes crashes the tab.

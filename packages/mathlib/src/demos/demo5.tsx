@@ -288,7 +288,7 @@ export default function Demo5() {
         return vec3(pos.x, pos.y, -SCALE - 1);
       }),
       color: `rgba(255, 255, 255, ${lineAlpha})`,
-      thickness: 0.5,
+      thickness: 1,
     });
 
     // Line to XZ plane (floor)
@@ -300,7 +300,7 @@ export default function Demo5() {
         return vec3(pos.x, -SCALE - 1, pos.z);
       }),
       color: `rgba(255, 255, 255, ${lineAlpha})`,
-      thickness: 0.5,
+      thickness: 1,
     });
 
     // Line to YZ plane (left wall)
@@ -312,7 +312,7 @@ export default function Demo5() {
         return vec3(-SCALE - 1, pos.y, pos.z);
       }),
       color: `rgba(255, 255, 255, ${lineAlpha})`,
-      thickness: 0.5,
+      thickness: 1,
     });
 
     // Projection shadow points
