@@ -1,0 +1,357 @@
+---
+title: React Usage
+description: How to properly use MathLib in React applications
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+<Callout type="info" title="React Wrapper Coming Soon">
+  A dedicated React wrapper with hooks and components is planned for a future release.
+  Until then, this guide shows the recommended patterns for integrating MathLib with React manually.
+
+  The current approach isn't the very clean, but the core imperative library needs to get stable before proper React integration.
+</Callout>
+
+## Basic Setup
+
+When using MathLib in React, you need to handle the Three.js lifecycle properly. The key points are:
+
+1. **Create the scene once** on component mount
+2. **Clean up properly** on unmount using `view.dispose()`
+3. **Use atoms** for reactive updates instead of re-creating the scene
+
+## Minimal Example
+
+Here's the simplest way to set up a MathLib scene in React:
+
+```tsx
+import { useEffect, useRef } from "react";
+import { Scene3D, View3D, vec3 } from "mathlib";
+
+function MyScene() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Create scene and objects
+    const scene = new Scene3D();
+
+    scene.create("axes3d", {
+      x: [-5, 5],
+      y: [-5, 5],
+      z: [-5, 5],
+    });
+
+    scene.create("point3d", {
+      coords: vec3(1, 2, 1),
+      color: "crimson",
+      radius: 3,
+    });
+
+    const camera = scene.create("camera3d", {
+      position: vec3(5, 5, 5),
+      lookAt: vec3(0, 0, 0),
+    });
+
+    // Create the view
+    const view = new View3D(scene, camera.id, containerRef.current);
+
+    // Cleanup on unmount // [!code highlight]
+    return () => { // [!code highlight]
+      view.dispose(); // [!code highlight]
+    }; // [!code highlight]
+  }, []); // Empty dependency array - run once on mount // [!code highlight]
+
+  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+}
+```
+
+<Callout type="warning" title="Critical: Always Call dispose()">
+  Failing to call `view.dispose()` in the cleanup function will cause memory leaks and visual glitches
+  like overlapping scenes when React re-renders your component or during hot module replacement (HMR).
+</Callout>
+
+## Reactive Updates with Atoms
+
+The key to smooth React integration is using **atoms** for values that change, rather than re-creating the scene. This lets you update the visualization without triggering the useEffect cleanup cycle.
+
+### Pattern: Atom Refs
+
+Store atoms in a ref so you can update them from React state changes:
+
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { Scene3D, View3D, vec3 } from "mathlib";
+import type { BoundAtom } from "mathlib";
+import type { PrimitiveAtom } from "jotai";
+
+function InteractiveScene() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Store atoms in a ref for later updates
+  const atomsRef = useRef<{
+    x: BoundAtom<PrimitiveAtom<number>>;
+  } | null>(null);
+
+  // React state for UI controls
+  const [xValue, setXValue] = useState(0);
+
+  // Initialize scene once
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const scene = new Scene3D();
+
+    // Create atoms for reactive values
+    const xAtom = scene.atom(0); // [!code highlight]
+    atomsRef.current = { x: xAtom }; // [!code highlight]
+
+    // Use the atom in object properties
+    scene.create("point3d", {
+      coords: scene.atom((get) => vec3(get(xAtom), 0, 0)), // [!code highlight]
+      color: "gold",
+      radius: 3,
+    });
+
+    scene.create("axes3d", {
+      x: [-5, 5],
+      y: [-5, 5],
+      z: [-5, 5],
+    });
+
+    const camera = scene.create("camera3d", {
+      position: vec3(5, 5, 5),
+      lookAt: vec3(0, 0, 0),
+    });
+
+    const view = new View3D(scene, camera.id, containerRef.current);
+
+    return () => {
+      view.dispose();
+    };
+  }, []);
+
+  // Sync React state to atoms // [!code highlight]
+  useEffect(() => { // [!code highlight]
+    atomsRef.current?.x.set(xValue); // [!code highlight]
+  }, [xValue]); // [!code highlight]
+
+  return (
+    <div style={{ width: "100%", height: "100%" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+      <input
+        type="range"
+        min="-5"
+        max="5"
+        step="0.1"
+        value={xValue}
+        onChange={(e) => setXValue(parseFloat(e.target.value))}
+      />
+    </div>
+  );
+}
+```
+
+This pattern keeps the scene setup in one effect (with cleanup) and syncs React state to atoms in separate effects.
+
+## Animation Loops
+
+For animations, use `requestAnimationFrame` and clean it up properly:
+
+```tsx
+useEffect(() => {
+  if (!containerRef.current) return;
+
+  const scene = new Scene3D();
+  const timeAtom = scene.atom(0);
+
+  // ... scene setup ...
+
+  const view = new View3D(scene, camera.id, containerRef.current);
+
+  // Animation loop
+  let animationId: number;
+
+  function animate() {
+    timeAtom.set((t) => t + 0.016);
+    animationId = requestAnimationFrame(animate);
+  }
+  animationId = requestAnimationFrame(animate);
+
+  return () => {
+    cancelAnimationFrame(animationId); // [!code highlight]
+    view.dispose();
+  };
+}, []);
+```
+
+## Common Mistakes
+
+### Wrong: Re-running the effect on state changes
+
+```tsx
+// BAD: This will create multiple overlapping scenes!
+useEffect(() => {
+  const scene = new Scene3D();
+  // ...
+  const view = new View3D(scene, camera.id, containerRef.current);
+  // No cleanup!
+}, [someStateValue]); // [!code error]
+```
+
+### Wrong: Using ref values in dependency array
+
+```tsx
+// BAD: Ref .current values can change between renders
+useEffect(() => {
+  // ...
+}, [containerRef.current]); // [!code error]
+```
+
+### Wrong: Forgetting cleanup
+
+```tsx
+// BAD: No cleanup function
+useEffect(() => {
+  const scene = new Scene3D();
+  const view = new View3D(scene, camera.id, containerRef.current);
+  // Missing: return () => view.dispose(); // [!code error]
+}, []);
+```
+
+## Complete Example
+
+Here's a complete example with animation controls and proper cleanup:
+
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { Scene3D, View3D, vec3 } from "mathlib";
+import type { BoundAtom } from "mathlib";
+import type { PrimitiveAtom } from "jotai";
+
+export default function AnimatedScene() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const atomsRef = useRef<{
+    time: BoundAtom<PrimitiveAtom<number>>;
+    speed: BoundAtom<PrimitiveAtom<number>>;
+  } | null>(null);
+
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1);
+
+  // Initialize scene
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const scene = new Scene3D();
+
+    const timeAtom = scene.atom(0);
+    const speedAtom = scene.atom(1);
+    atomsRef.current = { time: timeAtom, speed: speedAtom };
+
+    // Animated point on a helix
+    scene.create("point3d", {
+      coords: scene.atom((get) => {
+        const t = get(timeAtom);
+        return vec3(Math.cos(t) * 3, t * 0.5, Math.sin(t) * 3);
+      }),
+      color: "gold",
+      radius: 3,
+    });
+
+    // Trail curve
+    scene.create("parametricfunction3d", {
+      f: (t) => vec3(Math.cos(t) * 3, t * 0.5, Math.sin(t) * 3),
+      tStart: 0,
+      tEnd: timeAtom,
+      color: "dodgerblue",
+      thickness: 2,
+    });
+
+    scene.create("grid3d", { plane: "xz", color: "#333" });
+    scene.create("axes3d", { thickness: 0.5 });
+
+    const camera = scene.create("camera3d", {
+      position: vec3(8, 8, 8),
+      lookAt: vec3(0, 2, 0),
+    });
+
+    const view = new View3D(scene, camera.id, containerRef.current);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      view.dispose();
+    };
+  }, []);
+
+  // Animation loop - separate effect to respond to isPlaying
+  useEffect(() => {
+    if (!atomsRef.current) return;
+
+    if (isPlaying) {
+      let lastTime = performance.now();
+
+      function animate(currentTime: number) {
+        if (!atomsRef.current) return;
+
+        const delta = (currentTime - lastTime) / 1000;
+        lastTime = currentTime;
+
+        const currentSpeed = atomsRef.current.speed.get();
+        atomsRef.current.time.set((t) => t + delta * currentSpeed);
+
+        animationRef.current = requestAnimationFrame(animate);
+      }
+
+      animationRef.current = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [isPlaying]);
+
+  // Sync speed to atom
+  useEffect(() => {
+    atomsRef.current?.speed.set(speed);
+  }, [speed]);
+
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+
+      <div style={{ position: "absolute", top: 16, left: 16 }}>
+        <button onClick={() => setIsPlaying(!isPlaying)}>
+          {isPlaying ? "Pause" : "Play"}
+        </button>
+        <input
+          type="range"
+          min="0.1"
+          max="3"
+          step="0.1"
+          value={speed}
+          onChange={(e) => setSpeed(parseFloat(e.target.value))}
+        />
+        <span>Speed: {speed.toFixed(1)}x</span>
+      </div>
+    </div>
+  );
+}
+```
+
+## Summary
+
+| Do | Don't |
+|-----|-------|
+| Use empty dependency array `[]` for scene setup | Put state values in the dependency array |
+| Call `view.dispose()` in cleanup | Forget the cleanup function |
+| Use atoms for reactive values | Re-create the scene on every change |
+| Store atoms in refs for later updates | Use ref `.current` in dependencies |
+| Cancel animation frames in cleanup | Leave animations running |

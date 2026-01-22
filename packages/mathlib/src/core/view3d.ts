@@ -61,6 +61,21 @@ export class View3D {
     // Position absolute so canvas doesn't affect container layout during resize
     this.threeRenderer.domElement.style.position = "absolute";
     this.threeRenderer.domElement.style.inset = "0";
+
+    // Warn if container already has a canvas (likely a cleanup issue)
+    const existingCanvas = containerElem.querySelector("canvas");
+    if (existingCanvas) {
+      console.warn(
+        `[View3D] Container already has a canvas element. This usually means a previous View3D was not disposed properly, which can cause rendering issues like overlapping scenes.\n\n` +
+          `To fix this, call view.dispose() in your cleanup function:\n\n` +
+          `  useEffect(() => {\n` +
+          `    const view = new View3D(scene, camera.id, container);\n` +
+          `    return () => view.dispose(); // <-- Add this cleanup\n` +
+          `  }, []);\n\n` +
+          `Also ensure your useEffect has an empty dependency array [] to prevent re-running on every render.`
+      );
+    }
+
     containerElem.appendChild(this.threeRenderer.domElement);
 
     // TODO: We need a way to sync our camera object in the scene with
@@ -188,9 +203,20 @@ export class View3D {
   }
 
   dispose() {
+    // Remove all items from the scene (disposes their geometries/materials)
+    for (const id of this.threeMeshes.keys()) {
+      this.removeItem(id);
+    }
+
+    // Dispose Three.js resources
     this.sizer.dispose();
-    this.threeRenderer.dispose();
     this.threeOrbitControls.dispose();
+    this.threeRenderer.dispose();
+
+    // Remove canvas from DOM
+    if (this.threeRenderer.domElement.parentNode === this.containerElem) {
+      this.containerElem.removeChild(this.threeRenderer.domElement);
+    }
   }
 }
 

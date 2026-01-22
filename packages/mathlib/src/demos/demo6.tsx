@@ -321,14 +321,7 @@ export default function Demo6() {
 
     return () => {
       subscriptions.forEach((unsub) => unsub && unsub());
-      view.threeRenderer.dispose();
-      view.threeOrbitControls.dispose();
-      if (
-        containerRef.current &&
-        view.threeRenderer.domElement.parentNode === containerRef.current
-      ) {
-        containerRef.current.removeChild(view.threeRenderer.domElement);
-      }
+      view.dispose();
     };
   }, []);
 

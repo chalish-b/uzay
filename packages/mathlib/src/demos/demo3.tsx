@@ -199,14 +199,7 @@ export default function Demo3() {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
-      view.threeRenderer.dispose();
-      view.threeOrbitControls.dispose();
-      if (
-        containerRef.current &&
-        view.threeRenderer.domElement.parentNode === containerRef.current
-      ) {
-        containerRef.current.removeChild(view.threeRenderer.domElement);
-      }
+      view.dispose();
     };
   }, []);
 

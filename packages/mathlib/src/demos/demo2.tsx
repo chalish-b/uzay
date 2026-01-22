@@ -201,15 +201,7 @@ export default function Demo2() {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
-      // Clean up Three.js resources
-      view.threeRenderer.dispose();
-      view.threeOrbitControls.dispose();
-      if (
-        containerRef.current &&
-        view.threeRenderer.domElement.parentNode === containerRef.current
-      ) {
-        containerRef.current.removeChild(view.threeRenderer.domElement);
-      }
+      view.dispose();
     };
   }, []);
 

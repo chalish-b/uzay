@@ -404,13 +404,7 @@ export default function Demo5() {
     viewRef.current = view;
 
     return () => {
-	  view.dispose();
-      if (
-        containerRef.current &&
-        view.threeRenderer.domElement.parentNode === containerRef.current
-      ) {
-        containerRef.current.removeChild(view.threeRenderer.domElement);
-      }
+      view.dispose();
     };
   }, []);
 

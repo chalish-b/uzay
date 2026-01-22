@@ -18,11 +18,13 @@ export default function Demo1() {
         inputRef.current.value = xAtom.get().toString();
       }
     });
-    inputRef.current?.addEventListener("input", (e) => {
+
+    const handleInput = () => {
       if (inputRef.current) {
         xAtom.set(parseFloat(inputRef.current.value));
       }
-    });
+    };
+    inputRef.current?.addEventListener("input", handleInput);
 
     const pointAtom = scene.create("point3d", {
       coords: scene.atom((get) =>
@@ -38,12 +40,12 @@ export default function Demo1() {
       thickness: 1,
     });
 
-	const helix = scene.create("parametricfunction3d", {
-	  f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
-	  tStart: 0,
-	  tEnd: xAtom,
-	  color: "crimson",
-	});
+    const helix = scene.create("parametricfunction3d", {
+      f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
+      tStart: 0,
+      tEnd: xAtom,
+      color: "crimson",
+    });
 
     // Axes and grid
     scene.create("axes3d", {
@@ -65,7 +67,13 @@ export default function Demo1() {
       lookAt: vec3(0, 0, 0),
     });
     const view = new View3D(scene, camera.id, containerRef.current);
-  }, [containerRef.current, inputRef.current]);
+
+    // Cleanup on unmount or HMR
+    return () => {
+      inputRef.current?.removeEventListener("input", handleInput);
+      view.dispose();
+    };
+  }, []);
 
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#141414" }}>
