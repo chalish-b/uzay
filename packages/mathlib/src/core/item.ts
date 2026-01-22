@@ -32,27 +32,27 @@ export abstract class BaseItem<T, K extends ItemKind> {
 
   // This is called automatically by the scene when the item is added to the scene.
   // It connects the atom fields to scene's invalidation function.
-  atomBoardSubscriptions: Set<() => void> = new Set();
+  atomSceneSubscriptions: Set<() => void> = new Set();
   setupAtomInvalidations(invalidateScene: () => void) {
     this.invalidateScene = invalidateScene;
 
     // I think this should be done in addAtomFields instead, because it's not really
-    // related to board's invalidation. This function should just set the invalidation function.
+    // related to scene's invalidation. This function should just set the invalidation function.
     // But I guess it requires the "store" to be passed, so it's a bit awkward to do it there.
     for (const atom of this.atomFields) {
       const subscription = atom.sub(() => {
         if (this.isDirty) return;
         this.markDirty();
       });
-      this.atomBoardSubscriptions.add(subscription);
+      this.atomSceneSubscriptions.add(subscription);
     }
   }
 
   removeFromScene() {
-    for (const unsub of this.atomBoardSubscriptions) {
+    for (const unsub of this.atomSceneSubscriptions) {
       unsub();
     }
-    this.atomBoardSubscriptions.clear();
+    this.atomSceneSubscriptions.clear();
     this.atomFields.clear();
   }
 
