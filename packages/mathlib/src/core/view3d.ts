@@ -67,12 +67,12 @@ export class View3D {
     if (existingCanvas) {
       console.warn(
         `[View3D] Container already has a canvas element. This usually means a previous View3D was not disposed properly, which can cause rendering issues like overlapping scenes.\n\n` +
-          `To fix this, call view.dispose() in your cleanup function:\n\n` +
-          `  useEffect(() => {\n` +
-          `    const view = new View3D(scene, camera.id, container);\n` +
-          `    return () => view.dispose(); // <-- Add this cleanup\n` +
-          `  }, []);\n\n` +
-          `Also ensure your useEffect has an empty dependency array [] to prevent re-running on every render.`
+        `To fix this, call view.dispose() in your cleanup function:\n\n` +
+        `  useEffect(() => {\n` +
+        `    const view = new View3D(scene, camera.id, container);\n` +
+        `    return () => view.dispose(); // <-- Add this cleanup\n` +
+        `  }, []);\n\n` +
+        `Also ensure your useEffect has an empty dependency array [] to prevent re-running on every render.`
       );
     }
 
@@ -157,7 +157,7 @@ export class View3D {
 
   updateItem(item: ItemSnapshot) {
     const obj = this.threeMeshes.get(item.id);
-    if (!obj) return;
+    if (!obj || !item.isDirty) return;
     // Ensure the kind matches
     if (obj.kind !== item.kind) return;
     const renderer = getRenderer(item.kind);

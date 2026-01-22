@@ -50,10 +50,6 @@
 - Camera state syncs back to Camera3D item after orbit controls move
 - Add `scene.remove(item)` method with proper cleanup
 
-### Bug Fixes
-
-- Fix hot reload state corruption
-
 ## Version 0.3: Interactions
 
 ### Features
