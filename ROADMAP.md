@@ -52,7 +52,6 @@
 
 ### Bug Fixes
 
-- Fix resize observer triggering unnecessary renders
 - Fix hot reload state corruption
 
 ## Version 0.3: Interactions
