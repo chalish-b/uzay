@@ -50,10 +50,17 @@ export class View3D {
       alpha: true,
       antialias: true,
     });
-    this.threeRenderer.setPixelRatio(Math.max(window.devicePixelRatio, 2));
-    this.threeRenderer.domElement.style.display = "block";
-    this.threeRenderer.domElement.style.width = "100%";
-    this.threeRenderer.domElement.style.height = "100%";
+    this.threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Ensure container is positioned so absolute canvas works correctly
+    const containerPosition = getComputedStyle(containerElem).position;
+    if (containerPosition === "static") {
+      containerElem.style.position = "relative";
+    }
+
+    // Position absolute so canvas doesn't affect container layout during resize
+    this.threeRenderer.domElement.style.position = "absolute";
+    this.threeRenderer.domElement.style.inset = "0";
     containerElem.appendChild(this.threeRenderer.domElement);
 
     // TODO: We need a way to sync our camera object in the scene with
@@ -76,10 +83,9 @@ export class View3D {
 
     this.sizer = createResponsiveThreeSizer({
       container: containerElem,
-      maxDpr: 2,
       renderer: this.threeRenderer,
       camera: this.threeCamera,
-      invalidate: () => this.requestRender(),
+      onResize: () => this.requestRender(),
     });
 
     // Connect the scene's invalidate function to update the three.js scene and rerender
@@ -156,12 +162,13 @@ export class View3D {
   requestRender() {
     if (!this.frameScheduled) {
       this.frameScheduled = true;
-      requestAnimationFrame(() => this.render());
+      requestAnimationFrame(() => this._render());
     }
   }
 
-  render() {
-    console.log("rendering");
+  // Don't call this function directly. Call `requestRender` instead,
+  // which handles animation frames
+  _render() {
     this.frameScheduled = false;
     this.sizer.applyIfNeeded();
     const cameraUpdated = this.threeOrbitControls.update();
@@ -181,90 +188,53 @@ export class View3D {
   }
 
   dispose() {
+    this.sizer.dispose();
     this.threeRenderer.dispose();
     this.threeOrbitControls.dispose();
   }
 }
 
-// Resize helper
+// Resize helper, defers actual resize until render to avoid flicker
 function createResponsiveThreeSizer({
   container,
   renderer,
   camera,
-  invalidate,
-  maxDpr = 2,
+  onResize,
 }: {
   container: HTMLElement;
   renderer: THREE.WebGLRenderer;
   camera: THREE.PerspectiveCamera;
-  invalidate: () => void;
-  maxDpr: number;
+  onResize: () => void;
 }) {
-  let pending = true;
-  let pendingW = 1;
-  let pendingH = 1;
-  let lastW = 0;
-  let lastH = 0;
-  let lastDpr = window.devicePixelRatio;
+  let pendingWidth = 0;
+  let pendingHeight = 0;
 
-  function measure() {
-    const rect = container.getBoundingClientRect();
-    const w = Math.floor(rect.width);
-    const h = Math.floor(rect.height);
-    if (w <= 0 || h <= 0) return false;
-    pendingW = w;
-    pendingH = h;
-    pending = true;
-    return true;
-  }
-
-  const ro = new ResizeObserver(() => {
-    if (measure()) invalidate();
+  const ro = new ResizeObserver((entries) => {
+    const { width, height } = entries[0].contentRect;
+    if (width > 0 && height > 0) {
+      pendingWidth = width;
+      pendingHeight = height;
+      onResize();
+    }
   });
   ro.observe(container);
 
+  // Capture initial size
+  const rect = container.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    pendingWidth = rect.width;
+    pendingHeight = rect.height;
+  }
+
   function applyIfNeeded() {
-    // DPR changes (zoom / different monitor) won't trigger ResizeObserver reliably
-    const dpr = window.devicePixelRatio;
-    if (dpr !== lastDpr) {
-      lastDpr = dpr;
-      renderer.setPixelRatio(Math.min(dpr, maxDpr));
-      measure();
-      pending = true;
-      invalidate();
+    const currentSize = renderer.getSize(new THREE.Vector2());
+    if (currentSize.x === pendingWidth && currentSize.y === pendingHeight) {
+      return;
     }
-
-    if (!pending) return false;
-    if (pendingW === lastW && pendingH === lastH) {
-      pending = false;
-      return false;
-    }
-
-    renderer.setSize(pendingW, pendingH, false);
-
-    // Perspective camera
-    if (camera && camera.isPerspectiveCamera) {
-      camera.aspect = pendingW / pendingH;
-      camera.updateProjectionMatrix();
-    }
-
-    // TODO: Handle orthographic camera
-    // if (camera && camera.isOrthographicCamera) { recompute frustum }
-
-    lastW = pendingW;
-    lastH = pendingH;
-    pending = false;
-
-    // onSize?.(lastW, lastH);
-    return true;
+    renderer.setSize(pendingWidth, pendingHeight, false);
+    camera.aspect = pendingWidth / pendingHeight;
+    camera.updateProjectionMatrix();
   }
 
-  function dispose() {
-    ro.disconnect();
-  }
-
-  // Initialize measured size once
-  measure();
-
-  return { applyIfNeeded, dispose };
+  return { applyIfNeeded, dispose: () => ro.disconnect() };
 }
