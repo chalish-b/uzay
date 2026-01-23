@@ -17,6 +17,7 @@ export const line3dRenderer: ItemRenderer<"line3d"> = {
     );
     const material = new THREE.MeshBasicMaterial({ color: item.color });
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.userData.itemId = item.id;
     threeScene.add(mesh);
     return {
       kind: "line3d",

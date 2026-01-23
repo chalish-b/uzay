@@ -79,7 +79,7 @@ Modify `/core/item.ts` to add `on()` and `off()` methods to BaseItem:
 
 ```typescript
 // Add to BaseItem class
-private eventHandlers: Map<InteractionEventType, InteractionHandler[InteractionEventType]> = new Map();
+eventHandlers: Map<InteractionEventType, InteractionHandler[InteractionEventType]> = new Map();
 
 on<E extends InteractionEventType>(
   event: E,
@@ -167,11 +167,11 @@ Add to `/core/view3d.ts`:
 
 ```typescript
 // Raycasting
-private raycaster = new THREE.Raycaster();
-private pointer = new THREE.Vector2();
+raycaster = new THREE.Raycaster();
+pointer = new THREE.Vector2();
 
 // Drag state
-private dragState: {
+dragState: {
   itemId: ItemId;
   constraint: PointDraggableDir;  // Store constraint for screenToWorld
   startWorldPosition: Vec3;
@@ -179,7 +179,7 @@ private dragState: {
 } | null = null;
 
 // Hover state
-private hoveredItemId: ItemId | null = null;
+hoveredItemId: ItemId | null = null;
 ```
 
 **Note:** Instead of maintaining a separate `objectToItemId` map, we store the item ID directly on Three.js objects using `userData`:
@@ -208,7 +208,7 @@ canvas.addEventListener("pointerleave", this.onPointerLeave);
 
 ```typescript
 // Raycast to find item under pointer
-private raycastItem(event: PointerEvent): { itemId: ItemId; worldPosition: Vec3 } | null {
+raycastItem(event: PointerEvent): { itemId: ItemId; worldPosition: Vec3 } | null {
   const rect = this.threeRenderer.domElement.getBoundingClientRect();
   this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -239,7 +239,7 @@ private raycastItem(event: PointerEvent): { itemId: ItemId; worldPosition: Vec3 
 }
 
 // Dispatch event to item (custom handler or default)
-private dispatchEvent<E extends InteractionEventType>(
+dispatchEvent<E extends InteractionEventType>(
   eventType: E,
   event: InteractionEvent
 ): void {
@@ -261,7 +261,7 @@ private dispatchEvent<E extends InteractionEventType>(
 ### 4.4 Pointer Event Handlers
 
 ```typescript
-private onPointerDown = (event: PointerEvent): void => {
+onPointerDown = (event: PointerEvent): void => {
   const hit = this.raycastItem(event);
   if (!hit) return;
 
@@ -296,7 +296,7 @@ private onPointerDown = (event: PointerEvent): void => {
   }
 };
 
-private onPointerMove = (event: PointerEvent): void => {
+onPointerMove = (event: PointerEvent): void => {
   // Handle drag
   if (this.dragState) {
     const worldPos = this.screenToWorld(
@@ -362,7 +362,7 @@ private onPointerMove = (event: PointerEvent): void => {
   }
 };
 
-private onPointerUp = (event: PointerEvent): void => {
+onPointerUp = (event: PointerEvent): void => {
   if (this.dragState) {
     const item = this.scene.items.get(this.dragState.itemId);
     if (item) {
@@ -398,7 +398,7 @@ The conversion strategy depends on the drag constraint:
 - **Axis constraints (x, y, z):** Intersect with a helper plane, then project onto the axis
 
 ```typescript
-private screenToWorld(
+screenToWorld(
   event: PointerEvent,
   referencePoint: Vec3,
   constraint: PointDraggableDir
@@ -470,7 +470,7 @@ private screenToWorld(
 }
 
 // Find the point on an axis line closest to a ray
-private closestPointOnAxis(
+closestPointOnAxis(
   ray: THREE.Ray,
   axisOrigin: THREE.Vector3,
   axisDir: THREE.Vector3
@@ -504,7 +504,7 @@ Click = pointerdown + pointerup on same item without significant movement.
 
 ```typescript
 // Add to drag state tracking
-private pointerDownInfo: {
+pointerDownInfo: {
   itemId: ItemId;
   screenPosition: Vec2;
   time: number;

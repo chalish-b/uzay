@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Scene3D } from "../core/scene3d";
-import { vec3 } from "../core/common-types/vec3";
+import { Vec3, vec3 } from "../core/common-types/vec3";
 import { View3D } from "../core/view3d";
 
 export default function Demo1() {
@@ -27,11 +27,13 @@ export default function Demo1() {
     inputRef.current?.addEventListener("input", handleInput);
 
     const pointAtom = scene.create("point3d", {
-      coords: scene.atom((get) =>
-        vec3(get(xAtom), Math.sin(get(xAtom)), Math.cos(get(xAtom)))
+      coords: scene.atom(
+		(get) => vec3(get(xAtom), Math.sin(get(xAtom)), Math.cos(get(xAtom))),
+		(_get, set, next: Vec3) => set(xAtom, next.x),
       ),
       color: "gold",
       radius: 2,
+	  draggable: "x",
     });
     const line = scene.create("line3d", {
       start: scene.atom((get) => vec3(get(xAtom), 0, 0)),

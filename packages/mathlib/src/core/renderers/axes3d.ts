@@ -47,6 +47,9 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     const xMesh = new THREE.Mesh(xGeometry, xMaterial);
     const yMesh = new THREE.Mesh(yGeometry, yMaterial);
     const zMesh = new THREE.Mesh(zGeometry, zMaterial);
+    xMesh.userData.itemId = item.id;
+    yMesh.userData.itemId = item.id;
+    zMesh.userData.itemId = item.id;
     threeScene.add(xMesh);
     threeScene.add(yMesh);
     threeScene.add(zMesh);

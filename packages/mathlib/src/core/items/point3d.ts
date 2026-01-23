@@ -5,6 +5,34 @@ import { type Vec3, vec3 } from "../common-types/vec3";
 import { BaseItem } from "../item";
 import type { AtomLikeOptions, AtomizeResult, Field } from "../atom-wrapper";
 import type { Scene3D } from "../scene3d";
+import type { ClickEvent, DragEvent } from "../common-types/interaction-events";
+
+// Helper: apply axis constraint to target position
+function applyDragConstraint(
+  current: Vec3,
+  target: Vec3,
+  constraint: PointDraggableDir
+): Vec3 {
+  switch (constraint) {
+    case "x":
+      return { ...current, x: target.x };
+    case "y":
+      return { ...current, y: target.y };
+    case "z":
+      return { ...current, z: target.z };
+    case "xy":
+      return { ...current, x: target.x, y: target.y };
+    case "xz":
+      return { ...current, x: target.x, z: target.z };
+    case "yz":
+      return { ...current, y: target.y, z: target.z };
+    case "xyz":
+      return target;
+    case "none":
+    default:
+      return current;
+  }
+}
 
 export type Point3DFields = {
   tags: ItemTags;
@@ -30,6 +58,9 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
   "point3d"
 > {
   kind = "point3d" as const;
+
+  // Track if we've warned about read-only coords
+  warnedReadOnly = false;
 
   // All fields that can be changed are atoms
   tags: Field<ItemTags, "tags", Opts>;
@@ -68,5 +99,44 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
       color: this.color.get(),
       radius: this.radius.get(),
     };
+  }
+
+  getCursorState() {
+    const draggable = this.draggable.get();
+    if (draggable === "none") return null;
+    // Only show grab cursor if coords is writable
+    if (typeof (this.coords as any).write !== "function") return null;
+    return "grab";
+  }
+
+  handleClick(event: ClickEvent<"point3d">) {
+    // Just for testing the click behavior works as intended
+    console.log("Point3D handleClick", event);
+  }
+
+  handleDrag(event: DragEvent<"point3d">) {
+    const draggable = this.draggable.get();
+    if (draggable === "none") return;
+
+    // Check if coords atom is writable
+    if (typeof (this.coords as any).write !== "function") {
+      if (!this.warnedReadOnly) {
+        this.warnedReadOnly = true;
+        console.warn(
+          `[Point3D] Item "${this.id}" has read-only coords atom, but draggable is "${draggable}". ` +
+            `Dragging is disabled. Set draggable: "none", or make the coords atom writable.`
+        );
+      }
+      return;
+    }
+
+    // Apply constraint based on draggable axis
+    const newCoords = applyDragConstraint(
+      this.coords.get(),
+      event.worldPosition,
+      draggable
+    );
+    // We already checked the atom is writable above, so this assertion is safe
+    (this.coords as { set: (v: Vec3) => void }).set(newCoords);
   }
 }

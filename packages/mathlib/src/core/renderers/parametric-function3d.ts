@@ -23,6 +23,7 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
     );
     const material = new THREE.MeshBasicMaterial({ color: item.color });
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.userData.itemId = item.id;
     threeScene.add(mesh);
     return {
       kind: "parametricfunction3d",

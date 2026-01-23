@@ -84,6 +84,7 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
     // lineMaterial.resolution.set()
 
     const mesh = new Line2(geometry, material);
+    mesh.userData.itemId = item.id;
     threeScene.add(mesh);
 
     return {

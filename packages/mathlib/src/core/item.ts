@@ -2,6 +2,16 @@ import type { Atom } from "jotai";
 import type { Store } from "jotai/vanilla/store";
 import type { BoundAtom } from "./atom-wrapper";
 import type { ItemId, ItemKind, ItemSnapshot } from "./common-types/item-registry";
+import type {
+  InteractionEventType,
+  InteractionHandler,
+  DragHandler,
+  ClickHandler,
+  HoverHandler,
+  DragEvent,
+  ClickEvent,
+  HoverEvent,
+} from "./common-types/interaction-events";
 
 export abstract class BaseItem<T, K extends ItemKind> {
   abstract kind: K;
@@ -13,6 +23,12 @@ export abstract class BaseItem<T, K extends ItemKind> {
   // This also means we can't directly change a field before adding it to the scene.
   // But I think it's alright.
   store?: Store = undefined;
+
+  // Event handlers for interaction events (drag, click, hover)
+  eventHandlers: Map<
+    InteractionEventType,
+    DragHandler | ClickHandler | HoverHandler
+  > = new Map();
 
   markDirty() {
     this.isDirty = true;
@@ -55,6 +71,39 @@ export abstract class BaseItem<T, K extends ItemKind> {
     this.atomSceneSubscriptions.clear();
     this.atomFields.clear();
   }
+
+  // Event handler methods for interaction events
+  on<E extends InteractionEventType>(
+    event: E,
+    handler: InteractionHandler<K>[E]
+  ): void {
+    if (this.eventHandlers.has(event)) {
+      console.warn(`Overwriting existing "${event}" handler on item ${this.id}`);
+    }
+    this.eventHandlers.set(event, handler as DragHandler | ClickHandler | HoverHandler);
+  }
+
+  off(event: InteractionEventType): void {
+    this.eventHandlers.delete(event);
+  }
+
+  getHandler<E extends InteractionEventType>(
+    event: E
+  ): InteractionHandler<K>[E] | undefined {
+    return this.eventHandlers.get(event) as InteractionHandler<K>[E] | undefined;
+  }
+
+  // Returns the cursor to show when hovering over this item.
+  // Override in subclasses to provide custom cursor behavior.
+  getCursorState(): string | null {
+    return null;
+  }
+
+  // Default interaction handlers. Override in subclasses to provide custom behavior.
+  // These are called when no custom handler is set via on().
+  handleDrag?(event: DragEvent<K>): void;
+  handleClick?(event: ClickEvent<K>): void;
+  handleHover?(event: HoverEvent<K>): void;
 
   // Will be implemented by the subclasses
   // Will be passed to the renderer

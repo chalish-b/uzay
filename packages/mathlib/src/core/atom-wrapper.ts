@@ -75,6 +75,15 @@ export function createSceneAtom(store: Store) {
     // Treat it as a BoundAtom and attach helpers
     const bound = a as BoundAtom<typeof a>;
 
+    // TODO: Currently `set` is always added at runtime, even for read-only atoms.
+    // TypeScript correctly hides `set` for read-only atoms, but at runtime calling
+    // it will crash with "atom.write is not a function".
+    //
+    // Options to fix:
+    // 1. Only add `set` if atom is writable: `if (typeof a.write === 'function')`
+    // 2. Add a `set` that throws a helpful error for read-only atoms
+    //
+    // For now, code that needs to check writability can use: `typeof atom.write === 'function'`
     (bound as any).get = () => store.get(a as any);
     (bound as any).set = (...setArgs: any[]) => store.set(a as any, ...setArgs);
     (bound as any).sub = (listener: () => void) =>

@@ -14,6 +14,7 @@ export const point3dRenderer: ItemRenderer<"point3d"> = {
     const size = item.radius / pointScaleDown;
     mesh.scale.set(size, size, size);
     mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
+    mesh.userData.itemId = item.id;
     threeScene.add(mesh);
     return {
       kind: "point3d",

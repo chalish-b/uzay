@@ -66,6 +66,11 @@
 
 ## Future
 
+- More interactivity improvements
+  - Better hitboxes for point dragging
+  - Ignore non-draggable items in raycasting
+  - Update documentation and give more examples
+    - Add warning on how an atom needs to be writable in order for "draggable" to work
 - React wrapper
   - Just start with normal components + `useEffect` for now
   - In the future, we can actually implement a proper thing with React reconciler.
