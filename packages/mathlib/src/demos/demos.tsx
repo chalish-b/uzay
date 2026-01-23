@@ -6,6 +6,7 @@ import Demo4 from "./demo4";
 import Demo5 from "./demo5";
 import Demo6 from "./demo6";
 import Demo7 from "./demo7";
+import Demo8 from "./demo8";
 
 const demos = {
   demo1: {
@@ -35,6 +36,10 @@ const demos = {
   demo7: {
     title: "Superformula",
     component: <Demo7 />,
+  },
+  demo8: {
+    title: "Triangle Centers",
+    component: <Demo8 />,
   },
 };
 
