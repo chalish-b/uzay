@@ -21,7 +21,9 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
       sampleCount,
       item.thickness / lineThicknessScaleDown
     );
-    const material = new THREE.MeshBasicMaterial({ color: item.color });
+    const material = new THREE.MeshPhongMaterial({
+      color: item.color, specular: 0xAAAAAA, shininess: 50
+    });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
@@ -64,9 +66,9 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
   },
 
   dispose(obj: ThreeSceneTypes["parametricfunction3d"], threeScene: THREE.Scene): void {
-    threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();
+    threeScene.remove(obj.mesh);
   },
 };
 

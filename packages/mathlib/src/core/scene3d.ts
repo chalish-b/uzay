@@ -29,6 +29,9 @@ export class Scene3D {
   invalidateSceneListeners: Set<() => void> = new Set();
   listenForSceneInvalidation(cb: () => void) {
     this.invalidateSceneListeners.add(cb);
+    return () => {
+      this.invalidateSceneListeners.delete(cb);
+    };
   }
   invalidateScene() {
     for (const listener of this.invalidateSceneListeners) {

@@ -14,15 +14,15 @@ export type ThreeSceneTypes = {
   point3d: {
     kind: "point3d";
     geometry: THREE.SphereGeometry;
-    material: THREE.MeshBasicMaterial;
-    mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+    material: THREE.MeshPhongMaterial;
+    mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshPhongMaterial>;
   };
   line3d: {
     kind: "line3d";
     curve: THREE.CatmullRomCurve3;
     geometry: THREE.TubeGeometry;
-    material: THREE.MeshBasicMaterial;
-    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+    material: THREE.MeshPhongMaterial;
+    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshPhongMaterial>;
   };
   camera3d: {
     kind: "camera3d";
@@ -31,8 +31,8 @@ export type ThreeSceneTypes = {
     kind: "parametricfunction3d";
     curve: THREE.CatmullRomCurve3;
     geometry: THREE.TubeGeometry;
-    material: THREE.MeshBasicMaterial;
-    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+    material: THREE.MeshPhongMaterial;
+    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshPhongMaterial>;
   };
   axes3d: {
     kind: "axes3d";

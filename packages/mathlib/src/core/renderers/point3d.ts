@@ -9,7 +9,9 @@ export const point3dRenderer: ItemRenderer<"point3d"> = {
     threeScene: THREE.Scene
   ): ThreeSceneTypes["point3d"] {
     const geometry = new THREE.SphereGeometry(1);
-    const material = new THREE.MeshBasicMaterial({ color: item.color });
+    const material = new THREE.MeshPhongMaterial({
+      color: item.color, specular: 0xAAAAAA, shininess: 5,
+    });
     const mesh = new THREE.Mesh(geometry, material);
     const size = item.radius / pointScaleDown;
     mesh.scale.set(size, size, size);

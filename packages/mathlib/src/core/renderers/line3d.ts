@@ -15,7 +15,9 @@ export const line3dRenderer: ItemRenderer<"line3d"> = {
       64,
       item.thickness / lineThicknessScaleDown
     );
-    const material = new THREE.MeshBasicMaterial({ color: item.color });
+    const material = new THREE.MeshPhongMaterial({
+      color: item.color, specular: 0xAAAAAA, shininess: 5
+    });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);

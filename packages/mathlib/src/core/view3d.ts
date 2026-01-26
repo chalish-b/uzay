@@ -25,6 +25,9 @@ export class View3D {
   threeRenderer: THREE.WebGLRenderer;
   frameScheduled: boolean = false;
   threeMeshes: Map<ItemId, ThreeSceneObject> = new Map();
+  ambientLight: THREE.AmbientLight;
+  directionalLight: THREE.DirectionalLight;
+  unsubscribeSceneInvalidation: (() => void) | null = null;
 
   // Scene snapshots. Initially an empty list, so all items will be added
   lastSceneSnapshot: SceneSnapshot = { itemSnapshots: new Map() };
@@ -130,6 +133,16 @@ export class View3D {
     // Or put stuff like this into the Scene, idk
     // this.threeScene.fog = new THREE.Fog("black", 1, 100);
 
+    // Ambient light for phong materials
+    this.ambientLight = new THREE.AmbientLight("white", 1.5);
+    this.threeScene.add(this.ambientLight);
+
+    // Directional light, synced to camera position
+    this.directionalLight = new THREE.DirectionalLight("white", 1);
+    this.threeScene.add(this.directionalLight);
+    this.threeScene.add(this.directionalLight.target);
+    this.directionalLight.position.set(0, 0, 0);
+
     this.sizer = createResponsiveThreeSizer({
       container: containerElem,
       renderer: this.threeRenderer,
@@ -138,7 +151,7 @@ export class View3D {
     });
 
     // Connect the scene's invalidate function to update the three.js scene and rerender
-    scene.listenForSceneInvalidation(() => {
+    this.unsubscribeSceneInvalidation = scene.listenForSceneInvalidation(() => {
       this.onSceneChanged();
     });
 
@@ -219,8 +232,16 @@ export class View3D {
   // which handles animation frames
   _render() {
     this.frameScheduled = false;
+
+    // Apply resize
     this.sizer.applyIfNeeded();
+
+    // Update camera position, and sync the directional light for it
     const cameraUpdated = this.threeOrbitControls.update();
+    this.directionalLight.position.copy(this.threeCamera.position);
+    this.directionalLight.target.position.set(0, 0, 0);
+
+    // Render
     this.threeRenderer.render(this.threeScene, this.threeCamera);
 
     if (cameraUpdated) {
@@ -625,10 +646,20 @@ export class View3D {
   };
 
   dispose() {
+    // Unsubscribe from scene invalidation
+    this.unsubscribeSceneInvalidation?.();
+    this.unsubscribeSceneInvalidation = null;
+
     // Remove all items from the scene (disposes their geometries/materials)
     for (const id of this.threeMeshes.keys()) {
       this.removeItem(id);
     }
+
+    // Remove and dispose lights
+    this.threeScene.remove(this.ambientLight);
+    this.threeScene.remove(this.directionalLight);
+    this.threeScene.remove(this.directionalLight.target);
+    this.directionalLight.dispose();
 
     // Remove interaction event listeners
     const canvas = this.threeRenderer.domElement;
@@ -645,6 +676,7 @@ export class View3D {
     // Dispose Three.js resources
     this.sizer.dispose();
     this.threeOrbitControls.dispose();
+    this.threeRenderer.forceContextLoss();
     this.threeRenderer.dispose();
 
     // Remove canvas from DOM

@@ -212,7 +212,7 @@ export default function Demo9() {
       tStart: 0,
       tEnd: 1,
       color: "#555",
-      thickness: 0.4,
+      thickness: 0.6,
       samples: 400,
     });
 
@@ -222,7 +222,7 @@ export default function Demo9() {
       tStart: 0,
       tEnd: timeAtom,
       color: "#fff",
-      thickness: 0.6,
+      thickness: 0.8,
       samples: 400,
     });
 
@@ -293,13 +293,13 @@ export default function Demo9() {
       gap: 2,
     });
 
-    scene.create("axes3d", {
-      x: [-12, 12],
-      y: [-8, 8],
-      z: [-12, 12],
-      color: "#2a2a2a",
-      thickness: 0.5,
-    });
+    // scene.create("axes3d", {
+    //   x: [-12, 12],
+    //   y: [-8, 8],
+    //   z: [-12, 12],
+    //   color: "#2a2a2a",
+    //   thickness: 0.5,
+    // });
 
     const camera = scene.create("camera3d", {
       position: vec3(16, 12, 16),
