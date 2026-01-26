@@ -66,6 +66,9 @@
 
 ## Future
 
+- Axes labels
+- Labels for items
+- Some kind of UI helpers, like latex text / numbers but they are draggable and the value updates in real time
 - More interactivity improvements
   - Better hitboxes for point dragging
   - Ignore non-draggable items in raycasting
@@ -73,6 +76,8 @@
     - Add warning on how an atom needs to be writable in order for "draggable" to work
   - Create more demos that rely on interactive points
   - Have a better distinction between click vs. drag
+- Custom material options.
+  - Just allow the user to pass MessPhongMaterialParameters (or some kind of atomized version of it?)
 - React wrapper
   - Just start with normal components + `useEffect` for now
   - In the future, we can actually implement a proper thing with React reconciler.
@@ -93,7 +98,6 @@
 - Infinite grid and axes
 - Camera controls and syncing between `Scene <-> View`
   - Add some kind of camera reset button while you're at it, it's really easy to lose track of the position and stuff.
-- Axes labels
 - Filled in shaped / functions
 - Opacity option for stuff
   - We can't directly pass an rgba color to the color property, so we need a separate field
