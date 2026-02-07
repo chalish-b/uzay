@@ -139,11 +139,9 @@ export default function Demo1() {
       radius: 3,
     });
 
-
-
     // Vector
     scene.create("vector3d", {
-      origin: vec3(0, 0, 0),
+      origin: constrainedCoords,
       vector: vec3(10, 3, 0),
       color: "cyan",
       thickness: 1,

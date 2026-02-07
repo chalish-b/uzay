@@ -1,7 +1,7 @@
 import type { PointDraggableDir } from "../common-types/axes";
 import type { Color } from "../common-types/colors";
 import type { ItemTags } from "../common-types/tags";
-import { type Vec3, vec3 } from "../common-types/vec3";
+import { type Vec3, Vec3 as Vec3Utils, vec3 } from "../common-types/vec3";
 import { applyDragConstraint } from "../common-types/drag-utils";
 import { BaseItem } from "../item";
 import type { AtomLikeOptions, Field } from "../atom-wrapper";
@@ -33,8 +33,8 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
 > {
   kind = "point3d" as const;
 
-  // Track if we've warned about read-only coords
   warnedReadOnly = false;
+  private _dragOffset: Vec3 = vec3(0, 0, 0);
 
   // All fields that can be changed are atoms
   tags: Field<ItemTags, "tags", Opts>;
@@ -104,13 +104,17 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
       return;
     }
 
-    // Apply constraint based on draggable axis
+    if (event.phase === "start") {
+      this._dragOffset = Vec3Utils.subtract(event.worldPosition, this.coords.get());
+      return;
+    }
+
+    const adjusted = Vec3Utils.subtract(event.worldPosition, this._dragOffset);
     const newCoords = applyDragConstraint(
       this.coords.get(),
-      event.worldPosition,
+      adjusted,
       draggable
     );
-    // We already checked the atom is writable above, so this assertion is safe
     (this.coords as { set: (v: Vec3) => void }).set(newCoords);
   }
 }

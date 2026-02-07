@@ -40,6 +40,7 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
   kind = "vector3d" as const;
 
   warnedReadOnly = false;
+  private _dragOffset: Vec3 = vec3(0, 0, 0);
 
   tags: Field<ItemTags, "tags", Opts>;
   origin: Field<Vec3, "origin", Opts>;
@@ -115,7 +116,14 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
     const origin = this.origin.get();
     const currentVector = this.vector.get();
     const tipPos = Vec3Utils.add(origin, currentVector);
-    const constrained = applyDragConstraint(tipPos, event.worldPosition, draggable);
+
+    if (event.phase === "start") {
+      this._dragOffset = Vec3Utils.subtract(event.worldPosition, tipPos);
+      return;
+    }
+
+    const adjusted = Vec3Utils.subtract(event.worldPosition, this._dragOffset);
+    const constrained = applyDragConstraint(tipPos, adjusted, draggable);
     const newVector = Vec3Utils.subtract(constrained, origin);
     (this.vector as { set: (v: Vec3) => void }).set(newVector);
   }
