@@ -16,7 +16,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
       shininess: 5,
     });
 
-    const { shaftGeometry, headGeometry, shaftLen, headLen, length } =
+    const { shaftGeometry, headGeometry, shaftLen, headLength, length } =
       buildGeometries(item);
 
     const shaftMesh = new THREE.Mesh(shaftGeometry, material);
@@ -27,7 +27,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
     group.add(headMesh);
     group.userData.itemId = item.id;
 
-    positionParts(item, group, shaftMesh, headMesh, shaftLen, headLen, length);
+    positionParts(item, group, shaftMesh, headMesh, shaftLen, headLength, length);
 
     threeScene.add(group);
 
@@ -52,7 +52,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
     obj.shaftGeometry.dispose();
     obj.headGeometry.dispose();
 
-    const { shaftGeometry, headGeometry, shaftLen, headLen, length } =
+    const { shaftGeometry, headGeometry, shaftLen, headLength, length } =
       buildGeometries(item);
 
     obj.shaftGeometry = shaftGeometry;
@@ -66,7 +66,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
       obj.shaftMesh,
       obj.headMesh,
       shaftLen,
-      headLen,
+      headLength,
       length
     );
   },
@@ -83,7 +83,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
 };
 
 function buildGeometries(item: ItemSnapshot<"vector3d">) {
-  const { vector, thickness, headLength: headLenFrac, headWidth: headWidthFrac } = item;
+  const { vector, thickness, headLength, headWidth } = item;
   const length = Math.sqrt(
     vector.x * vector.x + vector.y * vector.y + vector.z * vector.z
   );
@@ -96,19 +96,17 @@ function buildGeometries(item: ItemSnapshot<"vector3d">) {
       shaftGeometry: new THREE.CylinderGeometry(radius, radius, 0, 8),
       headGeometry: new THREE.ConeGeometry(radius * 2, 0, 8),
       shaftLen: 0,
-      headLen: 0,
+      headLength: 0,
       length: 0,
     };
   }
 
-  const headLen = length * headLenFrac;
-  const headRadius = length * headWidthFrac;
-  const shaftLen = Math.max(length - headLen, 0);
+  const shaftLen = Math.max(length - headLength, 0);
 
   const shaftGeometry = new THREE.CylinderGeometry(radius, radius, shaftLen, 8);
-  const headGeometry = new THREE.ConeGeometry(headRadius, headLen, 12);
+  const headGeometry = new THREE.ConeGeometry(headWidth, headLength, 12);
 
-  return { shaftGeometry, headGeometry, shaftLen, headLen, length };
+  return { shaftGeometry, headGeometry, shaftLen, headLength, length };
 }
 
 function positionParts(
@@ -117,7 +115,7 @@ function positionParts(
   shaftMesh: THREE.Mesh,
   headMesh: THREE.Mesh,
   shaftLen: number,
-  headLen: number,
+  headLength: number,
   length: number
 ) {
   const { origin, vector } = item;
@@ -146,5 +144,5 @@ function positionParts(
   // Shaft center is at shaftLen/2 from origin
   shaftMesh.position.set(0, shaftLen / 2, 0);
   // Head center is at (length - headLen/2) from origin
-  headMesh.position.set(0, length - headLen / 2, 0);
+  headMesh.position.set(0, length - headLength / 2, 0);
 }

@@ -28,8 +28,8 @@ function mergeDefaults<Opts extends Vector3DOptions>(options: Opts) {
     draggable: options.draggable ?? "xyz",
     color: options.color ?? "white",
     thickness: options.thickness ?? 1,
-    headLength: options.headLength ?? 0.025,
-    headWidth: options.headWidth ?? 0.015,
+    headLength: options.headLength ?? 0.2,
+    headWidth: options.headWidth ?? 0.1,
   };
 }
 
