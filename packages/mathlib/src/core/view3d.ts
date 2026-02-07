@@ -440,6 +440,15 @@ export class View3D {
     return new THREE.Vector3().copy(axisOrigin).addScaledVector(axisDir, t);
   }
 
+  // Extract the current raycaster ray as plain Vec3 values
+  private getCurrentRay(): { origin: Vec3; direction: Vec3 } {
+    const r = this.raycaster.ray;
+    return {
+      origin: vec3(r.origin.x, r.origin.y, r.origin.z),
+      direction: vec3(r.direction.x, r.direction.y, r.direction.z),
+    };
+  }
+
   // Update cursor based on current state
   updateCursor(): void {
     const canvas = this.threeRenderer.domElement;
@@ -501,6 +510,7 @@ export class View3D {
         startWorldPosition: hit.worldPosition,
         worldPosition: hit.worldPosition,
         delta: vec3(0, 0, 0),
+        ray: this.getCurrentRay(),
       });
 
       this.updateCursor();
@@ -536,6 +546,7 @@ export class View3D {
         worldPosition: worldPos,
         startWorldPosition: this.dragState.startWorldPosition,
         delta,
+        ray: this.getCurrentRay(),
       });
       return;
     }
@@ -556,6 +567,7 @@ export class View3D {
             itemKind: oldItem.kind,
             screenPosition: { x: event.clientX, y: event.clientY },
             worldPosition: vec3(0, 0, 0), // Not meaningful for leave
+            ray: this.getCurrentRay(),
           });
         }
       }
@@ -571,6 +583,7 @@ export class View3D {
             itemKind: newItem.kind,
             screenPosition: { x: event.clientX, y: event.clientY },
             worldPosition: hit.worldPosition,
+            ray: this.getCurrentRay(),
           });
         }
       }
@@ -598,6 +611,7 @@ export class View3D {
           startWorldPosition: this.dragState.startWorldPosition,
           worldPosition: worldPos,
           delta: Vec3.subtract(worldPos, this.dragState.startWorldPosition),
+          ray: this.getCurrentRay(),
         });
       }
 
@@ -624,6 +638,7 @@ export class View3D {
               itemKind: item.kind,
               worldPosition: hit.worldPosition,
               screenPosition: { x: event.clientX, y: event.clientY },
+              ray: this.getCurrentRay(),
             });
           }
         }

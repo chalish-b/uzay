@@ -51,11 +51,37 @@ export default function Demo1() {
     );
 
     // The point, constrained to the sphere surface
-    scene.create("point3d", {
+    const point = scene.create("point3d", {
       coords: constrainedCoords,
       color: "gold",
       radius: 3,
       draggable: "xyz",
+    });
+
+    // Use ray-sphere intersection for accurate cursor tracking on drag
+    const cx = sphereCenter.x, cy = sphereCenter.y, cz = sphereCenter.z;
+    const r = sphereRadius;
+    point.on("drag", (event) => {
+      if (event.phase === "start" || event.phase === "end") return;
+      const { origin: o, direction: d } = event.ray;
+      const ocx = o.x - cx, ocy = o.y - cy, ocz = o.z - cz;
+      const a = d.x * d.x + d.y * d.y + d.z * d.z;
+      const b = 2 * (ocx * d.x + ocy * d.y + ocz * d.z);
+      const c = ocx * ocx + ocy * ocy + ocz * ocz - r * r;
+      const disc = b * b - 4 * a * c;
+      // If ray hits sphere, use the intersection point.
+      // If it misses, use the closest point on the ray to the sphere center,
+      // projected onto the surface — so the point keeps tracking smoothly.
+      const t = disc >= 0
+        ? (-b - Math.sqrt(disc)) / (2 * a)
+        : -b / (2 * a); // closest approach to center
+      const hx = o.x + t * d.x - cx;
+      const hy = o.y + t * d.y - cy;
+      const hz = o.z + t * d.z - cz;
+      const len = Math.sqrt(hx * hx + hy * hy + hz * hz);
+      if (len < 0.001) return;
+      thetaAtom.set(Math.acos(Math.max(-1, Math.min(1, hy / len))));
+      phiAtom.set(Math.atan2(hz / len, hx / len));
     });
 
     // Semi-transparent sphere so you can see the point
@@ -65,6 +91,7 @@ export default function Demo1() {
       color: "#4488ff",
       opacity: 0.9,
     });
+
 
     // Axes and grid
     scene.create("axes3d", {

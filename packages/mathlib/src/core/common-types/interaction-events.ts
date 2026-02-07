@@ -8,6 +8,7 @@ type BaseInteractionEvent<K extends ItemKind = ItemKind> = {
   itemKind: K;
   worldPosition: Vec3; // 3D position where event occurred
   screenPosition: Vec2; // Pixel coordinates on canvas
+  ray: { origin: Vec3; direction: Vec3 }; // Camera ray through the pointer
 };
 
 // Drag event
