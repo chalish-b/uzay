@@ -21,6 +21,11 @@ import {
   type Sphere3DOptions,
   Sphere3D,
 } from "../items/sphere3d";
+import {
+  type Vector3DFields,
+  type Vector3DOptions,
+  Vector3D,
+} from "../items/vector3d";
 import type { Scene3D } from "../scene3d";
 import type { AtomLikeOptions } from "../atom-wrapper";
 
@@ -32,7 +37,8 @@ export type ItemKind =
   | "parametricfunction3d"
   | "axes3d"
   | "grid3d"
-  | "sphere3d";
+  | "sphere3d"
+  | "vector3d";
 
 export type ItemFieldsMap = {
   point3d: Point3DFields;
@@ -42,6 +48,7 @@ export type ItemFieldsMap = {
   axes3d: Axes3DFields;
   grid3d: Grid3DFields;
   sphere3d: Sphere3DFields;
+  vector3d: Vector3DFields;
 };
 
 export type ItemFields<K extends ItemKind> = ItemFieldsMap[K];
@@ -72,6 +79,8 @@ export const itemFactory = {
     new Grid3D(scene, options),
   sphere3d: <Opts extends Sphere3DOptions>(scene: Scene3D, options: Opts) =>
     new Sphere3D(scene, options),
+  vector3d: <Opts extends Vector3DOptions>(scene: Scene3D, options: Opts) =>
+    new Vector3D(scene, options),
 } as const;
 
 export type ItemFactory<K extends ItemKind> = (typeof itemFactory)[K];
@@ -93,6 +102,8 @@ export type ItemInstance<
   ? Grid3D<Opts>
   : K extends "sphere3d"
   ? Sphere3D<Opts>
+  : K extends "vector3d"
+  ? Vector3D<Opts>
   : never;
 
 export type ItemInstanceOf<K extends ItemKind = ItemKind> = K extends ItemKind

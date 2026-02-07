@@ -133,7 +133,21 @@ export default function Demo1() {
       draggable: "none",
     });
 
+    scene.create("point3d", {
+      coords: vec3(10, 10, 0),
+      color: "red",
+      radius: 3,
+    });
 
+
+
+    // Vector
+    scene.create("vector3d", {
+      origin: vec3(0, 0, 0),
+      vector: vec3(10, 3, 0),
+      color: "cyan",
+      thickness: 1,
+    });
 
     // Axes and grid
     scene.create("axes3d", {

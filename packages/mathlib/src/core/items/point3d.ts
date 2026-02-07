@@ -2,37 +2,11 @@ import type { PointDraggableDir } from "../common-types/axes";
 import type { Color } from "../common-types/colors";
 import type { ItemTags } from "../common-types/tags";
 import { type Vec3, vec3 } from "../common-types/vec3";
+import { applyDragConstraint } from "../common-types/drag-utils";
 import { BaseItem } from "../item";
-import type { AtomLikeOptions, AtomizeResult, Field } from "../atom-wrapper";
+import type { AtomLikeOptions, Field } from "../atom-wrapper";
 import type { Scene3D } from "../scene3d";
 import type { ClickEvent, DragEvent } from "../common-types/interaction-events";
-
-// Helper: apply axis constraint to target position
-function applyDragConstraint(
-  current: Vec3,
-  target: Vec3,
-  constraint: PointDraggableDir
-): Vec3 {
-  switch (constraint) {
-    case "x":
-      return { ...current, x: target.x };
-    case "y":
-      return { ...current, y: target.y };
-    case "z":
-      return { ...current, z: target.z };
-    case "xy":
-      return { ...current, x: target.x, y: target.y };
-    case "xz":
-      return { ...current, x: target.x, z: target.z };
-    case "yz":
-      return { ...current, y: target.y, z: target.z };
-    case "xyz":
-      return target;
-    case "none":
-    default:
-      return current;
-  }
-}
 
 export type Point3DFields = {
   tags: ItemTags;
