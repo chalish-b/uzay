@@ -1,12 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Scene3D } from "../core/scene3d";
 import { Vec3, vec3 } from "../core/common-types/vec3";
 import { View3D } from "../core/view3d";
+import type { BoundAtom } from "../core/atom-wrapper";
+import type { PrimitiveAtom } from "jotai";
 
 // This is the sandbox demo for testing stuff
 
 export default function Demo1() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const vectorLengthAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const [vectorLength, setVectorLength] = useState(10);
 
   // Init code. Since we don't have a react wrapper for the library, we just run all the code in useEffect
   useEffect(() => {
@@ -88,8 +92,8 @@ export default function Demo1() {
     scene.create("sphere3d", {
       center: sphereCenter,
       radius: sphereRadius,
-      color: "white",
-      opacity: 0.8,
+      color: "gray",
+      opacity: 0.7,
       pointerEvents: "none",
     });
 
@@ -140,10 +144,25 @@ export default function Demo1() {
       radius: 3,
     });
 
-    // Vector
+    // Vector with controllable length
+    const vectorLengthAtom = scene.atom(10);
+    vectorLengthAtomRef.current = vectorLengthAtom;
+    vectorLengthAtom.sub(() => setVectorLength(vectorLengthAtom.get()));
+
+    // Initial direction (normalized)
+    const dirAtom = scene.atom(Vec3.normalized(vec3(10, 3, 0)));
+
     scene.create("vector3d", {
       origin: constrainedCoords,
-      vector: vec3(10, 3, 0),
+      vector: scene.atom(
+        (get) => Vec3.scaled(get(dirAtom), get(vectorLengthAtom)),
+        (_get, set, next: Vec3) => {
+          const len = Math.sqrt(Vec3.dot(next, next));
+          if (len < 0.001) return;
+          set(dirAtom, Vec3.normalized(next));
+          set(vectorLengthAtom, len);
+        },
+      ),
       color: "cyan",
       thickness: 1,
     });
@@ -174,9 +193,26 @@ export default function Demo1() {
     };
   }, []);
 
+  // Sync slider state to atom
+  useEffect(() => {
+    vectorLengthAtomRef.current?.set(vectorLength);
+  }, [vectorLength]);
+
   return (
-    <div style={{ width: "100%", height: "100%", backgroundColor: "#141414" }}>
+    <div style={{ width: "100%", height: "100%", backgroundColor: "#141414", position: "relative" }}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }}></div>
+      <div style={{ position: "absolute", top: 16, left: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <label style={{ color: "white", fontSize: 14 }}>Vector Length</label>
+        <input
+          type="range"
+          min="0"
+          max="20"
+          step="0.1"
+          value={vectorLength}
+          onChange={(e) => setVectorLength(parseFloat(e.target.value))}
+        />
+        <span style={{ color: "white", fontSize: 14, minWidth: 36 }}>{vectorLength.toFixed(1)}</span>
+      </div>
     </div>
   );
 }
