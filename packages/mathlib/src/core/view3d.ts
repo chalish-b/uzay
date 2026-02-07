@@ -280,6 +280,10 @@ export class View3D {
       let obj: THREE.Object3D | null = hit.object;
       while (obj) {
         if (obj.userData.itemId) {
+          // Skip items with pointerEvents: "none"
+          const item = this.scene.items.get(obj.userData.itemId as ItemId);
+          if (item && "pointerEvents" in item && item.pointerEvents.get() === "none") break;
+
           return {
             itemId: obj.userData.itemId as ItemId,
             worldPosition: vec3(hit.point.x, hit.point.y, hit.point.z),

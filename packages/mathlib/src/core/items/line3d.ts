@@ -5,12 +5,15 @@ import type { AtomLikeOptions, Field } from "../atom-wrapper";
 import { BaseItem } from "../item";
 import type { Scene3D } from "../scene3d";
 
+export type PointerEvents = "auto" | "none";
+
 export type Line3DFields = {
   tags: ItemTags;
   start: Vec3;
   end: Vec3;
   color: Color;
   thickness: number;
+  pointerEvents: PointerEvents;
 };
 export type Line3DOptions = AtomLikeOptions<Line3DFields>;
 
@@ -21,6 +24,7 @@ function mergeDefaults<Opts extends Line3DOptions>(options: Opts) {
     end: options.end ?? vec3(0, 0, 0),
     color: options.color ?? "white",
     thickness: options.thickness ?? 1,
+    pointerEvents: options.pointerEvents ?? "auto",
   };
 }
 
@@ -35,6 +39,7 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
   end: Field<Vec3, "end", Opts>;
   color: Field<Color, "color", Opts>;
   thickness: Field<number, "thickness", Opts>;
+  pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Line3DOptions = {} as any) {
     super();
@@ -46,12 +51,14 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
     this.end = scene.atomize(opts.end) as any;
     this.color = scene.atomize(opts.color) as any;
     this.thickness = scene.atomize(opts.thickness) as any;
+    this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
       this.start,
       this.end,
       this.color,
-      this.thickness
+      this.thickness,
+      this.pointerEvents
     );
   }
 
@@ -65,6 +72,7 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
       end: this.end.get(),
       color: this.color.get(),
       thickness: this.thickness.get(),
+      pointerEvents: this.pointerEvents.get(),
     };
   }
 }

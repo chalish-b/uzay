@@ -5,6 +5,8 @@ import type { Scene3D } from "../scene3d";
 import { BaseItem } from "../item";
 
 type PlaneDir = "xy" | "xz" | "yz";
+export type PointerEvents = "auto" | "none";
+
 export type Grid3DFields = {
   tags: ItemTags;
   plane: PlaneDir;
@@ -18,6 +20,7 @@ export type Grid3DFields = {
   gap: number;
   color: Color;
   thickness: number;
+  pointerEvents: PointerEvents;
 };
 export type Grid3DOptions = AtomLikeOptions<Grid3DFields>;
 
@@ -31,6 +34,7 @@ function mergeDefaults<Opts extends Grid3DOptions>(options: Opts) {
     gap: options.gap ?? 1,
     color: options.color ?? "white",
     thickness: options.thickness ?? 2,
+    pointerEvents: options.pointerEvents ?? "auto",
   };
 }
 
@@ -48,6 +52,7 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
   offset: Field<number, "offset", Opts>;
   color: Field<Color, "color", Opts>;
   thickness: Field<number, "thickness", Opts>;
+  pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Grid3DOptions = {} as any) {
     super();
@@ -62,6 +67,7 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
     this.offset = scene.atomize(opts.offset) as any;
     this.color = scene.atomize(opts.color) as any;
     this.thickness = scene.atomize(opts.thickness) as any;
+    this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
       this.plane,
@@ -70,7 +76,8 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
       this.gap,
       this.offset,
       this.color,
-      this.thickness
+      this.thickness,
+      this.pointerEvents
     );
   }
 
@@ -87,6 +94,7 @@ export class Grid3D<Opts extends Grid3DOptions = {}> extends BaseItem<
       gap: this.gap.get(),
       color: this.color.get(),
       thickness: this.thickness.get(),
+      pointerEvents: this.pointerEvents.get(),
     };
   }
 }

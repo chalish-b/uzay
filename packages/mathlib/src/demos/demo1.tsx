@@ -89,7 +89,8 @@ export default function Demo1() {
       center: sphereCenter,
       radius: sphereRadius,
       color: "white",
-      opacity: 0.3,
+      opacity: 0.8,
+      pointerEvents: "none",
     });
 
     // Origin point

@@ -8,12 +8,15 @@ import type { AtomLikeOptions, Field } from "../atom-wrapper";
 import type { Scene3D } from "../scene3d";
 import type { ClickEvent, DragEvent } from "../common-types/interaction-events";
 
+export type PointerEvents = "auto" | "none";
+
 export type Point3DFields = {
   tags: ItemTags;
   coords: Vec3;
   draggable: PointDraggableDir;
   color: Color;
   radius: number;
+  pointerEvents: PointerEvents;
 };
 export type Point3DOptions = AtomLikeOptions<Point3DFields>;
 
@@ -24,6 +27,7 @@ function mergeDefaults<Opts extends Point3DOptions>(options: Opts) {
     draggable: options.draggable ?? "xyz",
     color: options.color ?? "white",
     radius: options.radius ?? 2,
+    pointerEvents: options.pointerEvents ?? "auto",
   };
 }
 
@@ -42,6 +46,7 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
   draggable: Field<PointDraggableDir, "draggable", Opts>;
   color: Field<Color, "color", Opts>;
   radius: Field<number, "radius", Opts>;
+  pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Point3DOptions = {} as any) {
     super();
@@ -53,12 +58,14 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
     this.draggable = scene.atomize(opts.draggable) as any;
     this.color = scene.atomize(opts.color) as any;
     this.radius = scene.atomize(opts.radius) as any;
+    this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
       this.coords,
       this.draggable,
       this.color,
-      this.radius
+      this.radius,
+      this.pointerEvents
     );
   }
 
@@ -72,6 +79,7 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
       draggable: this.draggable.get(),
       color: this.color.get(),
       radius: this.radius.get(),
+      pointerEvents: this.pointerEvents.get(),
     };
   }
 
