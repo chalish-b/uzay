@@ -54,7 +54,7 @@ export default function Demo1() {
     const point = scene.create("point3d", {
       coords: constrainedCoords,
       color: "gold",
-      radius: 3,
+      radius: 2,
       draggable: "xyz",
     });
 
@@ -88,9 +88,51 @@ export default function Demo1() {
     scene.create("sphere3d", {
       center: sphereCenter,
       radius: sphereRadius,
-      color: "#4488ff",
-      opacity: 0.9,
+      color: "white",
+      opacity: 0.3,
     });
+
+    // Origin point
+    scene.create("point3d", {
+      coords: vec3(0, 0, 0),
+      color: "white",
+      radius: 3,
+      draggable: "none",
+    });
+
+    // Sphere center
+    scene.create("point3d", {
+      coords: sphereCenter,
+      color: "red",
+      radius: 3,
+      draggable: "none",
+    });
+
+    // Lines
+    scene.create("line3d", {
+      start: vec3(0, 0, 0),
+      end: sphereCenter,
+      color: "red",
+      radius: 3,
+      draggable: "none",
+    });
+
+    scene.create("line3d", {
+      start: sphereCenter,
+      end: constrainedCoords,
+      color: "gold",
+      radius: 3,
+      draggable: "none",
+    });
+
+    scene.create("line3d", {
+      start: vec3(0, 0, 0),
+      end: constrainedCoords,
+      color: "green",
+      radius: 3,
+      draggable: "none",
+    });
+
 
 
     // Axes and grid
