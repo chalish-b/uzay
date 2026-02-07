@@ -61,6 +61,12 @@ export type ThreeSceneTypes = {
     material: LineMaterial
     mesh: Line2,
   };
+  sphere3d: {
+    kind: "sphere3d";
+    geometry: THREE.SphereGeometry;
+    material: THREE.MeshPhongMaterial;
+    mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshPhongMaterial>;
+  };
 };
 
 export type ThreeSceneObject<K extends ItemKind = ItemKind> =
@@ -80,6 +86,7 @@ import { parametricFunction3dRenderer } from "./parametric-function3d";
 import { axes3dRenderer } from "./axes3d";
 import { grid3dRenderer } from "./grid3d";
 import { camera3dRenderer } from "./camera3d";
+import { sphere3dRenderer } from "./sphere3d";
 
 // Registry mapping item kinds to their renderers
 export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
@@ -89,6 +96,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   axes3d: axes3dRenderer,
   grid3d: grid3dRenderer,
   camera3d: camera3dRenderer,
+  sphere3d: sphere3dRenderer,
 };
 
 // Helper function to get a typed renderer for a specific kind

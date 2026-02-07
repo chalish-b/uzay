@@ -3,50 +3,67 @@ import { Scene3D } from "../core/scene3d";
 import { Vec3, vec3 } from "../core/common-types/vec3";
 import { View3D } from "../core/view3d";
 
+// This is the sandbox demo for testing stuff
+
 export default function Demo1() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Init code. Since we don't have a react wrapper for the library, we just run all the code in useEffect
   useEffect(() => {
     if (!containerRef.current) return;
     const scene = new Scene3D();
 
-    const xAtom = scene.atom(0);
-    xAtom.sub(() => {
-      if (inputRef.current) {
-        inputRef.current.value = xAtom.get().toString();
-      }
-    });
+    // Sphere parameters
+    const sphereCenter = vec3(0, 4, 0);
+    const sphereRadius = 4;
 
-    const handleInput = () => {
-      if (inputRef.current) {
-        xAtom.set(parseFloat(inputRef.current.value));
-      }
-    };
-    inputRef.current?.addEventListener("input", handleInput);
+    // Spherical coordinate angles stored as atoms
+    const thetaAtom = scene.atom(Math.PI / 4); // polar angle (0 to PI)
+    const phiAtom = scene.atom(Math.PI / 4);   // azimuthal angle (0 to 2PI)
 
-    const pointAtom = scene.create("point3d", {
-      coords: scene.atom(
-		(get) => vec3(get(xAtom), Math.sin(get(xAtom)), Math.cos(get(xAtom))),
-		(_get, set, next: Vec3) => set(xAtom, next.x),
-      ),
+    // Derive cartesian coords on sphere surface from angles
+    // Write function: project dragged position onto sphere, convert back to angles
+    const constrainedCoords = scene.atom(
+      (get) => {
+        const theta = get(thetaAtom);
+        const phi = get(phiAtom);
+        return vec3(
+          sphereCenter.x + sphereRadius * Math.sin(theta) * Math.cos(phi),
+          sphereCenter.y + sphereRadius * Math.cos(theta),
+          sphereCenter.z + sphereRadius * Math.sin(theta) * Math.sin(phi),
+        );
+      },
+      (_get, set, next: Vec3) => {
+        // Vector from sphere center to dragged position
+        const dx = next.x - sphereCenter.x;
+        const dy = next.y - sphereCenter.y;
+        const dz = next.z - sphereCenter.z;
+        const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 0.001) return; // avoid singularity at center
+
+        // Normalize and convert to spherical angles
+        const nx = dx / len;
+        const ny = dy / len;
+        const nz = dz / len;
+        set(thetaAtom, Math.acos(Math.max(-1, Math.min(1, ny))));
+        set(phiAtom, Math.atan2(nz, nx));
+      },
+    );
+
+    // The point, constrained to the sphere surface
+    scene.create("point3d", {
+      coords: constrainedCoords,
       color: "gold",
-      radius: 2,
-	  draggable: "x",
-    });
-    const line = scene.create("line3d", {
-      start: scene.atom((get) => vec3(get(xAtom), 0, 0)),
-      end: pointAtom.coords,
-      color: "gold",
-      thickness: 1,
+      radius: 3,
+      draggable: "xyz",
     });
 
-    const helix = scene.create("parametricfunction3d", {
-      f: (t) => vec3(t, Math.sin(t), Math.cos(t)),
-      tStart: 0,
-      tEnd: xAtom,
-      color: "crimson",
+    // Semi-transparent sphere so you can see the point
+    scene.create("sphere3d", {
+      center: sphereCenter,
+      radius: sphereRadius,
+      color: "#4488ff",
+      opacity: 0.9,
     });
 
     // Axes and grid
@@ -70,9 +87,7 @@ export default function Demo1() {
     });
     const view = new View3D(scene, camera.id, containerRef.current);
 
-    // Cleanup on unmount or HMR
     return () => {
-      inputRef.current?.removeEventListener("input", handleInput);
       view.dispose();
     };
   }, []);
@@ -80,17 +95,6 @@ export default function Demo1() {
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#141414" }}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }}></div>
-      {/* Input container */}
-      <div style={{ position: "absolute", top: 0, left: 0 }}>
-        <input
-          ref={inputRef}
-          type="range"
-          min="0"
-          max="10"
-          step="0.1"
-          value="0"
-        />
-      </div>
     </div>
   );
 }
