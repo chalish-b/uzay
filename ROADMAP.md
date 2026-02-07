@@ -66,6 +66,9 @@
 
 ## Future
 
+- 3D objects
+  - Spheres
+- Optimizations
 - Axes labels
 - Labels for items
 - Some kind of UI helpers, like latex text / numbers but they are draggable and the value updates in real time
@@ -116,3 +119,7 @@
   - Ideas:
     - Function plot with area under it filled in
     - Line with two points at the ends
+    - Point on a sphere, point on a function, basically points constrained to some surface or path
+      - Maybe we can even provide an easier thing in React wrapper like: If we put the point inside a function component, it'll automatically be constrained to that, idk.
+- Edit mode
+  - Being able to click on an object, and directly changing its properties and atoms on the interface

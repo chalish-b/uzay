@@ -22,7 +22,7 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
       item.thickness / lineThicknessScaleDown
     );
     const material = new THREE.MeshPhongMaterial({
-      color: item.color, specular: 0xAAAAAA, shininess: 50
+      color: item.color, specular: 0xAAAAAA, shininess: 5
     });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.userData.itemId = item.id;
