@@ -3,6 +3,8 @@ title: Points
 description: 3D point objects
 ---
 
+import { Callout } from "fumadocs-ui/components/callout";
+
 ## What is a Point3D?
 
 A `Point3D` renders as a sphere at a specific 3D position. Points are the most basic visual element and are commonly used for:
@@ -127,6 +129,32 @@ point.color.set("blue");
 point.radius.set(4);
 ```
 
+## Dragging
+
+Points are draggable by default. Users can click and drag a point to move it around in 3D space. The `draggable` property controls which axes the point can move along:
+
+```typescript
+// Free movement (default)
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "xyz" });
+
+// Constrain to the xz-plane (horizontal movement only)
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "xz" });
+
+// Constrain to the y-axis (vertical only)
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "y" });
+
+// Disable dragging
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "none" });
+```
+
+The cursor changes to a grab icon when hovering over a draggable point.
+
+<Callout type="warning">
+Dragging only works when `coords` is a writable atom. If you pass a derived (read-only) atom, dragging is automatically disabled.
+</Callout>
+
+You can also listen for drag, click, and hover events. See [Interactions](/docs/core-concepts/interactions) for details.
+
 ---
 
 ## API Reference
@@ -138,7 +166,8 @@ point.radius.set(4);
 | `coords` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Position in 3D space |
 | `color` | `string` | `"white"` | CSS color string |
 | `radius` | `number` | `2` | Visual size of the sphere |
-| `draggable` | `"xyz" \| "xy" \| "xz" \| "yz" \| "x" \| "y" \| "z" \| false` | `"xyz"` | Axes the point can be dragged along |
+| `draggable` | `"xyz" \| "xy" \| "xz" \| "yz" \| "x" \| "y" \| "z" \| "none"` | `"xyz"` | Axes the point can be dragged along |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the point receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
 
 ### Returned Object
@@ -152,4 +181,5 @@ The `scene.create("point3d", options)` call returns a `Point3D` object with thes
 | `color` | `BoundAtom<string>` | Color atom |
 | `radius` | `BoundAtom<number>` | Size atom |
 | `draggable` | `BoundAtom<...>` | Draggable constraint atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

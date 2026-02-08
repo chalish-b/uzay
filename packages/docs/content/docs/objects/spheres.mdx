@@ -1,0 +1,141 @@
+---
+title: Spheres
+description: 3D sphere objects
+---
+
+## What is a Sphere3D?
+
+A `Sphere3D` renders as a sphere with a given center and radius. Spheres are useful for:
+
+- Representing volumes or regions in space
+- Visualizing bounding spheres
+- Drawing planets, atoms, or other round objects
+- Creating semi-transparent enclosures around other objects
+
+## Basic Usage
+
+```typescript
+const sphere = scene.create("sphere3d", {
+  center: vec3(0, 2, 0),
+  radius: 1.5,
+  color: "dodgerblue",
+});
+```
+
+## Styling Spheres
+
+### Color
+
+Any CSS color string works:
+
+```typescript
+scene.create("sphere3d", { center: vec3(0, 0, 0), color: "red" });
+scene.create("sphere3d", { center: vec3(3, 0, 0), color: "#4ecdc4" });
+scene.create("sphere3d", { center: vec3(6, 0, 0), color: "hsl(280, 80%, 60%)" });
+```
+
+### Opacity
+
+Spheres support transparency via the `opacity` property (0 = fully transparent, 1 = fully opaque):
+
+```typescript
+scene.create("sphere3d", {
+  center: vec3(0, 0, 0),
+  radius: 2,
+  color: "cyan",
+  opacity: 0.3, // Semi-transparent
+});
+```
+
+This is great for showing a region without hiding the objects inside it.
+
+### Size
+
+The `radius` property sets the sphere's size in world units:
+
+```typescript
+scene.create("sphere3d", { center: vec3(0, 0, 0), radius: 0.5 }); // Small
+scene.create("sphere3d", { center: vec3(3, 0, 0), radius: 1 });   // Medium
+scene.create("sphere3d", { center: vec3(6, 0, 0), radius: 2 });   // Large
+```
+
+## Reactive Spheres
+
+### Growing Sphere
+
+A sphere whose radius changes over time:
+
+```typescript
+const t = scene.atom(0);
+
+const sphere = scene.create("sphere3d", {
+  center: vec3(0, 0, 0),
+  radius: scene.atom((get) => 1 + Math.sin(get(t)) * 0.5),
+  color: "gold",
+  opacity: 0.5,
+});
+
+function animate() {
+  t.set((prev) => prev + 0.02);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+### Moving Sphere
+
+```typescript
+const t = scene.atom(0);
+
+const sphere = scene.create("sphere3d", {
+  center: scene.atom((get) => {
+    const time = get(t);
+    return vec3(Math.cos(time) * 3, 0, Math.sin(time) * 3);
+  }),
+  radius: 1,
+  color: "tomato",
+});
+```
+
+## Updating Properties
+
+```typescript
+const sphere = scene.create("sphere3d", {
+  center: vec3(0, 0, 0),
+  radius: 1,
+  color: "white",
+});
+
+// Update properties
+sphere.center.set(vec3(2, 2, 2));
+sphere.radius.set(3);
+sphere.color.set("purple");
+sphere.opacity.set(0.5);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `center` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Center position in 3D space |
+| `radius` | `number` | `1` | Sphere radius in world units |
+| `color` | `string` | `"white"` | CSS color string |
+| `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the sphere receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `center` | `BoundAtom<Vec3>` | Center position atom |
+| `radius` | `BoundAtom<number>` | Radius atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

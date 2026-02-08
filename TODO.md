@@ -11,7 +11,6 @@
 - Axes labels
 - Labels for items
 - Some kind of UI helpers, like latex text / numbers but they are draggable and the value updates in real time
-- Overlays / labels attached to items (that render as HTML elements on top of the canvas) and update their position
 - More interactivity improvements
   - Better hitboxes for point dragging
   - Update documentation and give more examples

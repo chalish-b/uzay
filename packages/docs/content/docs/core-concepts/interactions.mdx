@@ -1,0 +1,161 @@
+---
+title: Interactions
+description: Drag, click, and hover events on scene objects
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Overview
+
+MathLib has a built-in interaction system that lets users drag, click, and hover over objects in the scene. Some objects (like points and vectors) come with default drag behavior, but you can also attach your own event handlers to any object.
+
+## Built-in Dragging
+
+Points and vectors are draggable by default. When a user clicks and drags on a point, it moves in 3D space:
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(1, 0, 0),
+  color: "red",
+});
+// That's it, the point is already draggable
+```
+
+### Drag Constraints
+
+The `draggable` property controls which axes an object can be dragged along:
+
+```typescript
+// Free movement in all directions
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "xyz" });
+
+// Only horizontal movement (xz-plane)
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "xz" });
+
+// Only vertical movement (y-axis)
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "y" });
+
+// Not draggable at all
+scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "none" });
+```
+
+Available constraints: `"x"`, `"y"`, `"z"`, `"xy"`, `"xz"`, `"yz"`, `"xyz"`, `"none"`.
+
+<Callout type="warning">
+Dragging requires a writable atom. If you pass a derived (read-only) atom for the position, dragging is automatically disabled even if `draggable` is set.
+</Callout>
+
+## Event Handlers
+
+You can listen for drag, click, and hover events on any object using `.on()`:
+
+### Drag Events
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  color: "gold",
+});
+
+point.on("drag", (event) => {
+  console.log(event.phase);         // "start", "move", or "end"
+  console.log(event.worldPosition); // Current 3D position of the pointer
+  console.log(event.delta);         // Movement since last event
+});
+```
+
+Drag events have three phases:
+- **`"start"`**: fired once when the user begins dragging
+- **`"move"`**: fired continuously as the user drags
+- **`"end"`**: fired once when the user releases
+
+### Click Events
+
+```typescript
+const sphere = scene.create("sphere3d", {
+  center: vec3(0, 0, 0),
+  radius: 1,
+  color: "tomato",
+});
+
+sphere.on("click", (event) => {
+  console.log(event.worldPosition); // Where the click hit in 3D
+  console.log(event.screenPosition); // Pixel coordinates on the canvas
+});
+```
+
+### Hover Events
+
+```typescript
+const sphere = scene.create("sphere3d", {
+  center: vec3(0, 0, 0),
+  radius: 1,
+  color: "skyblue",
+});
+
+sphere.on("hover", (event) => {
+  if (event.phase === "enter") {
+    sphere.color.set("yellow");
+  } else if (event.phase === "leave") {
+    sphere.color.set("skyblue");
+  }
+});
+```
+
+Hover events have three phases:
+- **`"enter"`**: pointer enters the object
+- **`"move"`**: pointer moves while still over the object
+- **`"leave"`**: pointer leaves the object
+
+### Removing Handlers
+
+Use `.off()` to remove a handler:
+
+```typescript
+point.on("click", (event) => { /* ... */ });
+
+// Later
+point.off("click");
+```
+
+## Event Properties
+
+All events include these common fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `itemId` | `string` | ID of the object that received the event |
+| `itemKind` | `string` | Type of the object (e.g. `"point3d"`) |
+| `worldPosition` | `Vec3` | 3D position where the event occurred |
+| `screenPosition` | `Vec2` | Pixel coordinates on the canvas |
+| `ray` | `{ origin: Vec3, direction: Vec3 }` | Camera ray through the pointer |
+
+Drag events additionally include:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `phase` | `"start" \| "move" \| "end"` | Current drag phase |
+| `startWorldPosition` | `Vec3` | Where the drag began |
+| `delta` | `Vec3` | Movement since last event |
+
+## Pointer Events
+
+Every object has a `pointerEvents` property that controls whether it participates in the interaction system:
+
+```typescript
+// This grid won't block clicks on objects behind it
+scene.create("grid3d", {
+  pointerEvents: "none",
+});
+
+// This sphere will receive clicks and hovers
+scene.create("sphere3d", {
+  center: vec3(0, 0, 0),
+  pointerEvents: "auto", // This is the default for most objects
+});
+```
+
+- **`"auto"`**: the object can be clicked, hovered, and dragged (default for most objects)
+- **`"none"`**: the object is invisible to the pointer and events pass through it
+
+This is particularly useful for decorative objects like grids and axes that you don't want intercepting mouse events meant for the objects behind them.

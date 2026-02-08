@@ -145,6 +145,7 @@ scale.set(10);
 | `z` | `boolean \| [number, number]` | `true` | Z-axis configuration |
 | `color` | `string` | `"white"` | Axis color |
 | `thickness` | `number` | `1` | Line width |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the axes receive pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
 
 ### Axis Configuration Values
@@ -165,5 +166,6 @@ scale.set(10);
 | `z` | `BoundAtom<boolean \| [number, number]>` | Z-axis config atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |
 

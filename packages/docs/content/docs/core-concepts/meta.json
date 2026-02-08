@@ -1,6 +1,6 @@
 {
   "title": "Core Concepts",
   "icon": "BookOpen",
-  "pages": ["index", "scenes-views", "atoms"]
+  "pages": ["index", "scenes-views", "atoms", "interactions"]
 }
 

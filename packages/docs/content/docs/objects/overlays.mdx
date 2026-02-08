@@ -1,0 +1,176 @@
+---
+title: Overlays
+description: 2D labels and LaTeX anchored to 3D positions
+---
+
+## What is an Overlay3D?
+
+An `Overlay3D` renders as an HTML element (text or LaTeX) that is anchored to a 3D position in the scene. As the camera moves, the overlay stays attached to its world-space position but is always rendered as flat 2D on top of the scene. Overlays are useful for:
+
+- Labeling points, vectors, or regions
+- Displaying equations next to curves
+- Showing dynamic values that update with the scene
+- Adding annotations to a visualization
+
+## Basic Usage
+
+```typescript
+const label = scene.create("overlay3d", {
+  position: vec3(1, 2, 0),
+  content: "Point A",
+});
+```
+
+### LaTeX Labels
+
+Set `format` to `"latex"` to render math using KaTeX:
+
+```typescript
+scene.create("overlay3d", {
+  position: vec3(0, 3, 0),
+  content: "\\vec{F} = m\\vec{a}",
+  format: "latex",
+});
+```
+
+## Positioning
+
+### Anchor
+
+The `anchor` property controls where the label sits relative to the 3D position. Think of the anchor as which corner or edge of the label is pinned to the point:
+
+```typescript
+// Label appears to the right of the position
+scene.create("overlay3d", {
+  position: vec3(0, 0, 0),
+  content: "Origin",
+  anchor: "left", // Left edge of the label is at the position
+});
+```
+
+Available anchors: `"center"`, `"top-left"`, `"top"`, `"top-right"`, `"left"`, `"right"`, `"bottom-left"`, `"bottom"`, `"bottom-right"`.
+
+### Pixel Offset
+
+Use `offset` to shift the label by a fixed number of pixels from its projected position. This is useful for nudging labels away from the objects they annotate:
+
+```typescript
+scene.create("overlay3d", {
+  position: vec3(0, 0, 0),
+  content: "Shifted label",
+  offset: vec2(10, -5), // 10px right, 5px up
+});
+```
+
+## Styling
+
+### CSS Class and Inline Styles
+
+You can style overlays with CSS classes or inline styles:
+
+```typescript
+scene.create("overlay3d", {
+  position: vec3(0, 2, 0),
+  content: "Styled",
+  className: "my-label",
+  style: "color: red; font-size: 18px; font-weight: bold;",
+});
+```
+
+### Visibility
+
+Toggle visibility without removing the overlay:
+
+```typescript
+const label = scene.create("overlay3d", {
+  position: vec3(0, 0, 0),
+  content: "Now you see me",
+});
+
+// Hide it
+label.visible.set(false);
+
+// Show it again
+label.visible.set(true);
+```
+
+## Reactive Overlays
+
+### Updating Content
+
+Display a live value that changes over time:
+
+```typescript
+const t = scene.atom(0);
+
+scene.create("overlay3d", {
+  position: vec3(0, 3, 0),
+  content: scene.atom((get) => `t = ${get(t).toFixed(2)}`),
+});
+```
+
+### Following a Point
+
+Attach a label to a moving point:
+
+```typescript
+const coords = scene.atom(vec3(1, 1, 0));
+
+scene.create("point3d", { coords, color: "gold" });
+
+scene.create("overlay3d", {
+  position: coords,
+  content: "P",
+  anchor: "bottom-left",
+  offset: vec2(6, -6),
+});
+```
+
+When the point moves, the label follows automatically.
+
+### LaTeX with Reactive Values
+
+```typescript
+const angle = scene.atom(0);
+
+scene.create("overlay3d", {
+  position: vec3(2, 2, 0),
+  content: scene.atom((get) => `\\theta = ${get(angle).toFixed(1)}^\\circ`),
+  format: "latex",
+});
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `position` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | 3D anchor position |
+| `content` | `string` | `""` | Text or LaTeX content |
+| `format` | `"text" \| "latex"` | `"text"` | Render as plain text or KaTeX |
+| `offset` | `Vec2` | `{ x: 0, y: 0 }` | Pixel offset from projected position |
+| `anchor` | `string` | `"center"` | Which part of the label aligns to the position |
+| `visible` | `boolean` | `true` | Whether the overlay is shown |
+| `className` | `string` | `""` | CSS class name |
+| `style` | `string` | `""` | Inline CSS styles |
+| `pointerEvents` | `"auto" \| "none"` | `"none"` | Whether the overlay receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `position` | `BoundAtom<Vec3>` | Position atom |
+| `content` | `BoundAtom<string>` | Content atom |
+| `format` | `BoundAtom<string>` | Format atom |
+| `offset` | `BoundAtom<Vec2>` | Pixel offset atom |
+| `anchor` | `BoundAtom<string>` | Anchor atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `className` | `BoundAtom<string>` | CSS class atom |
+| `style` | `BoundAtom<string>` | Inline style atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

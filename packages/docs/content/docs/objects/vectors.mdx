@@ -1,0 +1,190 @@
+---
+title: Vectors
+description: 3D vector arrows
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+## What is a Vector3D?
+
+A `Vector3D` renders as an arrow in 3D space, defined by an origin point and a direction vector. The arrow points from `origin` to `origin + vector`. Vectors are useful for:
+
+- Showing forces, velocities, or gradients
+- Visualizing normals or tangent directions
+- Drawing coordinate frame axes
+- Creating interactive direction handles
+
+## Basic Usage
+
+```typescript
+const v = scene.create("vector3d", {
+  origin: vec3(0, 0, 0),
+  vector: vec3(3, 2, 1),
+  color: "cyan",
+});
+```
+
+This draws an arrow from the origin pointing to (3, 2, 1).
+
+## Styling Vectors
+
+### Color
+
+Any CSS color string:
+
+```typescript
+scene.create("vector3d", { vector: vec3(1, 0, 0), color: "red" });
+scene.create("vector3d", { vector: vec3(0, 1, 0), color: "green" });
+scene.create("vector3d", { vector: vec3(0, 0, 1), color: "blue" });
+```
+
+### Thickness
+
+Control the shaft width:
+
+```typescript
+scene.create("vector3d", {
+  vector: vec3(3, 0, 0),
+  thickness: 0.5, // Thin
+});
+
+scene.create("vector3d", {
+  vector: vec3(0, 3, 0),
+  thickness: 2, // Thick
+});
+```
+
+### Arrow Head
+
+Customize the arrowhead with `headLength` and `headWidth`:
+
+```typescript
+scene.create("vector3d", {
+  vector: vec3(5, 0, 0),
+  color: "orange",
+  headLength: 0.5,  // Longer arrow tip
+  headWidth: 0.3,   // Wider arrow tip
+});
+```
+
+## Draggable Vectors
+
+Vectors are draggable by default. Users can grab the arrow tip and drag it around. The `draggable` property controls which axes the tip can move along:
+
+```typescript
+// Drag freely in all directions (default)
+scene.create("vector3d", { vector: vec3(1, 1, 0), draggable: "xyz" });
+
+// Only drag along the x-axis
+scene.create("vector3d", { vector: vec3(1, 0, 0), draggable: "x" });
+
+// Drag on the xz-plane
+scene.create("vector3d", { vector: vec3(1, 0, 1), draggable: "xz" });
+
+// Not draggable
+scene.create("vector3d", { vector: vec3(1, 1, 1), draggable: "none" });
+```
+
+Only the arrow tip is draggable, the origin stays fixed. The cursor changes to a grab icon when hovering over the tip.
+
+<Callout type="warning">
+Dragging only works when the `vector` field is a writable atom (a plain value or `scene.atom(value)`). If the vector is a derived atom, dragging is automatically disabled.
+</Callout>
+
+## Reactive Vectors
+
+### Rotating Vector
+
+A vector that rotates around the y-axis:
+
+```typescript
+const t = scene.atom(0);
+
+const v = scene.create("vector3d", {
+  origin: vec3(0, 0, 0),
+  vector: scene.atom((get) => {
+    const angle = get(t);
+    return vec3(Math.cos(angle) * 3, 0, Math.sin(angle) * 3);
+  }),
+  color: "yellow",
+  draggable: "none",
+});
+
+function animate() {
+  t.set((prev) => prev + 0.01);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+### Vector Between Two Points
+
+Draw a vector from one point to another:
+
+```typescript
+const a = scene.atom(vec3(0, 0, 0));
+const b = scene.atom(vec3(3, 2, 1));
+
+scene.create("point3d", { coords: a, color: "red" });
+scene.create("point3d", { coords: b, color: "blue" });
+
+scene.create("vector3d", {
+  origin: a,
+  vector: scene.atom((get) => {
+    const from = get(a);
+    const to = get(b);
+    return vec3(to.x - from.x, to.y - from.y, to.z - from.z);
+  }),
+  color: "white",
+  draggable: "none",
+});
+```
+
+## Updating Properties
+
+```typescript
+const v = scene.create("vector3d", {
+  origin: vec3(0, 0, 0),
+  vector: vec3(1, 0, 0),
+  color: "white",
+});
+
+// Update properties
+v.origin.set(vec3(1, 1, 1));
+v.vector.set(vec3(0, 3, 0));
+v.color.set("lime");
+v.thickness.set(2);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `origin` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Starting point of the arrow |
+| `vector` | `Vec3` | `{ x: 1, y: 0, z: 0 }` | Direction and length of the arrow |
+| `draggable` | `"xyz" \| "xy" \| "xz" \| "yz" \| "x" \| "y" \| "z" \| "none"` | `"xyz"` | Axes the arrow tip can be dragged along |
+| `color` | `string` | `"white"` | CSS color string |
+| `thickness` | `number` | `1` | Shaft width |
+| `headLength` | `number` | `0.2` | Length of the arrowhead |
+| `headWidth` | `number` | `0.1` | Width of the arrowhead |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the vector receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `origin` | `BoundAtom<Vec3>` | Origin point atom |
+| `vector` | `BoundAtom<Vec3>` | Direction vector atom |
+| `draggable` | `BoundAtom<...>` | Drag constraint atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `headLength` | `BoundAtom<number>` | Head length atom |
+| `headWidth` | `BoundAtom<number>` | Head width atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |
