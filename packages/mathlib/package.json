@@ -11,12 +11,14 @@
   },
   "dependencies": {
     "jotai": "^2.16.0",
+    "katex": "^0.16.28",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.181.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@types/katex": "^0.16.8",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

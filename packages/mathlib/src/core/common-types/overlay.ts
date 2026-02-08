@@ -1,3 +1,5 @@
+export type OverlayFormat = "text" | "latex";
+
 export type OverlayAnchor =
   | "center"
   | "top-left"

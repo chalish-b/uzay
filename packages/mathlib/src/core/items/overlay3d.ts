@@ -1,7 +1,7 @@
 import type { ItemTags } from "../common-types/tags";
 import { type Vec3, vec3 } from "../common-types/vec3";
 import { type Vec2, vec2 } from "../common-types/vec2";
-import type { OverlayAnchor } from "../common-types/overlay";
+import type { OverlayAnchor, OverlayFormat } from "../common-types/overlay";
 import type { PointerEvents } from "./point3d";
 import { BaseItem } from "../item";
 import type { AtomLikeOptions, Field } from "../atom-wrapper";
@@ -10,7 +10,8 @@ import type { Scene3D } from "../scene3d";
 export type Overlay3DFields = {
   tags: ItemTags;
   position: Vec3;
-  text: string;
+  content: string;
+  format: OverlayFormat;
   offset: Vec2;
   anchor: OverlayAnchor;
   visible: boolean;
@@ -24,7 +25,8 @@ function mergeDefaults<Opts extends Overlay3DOptions>(options: Opts) {
   return {
     tags: options.tags ?? [],
     position: options.position ?? vec3(0, 0, 0),
-    text: options.text ?? "",
+    content: options.content ?? "",
+    format: options.format ?? "text",
     offset: options.offset ?? vec2(0, 0),
     anchor: options.anchor ?? "center",
     visible: options.visible ?? true,
@@ -42,7 +44,8 @@ export class Overlay3D<Opts extends Overlay3DOptions = {}> extends BaseItem<
 
   tags: Field<ItemTags, "tags", Opts>;
   position: Field<Vec3, "position", Opts>;
-  text: Field<string, "text", Opts>;
+  content: Field<string, "content", Opts>;
+  format: Field<OverlayFormat, "format", Opts>;
   offset: Field<Vec2, "offset", Opts>;
   anchor: Field<OverlayAnchor, "anchor", Opts>;
   visible: Field<boolean, "visible", Opts>;
@@ -56,7 +59,8 @@ export class Overlay3D<Opts extends Overlay3DOptions = {}> extends BaseItem<
 
     this.tags = scene.atomize(opts.tags) as any;
     this.position = scene.atomize(opts.position) as any;
-    this.text = scene.atomize(opts.text) as any;
+    this.content = scene.atomize(opts.content) as any;
+    this.format = scene.atomize(opts.format) as any;
     this.offset = scene.atomize(opts.offset) as any;
     this.anchor = scene.atomize(opts.anchor) as any;
     this.visible = scene.atomize(opts.visible) as any;
@@ -66,7 +70,8 @@ export class Overlay3D<Opts extends Overlay3DOptions = {}> extends BaseItem<
     this.addAtomFields(
       this.tags,
       this.position,
-      this.text,
+      this.content,
+      this.format,
       this.offset,
       this.anchor,
       this.visible,
@@ -83,7 +88,8 @@ export class Overlay3D<Opts extends Overlay3DOptions = {}> extends BaseItem<
       isDirty: this.isDirty,
       tags: this.tags.get(),
       position: this.position.get(),
-      text: this.text.get(),
+      content: this.content.get(),
+      format: this.format.get(),
       offset: this.offset.get(),
       anchor: this.anchor.get(),
       visible: this.visible.get(),

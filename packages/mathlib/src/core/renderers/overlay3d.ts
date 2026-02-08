@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import type { ItemSnapshot } from "../common-types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { anchorToTranslate } from "../common-types/overlay";
@@ -8,7 +10,14 @@ function applyStyles(
   element: HTMLDivElement,
   item: ItemSnapshot<"overlay3d">
 ) {
-  element.textContent = item.text;
+  if (item.format === "latex") {
+    element.innerHTML = katex.renderToString(item.content, {
+      throwOnError: false,
+    });
+  } else {
+    element.textContent = item.content;
+  }
+
   element.className = item.className;
   element.style.cssText = item.style;
   element.style.visibility = item.visible ? "visible" : "hidden";

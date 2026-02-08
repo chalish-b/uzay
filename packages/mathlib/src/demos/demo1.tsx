@@ -108,9 +108,11 @@ export default function Demo1() {
     // Label for origin
     scene.create("overlay3d", {
       position: vec3(0, 0, 0),
-      text: "Origin",
+      format: "latex",
+      content: "O",
       anchor: "bottom",
-      style: "color: white; font-size: 12px; font-family: monospace;",
+      offset: { x: 0, y: -8 },
+      style: "color: white; font-size: 16px;",
     });
 
     // Sphere center
@@ -124,39 +126,42 @@ export default function Demo1() {
     // Label for sphere center
     scene.create("overlay3d", {
       position: sphereCenter,
-      text: "Center",
+      format: "latex",
+      content: "C",
       anchor: "bottom",
-      offset: { y: -10, x: 0 },
-      style: "color: #ff6666; font-size: 12px; font-family: monospace; font-weight: bold; background-color: rgb(0 0 0 / 50%);",
+      offset: { y: -8, x: 0 },
+      style: "color: #ff6666; font-size: 16px;",
     });
 
     // Reactive label on the draggable point — shows live coordinates
     scene.create("overlay3d", {
       position: constrainedCoords,
-      text: scene.atom(
+      format: "latex",
+      content: scene.atom(
         (get) => {
           const c = get(constrainedCoords);
-          return `(${c.x.toFixed(1)}, ${c.y.toFixed(1)}, ${c.z.toFixed(1)})`;
+          return String.raw`P = (${c.x.toFixed(1)},\; ${c.y.toFixed(1)},\; ${c.z.toFixed(1)})`;
         },
       ),
       anchor: "bottom",
-      offset: { x: 0, y: -10 },
-      style: "color: gold; font-size: 11px; font-family: monospace; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
+      offset: { x: 0, y: -5 },
+      style: "color: gold; font-size: 14px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
     });
 
-    // Reactive label showing spherical angles
+    // Reactive label showing spherical angles (LaTeX)
     scene.create("overlay3d", {
       position: constrainedCoords,
-      text: scene.atom(
+      format: "latex",
+      content: scene.atom(
         (get) => {
           const θ = get(thetaAtom);
           const φ = get(phiAtom);
-          return `θ=${(θ * 180 / Math.PI).toFixed(0)}° φ=${(φ * 180 / Math.PI).toFixed(0)}°`;
+          return String.raw`\theta = ${(θ * 180 / Math.PI).toFixed(0)}^\circ \quad \varphi = ${(φ * 180 / Math.PI).toFixed(0)}^\circ`;
         },
       ),
       anchor: "top",
-      offset: { x: 0, y: 10 },
-      style: "color: #aaa; font-size: 10px; font-family: monospace; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
+      offset: { x: 0, y: 5 },
+      style: "color: #aaa; font-size: 14px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
     });
 
     // Lines
