@@ -25,7 +25,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
     const group = new THREE.Group();
     group.add(shaftMesh);
     group.add(headMesh);
-    group.userData.itemId = item.id;
+    headMesh.userData.itemId = item.id;
 
     positionParts(item, group, shaftMesh, headMesh, shaftLen, headLength, length);
 

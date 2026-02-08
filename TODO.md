@@ -6,14 +6,13 @@
   - A single scene having multiple views
   - Perspective / Orthographics camera choice
 - Function improvements
-  - Handling discontinuities (just allow the user to pass discontinuous t values manually)
+  - Handling discontinuities: Just allow the user to pass discontinuous t values manually, it's the simplest approach. Otherwise detection is kinda complex, especially if we don't have access to the symbolic representation of the function
 - Optimizations
 - Axes labels
 - Labels for items
 - Some kind of UI helpers, like latex text / numbers but they are draggable and the value updates in real time
 - More interactivity improvements
   - Better hitboxes for point dragging
-  - Ignore non-draggable items in raycasting
   - Update documentation and give more examples
     - Add warning on how an atom needs to be writable in order for "draggable" to work
   - Create more demos that rely on interactive points
