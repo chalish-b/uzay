@@ -105,12 +105,58 @@ export default function Demo1() {
       draggable: "none",
     });
 
+    // Label for origin
+    scene.create("overlay3d", {
+      position: vec3(0, 0, 0),
+      text: "Origin",
+      anchor: "bottom",
+      style: "color: white; font-size: 12px; font-family: monospace;",
+    });
+
     // Sphere center
     scene.create("point3d", {
       coords: sphereCenter,
       color: "red",
       radius: 3,
       draggable: "none",
+    });
+
+    // Label for sphere center
+    scene.create("overlay3d", {
+      position: sphereCenter,
+      text: "Center",
+      anchor: "bottom",
+      offset: { y: -10, x: 0 },
+      style: "color: #ff6666; font-size: 12px; font-family: monospace; font-weight: bold; background-color: rgb(0 0 0 / 50%);",
+    });
+
+    // Reactive label on the draggable point — shows live coordinates
+    scene.create("overlay3d", {
+      position: constrainedCoords,
+      text: scene.atom(
+        (get) => {
+          const c = get(constrainedCoords);
+          return `(${c.x.toFixed(1)}, ${c.y.toFixed(1)}, ${c.z.toFixed(1)})`;
+        },
+      ),
+      anchor: "bottom",
+      offset: { x: 0, y: -10 },
+      style: "color: gold; font-size: 11px; font-family: monospace; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
+    });
+
+    // Reactive label showing spherical angles
+    scene.create("overlay3d", {
+      position: constrainedCoords,
+      text: scene.atom(
+        (get) => {
+          const θ = get(thetaAtom);
+          const φ = get(phiAtom);
+          return `θ=${(θ * 180 / Math.PI).toFixed(0)}° φ=${(φ * 180 / Math.PI).toFixed(0)}°`;
+        },
+      ),
+      anchor: "top",
+      offset: { x: 0, y: 10 },
+      style: "color: #aaa; font-size: 10px; font-family: monospace; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
     });
 
     // Lines

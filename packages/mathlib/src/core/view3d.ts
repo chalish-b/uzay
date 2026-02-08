@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import type { Camera3D, Camera3DFields } from "./items/camera3d";
 import type { Scene3D, SceneSnapshot } from "./scene3d";
 import { Vec3, vec3 } from "./common-types/vec3";
@@ -23,6 +24,7 @@ export class View3D {
   threeCamera: THREE.PerspectiveCamera;
   threeOrbitControls: OrbitControls;
   threeRenderer: THREE.WebGLRenderer;
+  css2dRenderer: CSS2DRenderer;
   frameScheduled: boolean = false;
   threeMeshes: Map<ItemId, ThreeSceneObject> = new Map();
   ambientLight: THREE.AmbientLight;
@@ -107,6 +109,13 @@ export class View3D {
     }
 
     containerElem.appendChild(this.threeRenderer.domElement);
+
+    // CSS2D renderer for overlay items (labels, annotations)
+    this.css2dRenderer = new CSS2DRenderer();
+    this.css2dRenderer.domElement.style.position = "absolute";
+    this.css2dRenderer.domElement.style.inset = "0";
+    this.css2dRenderer.domElement.style.pointerEvents = "none";
+    containerElem.appendChild(this.css2dRenderer.domElement);
 
     // TODO: We need a way to sync our camera object in the scene with
     // This three.js camera as it's controlled.
@@ -236,6 +245,10 @@ export class View3D {
     // Apply resize
     this.sizer.applyIfNeeded();
 
+    // Keep CSS2D renderer size in sync with WebGL renderer
+    const size = this.threeRenderer.getSize(new THREE.Vector2());
+    this.css2dRenderer.setSize(size.x, size.y);
+
     // Update camera position, and sync the directional light for it
     const cameraUpdated = this.threeOrbitControls.update();
     this.directionalLight.position.copy(this.threeCamera.position);
@@ -243,6 +256,7 @@ export class View3D {
 
     // Render
     this.threeRenderer.render(this.threeScene, this.threeCamera);
+    this.css2dRenderer.render(this.threeScene, this.threeCamera);
 
     if (cameraUpdated) {
       // TODO: When connecting the camera position updating the scene and causing a re-render,
@@ -701,6 +715,11 @@ export class View3D {
     // Remove canvas from DOM
     if (this.threeRenderer.domElement.parentNode === this.containerElem) {
       this.containerElem.removeChild(this.threeRenderer.domElement);
+    }
+
+    // Remove CSS2D renderer DOM element
+    if (this.css2dRenderer.domElement.parentNode === this.containerElem) {
+      this.containerElem.removeChild(this.css2dRenderer.domElement);
     }
   }
 }

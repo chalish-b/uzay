@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import type { ItemKind, ItemSnapshot } from "../common-types/item-registry";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
@@ -76,6 +77,11 @@ export type ThreeSceneTypes = {
     shaftMesh: THREE.Mesh;
     headMesh: THREE.Mesh;
   };
+  overlay3d: {
+    kind: "overlay3d";
+    cssObject: CSS2DObject;
+    element: HTMLDivElement;
+  };
 };
 
 export type ThreeSceneObject<K extends ItemKind = ItemKind> =
@@ -97,6 +103,7 @@ import { grid3dRenderer } from "./grid3d";
 import { camera3dRenderer } from "./camera3d";
 import { sphere3dRenderer } from "./sphere3d";
 import { vector3dRenderer } from "./vector3d";
+import { overlay3dRenderer } from "./overlay3d";
 
 // Registry mapping item kinds to their renderers
 export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
@@ -108,6 +115,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   camera3d: camera3dRenderer,
   sphere3d: sphere3dRenderer,
   vector3d: vector3dRenderer,
+  overlay3d: overlay3dRenderer,
 };
 
 // Helper function to get a typed renderer for a specific kind
