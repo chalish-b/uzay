@@ -153,6 +153,21 @@ scene.create("overlay3d", {
 
 ## API Reference
 
+### Types
+
+```ts
+type OverlayAnchor =
+  | "center"
+  | "top-left"
+  | "top"
+  | "top-right"
+  | "left"
+  | "right"
+  | "bottom-left"
+  | "bottom"
+  | "bottom-right";
+```
+
 ### Options
 
 | Property | Type | Default | Description |
@@ -161,7 +176,7 @@ scene.create("overlay3d", {
 | `content` | `string` | `""` | Text or LaTeX content |
 | `format` | `"text" \| "latex"` | `"text"` | Render as plain text or KaTeX |
 | `offset` | `Vec2` | `{ x: 0, y: 0 }` | Pixel offset from projected position |
-| `anchor` | `string` | `"center"` | Which part of the label aligns to the position |
+| `anchor` | `OverlayAnchor` | `"center"` | Which part of the label aligns to the position |
 | `visible` | `boolean` | `true` | Whether the overlay is shown |
 | `className` | `string` | `""` | CSS class name |
 | `style` | `string` | `""` | Inline CSS styles |
@@ -177,7 +192,7 @@ scene.create("overlay3d", {
 | `content` | `BoundAtom<string>` | Content atom |
 | `format` | `BoundAtom<string>` | Format atom |
 | `offset` | `BoundAtom<Vec2>` | Pixel offset atom |
-| `anchor` | `BoundAtom<string>` | Anchor atom |
+| `anchor` | `BoundAtom<OverlayAnchor>` | Anchor atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `className` | `BoundAtom<string>` | CSS class atom |
 | `style` | `BoundAtom<string>` | Inline style atom |

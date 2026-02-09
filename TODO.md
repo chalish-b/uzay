@@ -1,10 +1,15 @@
 ## Features
 
+- Add a dedicated examples section in documentation
+  - Show more patterns like:
+    - How to constrain points to be on a sphere, on a plane etc.
+    - 
 - Camera improvements
   - Updating the camera using atoms
   - Switching between multiple cameras
   - A single scene having multiple views
   - Perspective / Orthographics camera choice
+  - A way to disable orbit controls and panning (separately if possible)
 - Function improvements
   - Handling discontinuities: Just allow the user to pass discontinuous t values manually, it's the simplest approach. Otherwise detection is kinda complex, especially if we don't have access to the symbolic representation of the function
 - Optimizations
@@ -14,7 +19,6 @@
 - More interactivity improvements
   - Better hitboxes for point dragging
   - Update documentation and give more examples
-    - Add warning on how an atom needs to be writable in order for "draggable" to work
   - Create more demos that rely on interactive points
   - Have a better distinction between click vs. drag
 - Custom material options.

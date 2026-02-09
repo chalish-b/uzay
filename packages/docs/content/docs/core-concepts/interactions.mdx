@@ -26,7 +26,7 @@ const point = scene.create("point3d", {
 The `draggable` property controls which axes an object can be dragged along:
 
 ```typescript
-// Free movement in all directions
+// Free movement in all directions (default)
 scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "xyz" });
 
 // Only horizontal movement (xz-plane)
@@ -48,6 +48,10 @@ Dragging requires a writable atom. If you pass a derived (read-only) atom for th
 ## Event Handlers
 
 You can listen for drag, click, and hover events on any object using `.on()`:
+
+<Callout type="warning">
+You can only have a single handler function attached to an event type. Adding a new handler to the same event type with `.on()` will override the previous handler.
+</Callout>
 
 ### Drag Events
 
@@ -155,7 +159,7 @@ scene.create("sphere3d", {
 });
 ```
 
-- **`"auto"`**: the object can be clicked, hovered, and dragged (default for most objects)
+- **`"auto"`**: the object can be clicked, hovered, and dragged (default)
 - **`"none"`**: the object is invisible to the pointer and events pass through it
 
-This is particularly useful for decorative objects like grids and axes that you don't want intercepting mouse events meant for the objects behind them.
+This is useful for objects that you don't want intercepting mouse events meant for the objects behind them.
