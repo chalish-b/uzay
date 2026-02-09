@@ -5,237 +5,242 @@ import { View3D } from "../core/view3d";
 import type { BoundAtom } from "../core/atom-wrapper";
 import type { PrimitiveAtom } from "jotai";
 
-// This is the sandbox demo for testing stuff
+// Compute two orthonormal tangent vectors for a plane given its normal
+function planeBasis(normal: Vec3) {
+  // Pick a vector not parallel to normal
+  const ref = Math.abs(normal.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+  // u = normalize(ref × normal)
+  const ux = ref.y * normal.z - ref.z * normal.y;
+  const uy = ref.z * normal.x - ref.x * normal.z;
+  const uz = ref.x * normal.y - ref.y * normal.x;
+  const uLen = Math.sqrt(ux * ux + uy * uy + uz * uz);
+  const u = vec3(ux / uLen, uy / uLen, uz / uLen);
+  // v = normal × u
+  const v = vec3(
+    normal.y * u.z - normal.z * u.y,
+    normal.z * u.x - normal.x * u.z,
+    normal.x * u.y - normal.y * u.x,
+  );
+  return { u, v };
+}
 
 export default function Demo1() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const vectorLengthAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
-  const [vectorLength, setVectorLength] = useState(10);
+  const widthAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const heightAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const opacityAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const showEdgesAtomRef = useRef<BoundAtom<PrimitiveAtom<boolean>> | null>(null);
+  const [width, setWidth] = useState(6);
+  const [height, setHeight] = useState(6);
+  const [opacity, setOpacity] = useState(0.5);
+  const [showEdges, setShowEdges] = useState(true);
 
-  // Init code. Since we don't have a react wrapper for the library, we just run all the code in useEffect
   useEffect(() => {
     if (!containerRef.current) return;
     const scene = new Scene3D();
 
-    // Sphere parameters
-    const sphereCenter = vec3(0, 4, 0);
-    const sphereRadius = 4;
+    // --- Plane center (draggable point) ---
+    const centerAtom = scene.atom(vec3(0, 2, 0));
 
-    // Spherical coordinate angles stored as atoms
-    const thetaAtom = scene.atom(Math.PI / 4); // polar angle (0 to PI)
-    const phiAtom = scene.atom(Math.PI / 4);   // azimuthal angle (0 to 2PI)
-
-    // Derive cartesian coords on sphere surface from angles
-    // Write function: project dragged position onto sphere, convert back to angles
-    const constrainedCoords = scene.atom(
-      (get) => {
-        const theta = get(thetaAtom);
-        const phi = get(phiAtom);
-        return vec3(
-          sphereCenter.x + sphereRadius * Math.sin(theta) * Math.cos(phi),
-          sphereCenter.y + sphereRadius * Math.cos(theta),
-          sphereCenter.z + sphereRadius * Math.sin(theta) * Math.sin(phi),
-        );
-      },
-      (_get, set, next: Vec3) => {
-        // Vector from sphere center to dragged position
-        const dx = next.x - sphereCenter.x;
-        const dy = next.y - sphereCenter.y;
-        const dz = next.z - sphereCenter.z;
-        const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (len < 0.001) return; // avoid singularity at center
-
-        // Normalize and convert to spherical angles
-        const nx = dx / len;
-        const ny = dy / len;
-        const nz = dz / len;
-        set(thetaAtom, Math.acos(Math.max(-1, Math.min(1, ny))));
-        set(phiAtom, Math.atan2(nz, nx));
-      },
-    );
-
-    // The point, constrained to the sphere surface
-    const point = scene.create("point3d", {
-      coords: constrainedCoords,
-      color: "gold",
-      radius: 2,
+    scene.create("point3d", {
+      coords: centerAtom,
+      color: "cyan",
+      radius: 3,
       draggable: "xyz",
     });
 
-    // Use ray-sphere intersection for accurate cursor tracking on drag
-    const cx = sphereCenter.x, cy = sphereCenter.y, cz = sphereCenter.z;
-    const r = sphereRadius;
-    point.on("drag", (event) => {
-      if (event.phase === "start" || event.phase === "end") return;
-      const { origin: o, direction: d } = event.ray;
-      const ocx = o.x - cx, ocy = o.y - cy, ocz = o.z - cz;
-      const a = d.x * d.x + d.y * d.y + d.z * d.z;
-      const b = 2 * (ocx * d.x + ocy * d.y + ocz * d.z);
-      const c = ocx * ocx + ocy * ocy + ocz * ocz - r * r;
-      const disc = b * b - 4 * a * c;
-      // If ray hits sphere, use the intersection point.
-      // If it misses, use the closest point on the ray to the sphere center,
-      // projected onto the surface — so the point keeps tracking smoothly.
-      const t = disc >= 0
-        ? (-b - Math.sqrt(disc)) / (2 * a)
-        : -b / (2 * a); // closest approach to center
-      const hx = o.x + t * d.x - cx;
-      const hy = o.y + t * d.y - cy;
-      const hz = o.z + t * d.z - cz;
-      const len = Math.sqrt(hx * hx + hy * hy + hz * hz);
-      if (len < 0.001) return;
-      thetaAtom.set(Math.acos(Math.max(-1, Math.min(1, hy / len))));
-      phiAtom.set(Math.atan2(hz / len, hx / len));
-    });
-
-    // Semi-transparent sphere so you can see the point
-    scene.create("sphere3d", {
-      center: sphereCenter,
-      radius: sphereRadius,
-      color: "gray",
-      opacity: 0.7,
-      pointerEvents: "none",
-    });
-
-    // Origin point
-    scene.create("point3d", {
-      coords: vec3(0, 0, 0),
-      color: "white",
-      radius: 3,
-      draggable: "none",
-    });
-
-    // Label for origin
     scene.create("overlay3d", {
-      position: vec3(0, 0, 0),
+      position: centerAtom,
       format: "latex",
-      content: "O",
+      content: scene.atom((get) => {
+        const c = get(centerAtom);
+        return String.raw`\text{center} = (${c.x.toFixed(1)},\; ${c.y.toFixed(1)},\; ${c.z.toFixed(1)})`;
+      }),
       anchor: "bottom",
       offset: { x: 0, y: -8 },
-      style: "color: white; font-size: 16px;",
+      style: "color: cyan; font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
     });
 
-    // Sphere center
-    scene.create("point3d", {
-      coords: sphereCenter,
-      color: "red",
-      radius: 3,
-      draggable: "none",
-    });
+    // --- Normal vector (draggable) ---
+    const normalDirAtom = scene.atom(Vec3.normalized(vec3(0, 1, 0)));
+    const normalLengthAtom = scene.atom(4);
 
-    // Label for sphere center
-    scene.create("overlay3d", {
-      position: sphereCenter,
-      format: "latex",
-      content: "C",
-      anchor: "bottom",
-      offset: { y: -8, x: 0 },
-      style: "color: #ff6666; font-size: 16px;",
-    });
-
-    // Reactive label on the draggable point — shows live coordinates
-    scene.create("overlay3d", {
-      position: constrainedCoords,
-      format: "latex",
-      content: scene.atom(
-        (get) => {
-          const c = get(constrainedCoords);
-          return String.raw`P = (${c.x.toFixed(1)},\; ${c.y.toFixed(1)},\; ${c.z.toFixed(1)})`;
-        },
-      ),
-      anchor: "bottom",
-      offset: { x: 0, y: -5 },
-      style: "color: gold; font-size: 14px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
-    });
-
-    // Reactive label showing spherical angles (LaTeX)
-    scene.create("overlay3d", {
-      position: constrainedCoords,
-      format: "latex",
-      content: scene.atom(
-        (get) => {
-          const θ = get(thetaAtom);
-          const φ = get(phiAtom);
-          return String.raw`\theta = ${(θ * 180 / Math.PI).toFixed(0)}^\circ \quad \varphi = ${(φ * 180 / Math.PI).toFixed(0)}^\circ`;
-        },
-      ),
-      anchor: "top",
-      offset: { x: 0, y: 5 },
-      style: "color: #aaa; font-size: 14px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
-    });
-
-    // Lines
-    scene.create("line3d", {
-      start: vec3(0, 0, 0),
-      end: sphereCenter,
-      color: "red",
-      radius: 3,
-      draggable: "none",
-    });
-
-    scene.create("line3d", {
-      start: sphereCenter,
-      end: constrainedCoords,
-      color: "gold",
-      radius: 3,
-      draggable: "none",
-    });
-
-    scene.create("line3d", {
-      start: vec3(0, 0, 0),
-      end: constrainedCoords,
-      color: "green",
-      radius: 3,
-      draggable: "none",
-    });
-
-    scene.create("point3d", {
-      coords: vec3(10, 10, 0),
-      color: "red",
-      radius: 3,
-    });
-
-    // Vector with controllable length
-    const vectorLengthAtom = scene.atom(10);
-    vectorLengthAtomRef.current = vectorLengthAtom;
-    vectorLengthAtom.sub(() => setVectorLength(vectorLengthAtom.get()));
-
-    // Initial direction (normalized)
-    const dirAtom = scene.atom(Vec3.normalized(vec3(10, 3, 0)));
+    const normalVecAtom = scene.atom(
+      (get) => Vec3.scaled(get(normalDirAtom), get(normalLengthAtom)),
+      (_get, set, next: Vec3) => {
+        const len = Math.sqrt(Vec3.dot(next, next));
+        if (len < 0.001) return;
+        set(normalDirAtom, Vec3.normalized(next));
+        set(normalLengthAtom, len);
+      },
+    );
 
     scene.create("vector3d", {
-      origin: constrainedCoords,
-      vector: scene.atom(
-        (get) => Vec3.scaled(get(dirAtom), get(vectorLengthAtom)),
-        (_get, set, next: Vec3) => {
-          const len = Math.sqrt(Vec3.dot(next, next));
-          if (len < 0.001) return;
-          set(dirAtom, Vec3.normalized(next));
-          set(vectorLengthAtom, len);
-        },
-      ),
-      color: "cyan",
+      origin: centerAtom,
+      vector: normalVecAtom,
+      color: "gold",
       thickness: 1,
     });
 
-    // Axes and grid
+    // Normal direction label at tip
+    const normalTipAtom = scene.atom((get) => Vec3.add(get(centerAtom), get(normalVecAtom)));
+    scene.create("overlay3d", {
+      position: normalTipAtom,
+      format: "latex",
+      content: scene.atom((get) => {
+        const n = get(normalDirAtom);
+        return String.raw`\hat{n} = (${n.x.toFixed(2)},\; ${n.y.toFixed(2)},\; ${n.z.toFixed(2)})`;
+      }),
+      anchor: "bottom",
+      offset: { x: 0, y: -8 },
+      style: "color: gold; font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
+    });
+
+    // --- Plane size & appearance (controlled by sliders) ---
+    const widthAtom = scene.atom(6);
+    const heightAtom = scene.atom(6);
+    const opacityAtom = scene.atom(0.5);
+    const showEdgesAtom = scene.atom(true);
+
+    widthAtomRef.current = widthAtom;
+    heightAtomRef.current = heightAtom;
+    opacityAtomRef.current = opacityAtom;
+    showEdgesAtomRef.current = showEdgesAtom;
+
+    widthAtom.sub(() => setWidth(widthAtom.get()));
+    heightAtom.sub(() => setHeight(heightAtom.get()));
+    opacityAtom.sub(() => setOpacity(opacityAtom.get()));
+    showEdgesAtom.sub(() => setShowEdges(showEdgesAtom.get()));
+
+    // --- The plane itself ---
+    scene.create("plane3d", {
+      point: centerAtom,
+      normal: normalDirAtom,
+      width: widthAtom,
+      height: heightAtom,
+      color: "dodgerblue",
+      opacity: opacityAtom,
+      showEdges: showEdgesAtom,
+      pointerEvents: "none",
+    });
+
+    // --- Point constrained to the cyan plane surface ---
+    // Store position as offset from plane center in plane-local coordinates
+    // so it stays on the plane even when center/normal change
+    const surfaceOffsetAtom = scene.atom(vec3(1, 0, 1));
+
+    const surfacePosAtom = scene.atom(
+      (get) => {
+        const center = get(centerAtom);
+        const normal = get(normalDirAtom);
+        const offset = get(surfaceOffsetAtom);
+        // Build a local frame on the plane: two tangent vectors
+        const { u, v } = planeBasis(normal);
+        // Position = center + offset.x * u + offset.z * v
+        return vec3(
+          center.x + offset.x * u.x + offset.z * v.x,
+          center.y + offset.x * u.y + offset.z * v.y,
+          center.z + offset.x * u.z + offset.z * v.z,
+        );
+      },
+      (_get, set, next: Vec3) => {
+        const center = centerAtom.get();
+        const normal = normalDirAtom.get();
+        // Project next onto plane, then decompose into local coords
+        const dx = next.x - center.x;
+        const dy = next.y - center.y;
+        const dz = next.z - center.z;
+        const dot = dx * normal.x + dy * normal.y + dz * normal.z;
+        // Project onto plane
+        const px = next.x - dot * normal.x - center.x;
+        const py = next.y - dot * normal.y - center.y;
+        const pz = next.z - dot * normal.z - center.z;
+        const { u, v } = planeBasis(normal);
+        // Decompose into u,v components
+        const uComp = px * u.x + py * u.y + pz * u.z;
+        const vComp = px * v.x + py * v.y + pz * v.z;
+        set(surfaceOffsetAtom, vec3(uComp, 0, vComp));
+      },
+    );
+
+    const surfacePoint = scene.create("point3d", {
+      coords: surfacePosAtom,
+      color: "lime",
+      radius: 3,
+      draggable: "xyz",
+    });
+
+    // Use ray-plane intersection for accurate dragging
+    surfacePoint.on("drag", (event) => {
+      if (event.phase === "start" || event.phase === "end") return;
+      const { origin: o, direction: d } = event.ray;
+      const center = centerAtom.get();
+      const normal = normalDirAtom.get();
+      // Ray-plane intersection: t = dot(center - origin, normal) / dot(direction, normal)
+      const denom = d.x * normal.x + d.y * normal.y + d.z * normal.z;
+      if (Math.abs(denom) < 1e-6) return; // ray parallel to plane
+      const t = ((center.x - o.x) * normal.x + (center.y - o.y) * normal.y + (center.z - o.z) * normal.z) / denom;
+      const hit = vec3(o.x + t * d.x, o.y + t * d.y, o.z + t * d.z);
+      surfacePosAtom.set(hit);
+    });
+
+    scene.create("overlay3d", {
+      position: surfacePosAtom,
+      format: "text",
+      content: "on-plane point",
+      anchor: "bottom",
+      offset: { x: 0, y: -8 },
+      style: "color: lime; font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
+    });
+
+    // --- Second plane to show interaction ---
+    const center2Atom = scene.atom(vec3(3, 0, 3));
+
+    scene.create("point3d", {
+      coords: center2Atom,
+      color: "hotpink",
+      radius: 3,
+      draggable: "xz",
+    });
+
+    scene.create("plane3d", {
+      point: center2Atom,
+      normal: vec3(1, 0, 0),
+      width: 4,
+      height: 4,
+      color: "hotpink",
+      opacity: 0.4,
+      showEdges: true,
+      pointerEvents: "none",
+    });
+
+    scene.create("overlay3d", {
+      position: center2Atom,
+      format: "text",
+      content: "xz-draggable plane",
+      anchor: "bottom",
+      offset: { x: 0, y: -8 },
+      style: "color: hotpink; font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;",
+    });
+
+    // --- Axes and grid ---
     scene.create("axes3d", {
-      x: [-10, 10],
-      y: [-10, 10],
-      z: [-10, 10],
+      x: [-8, 8],
+      y: [-8, 8],
+      z: [-8, 8],
       thickness: 0.7,
     });
     scene.create("grid3d", {
       plane: "xz",
-      range1: [-10, 10],
-      range2: [-10, 10],
+      range1: [-8, 8],
+      range2: [-8, 8],
       color: "#444",
       thickness: 2,
     });
 
     const camera = scene.create("camera3d", {
-      position: vec3(10, 10, 10),
-      lookAt: vec3(0, 0, 0),
+      position: vec3(12, 10, 12),
+      lookAt: vec3(0, 2, 0),
     });
     const view = new View3D(scene, camera.id, containerRef.current);
 
@@ -244,25 +249,45 @@ export default function Demo1() {
     };
   }, []);
 
-  // Sync slider state to atom
-  useEffect(() => {
-    vectorLengthAtomRef.current?.set(vectorLength);
-  }, [vectorLength]);
+  useEffect(() => { widthAtomRef.current?.set(width); }, [width]);
+  useEffect(() => { heightAtomRef.current?.set(height); }, [height]);
+  useEffect(() => { opacityAtomRef.current?.set(opacity); }, [opacity]);
+  useEffect(() => { showEdgesAtomRef.current?.set(showEdges); }, [showEdges]);
+
+  const sliderStyle = { color: "white", fontSize: 13 } as const;
+  const rowStyle = { display: "flex", alignItems: "center", gap: 8 } as const;
 
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#141414", position: "relative" }}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }}></div>
-      <div style={{ position: "absolute", top: 16, left: 16, display: "flex", alignItems: "center", gap: 8 }}>
-        <label style={{ color: "white", fontSize: 14 }}>Vector Length</label>
-        <input
-          type="range"
-          min="0"
-          max="20"
-          step="0.1"
-          value={vectorLength}
-          onChange={(e) => setVectorLength(parseFloat(e.target.value))}
-        />
-        <span style={{ color: "white", fontSize: 14, minWidth: 36 }}>{vectorLength.toFixed(1)}</span>
+      <div style={{
+        position: "absolute", top: 12, left: 12,
+        display: "flex", flexDirection: "column", gap: 6,
+        background: "rgba(0,0,0,0.5)", padding: "10px 14px", borderRadius: 6,
+      }}>
+        <div style={rowStyle}>
+          <label style={{ ...sliderStyle, minWidth: 50 }}>Width</label>
+          <input type="range" min="0.5" max="12" step="0.1" value={width}
+            onChange={(e) => setWidth(parseFloat(e.target.value))} />
+          <span style={{ ...sliderStyle, minWidth: 32 }}>{width.toFixed(1)}</span>
+        </div>
+        <div style={rowStyle}>
+          <label style={{ ...sliderStyle, minWidth: 50 }}>Height</label>
+          <input type="range" min="0.5" max="12" step="0.1" value={height}
+            onChange={(e) => setHeight(parseFloat(e.target.value))} />
+          <span style={{ ...sliderStyle, minWidth: 32 }}>{height.toFixed(1)}</span>
+        </div>
+        <div style={rowStyle}>
+          <label style={{ ...sliderStyle, minWidth: 50 }}>Opacity</label>
+          <input type="range" min="0" max="1" step="0.01" value={opacity}
+            onChange={(e) => setOpacity(parseFloat(e.target.value))} />
+          <span style={{ ...sliderStyle, minWidth: 32 }}>{opacity.toFixed(2)}</span>
+        </div>
+        <div style={rowStyle}>
+          <label style={sliderStyle}>Edges</label>
+          <input type="checkbox" checked={showEdges}
+            onChange={(e) => setShowEdges(e.target.checked)} />
+        </div>
       </div>
     </div>
   );

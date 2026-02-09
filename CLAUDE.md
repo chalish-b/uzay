@@ -11,7 +11,6 @@ Reactive 3D mathematical visualization library built with TypeScript, React, Thr
 ```bash
 bun run dev          # Start Vite dev server for @mathlib/core
 bun run build        # TypeScript check + Vite build for @mathlib/core
-bun run lint         # ESLint across all workspaces
 ```
 
 No test framework is configured.
@@ -19,6 +18,7 @@ No test framework is configured.
 ## Monorepo Structure
 
 Bun workspaces with two packages:
+
 - `packages/mathlib` — Core library (`@mathlib/core`)
 - `packages/docs` — Documentation site (Next.js + Fumadocs, static export)
 
@@ -37,6 +37,7 @@ Bun workspaces with two packages:
 ### Item ↔ Renderer Pattern
 
 Each item type has two files:
+
 - `items/<kind>.ts` — Data model (fields, options, snapshot generation)
 - `renderers/<kind>.ts` — Three.js rendering (create/update/dispose lifecycle)
 
@@ -61,3 +62,7 @@ Current item types: `point3d`, `line3d`, `parametricfunction3d`, `sphere3d`, `ax
 ## TypeScript
 
 Strict mode with `noUnusedLocals` and `noUnusedParameters` enabled. React Compiler (babel-plugin-react-compiler) is active via Vite.
+
+## Ohter notes
+
+- After implementing a feature, if it's testable in a demo, edit demo1.tsx (sanbox demo) to create a test scenario for it, to see whether all features work.

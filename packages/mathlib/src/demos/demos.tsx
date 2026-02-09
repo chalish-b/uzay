@@ -11,7 +11,7 @@ import Demo9 from "./demo9";
 
 const demos = {
   demo1: {
-    title: "Demo 1 - Helix",
+    title: "Sandbox",
     component: <Demo1 />,
   },
   demo2: {
@@ -50,7 +50,7 @@ const demos = {
 
 // A tab bar with buttons to switch between demos
 export default function Demos() {
-  const [demo, setDemo] = useState<keyof typeof demos>("demo9");
+  const [demo, setDemo] = useState<keyof typeof demos>("demo1");
   return (
     <div
       style={{
