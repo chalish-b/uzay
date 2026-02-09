@@ -3,6 +3,8 @@ title: Overlays
 description: 2D labels and LaTeX anchored to 3D positions
 ---
 
+import { Callout } from "fumadocs-ui/components/callout";
+
 ## What is an Overlay3D?
 
 An `Overlay3D` renders as an HTML element (text or LaTeX) that is anchored to a 3D position in the scene. As the camera moves, the overlay stays attached to its world-space position but is always rendered as flat 2D on top of the scene. Overlays are useful for:
@@ -24,6 +26,13 @@ const label = scene.create("overlay3d", {
 ### LaTeX Labels
 
 Set `format` to `"latex"` to render math using KaTeX:
+
+<Callout type="warn">
+  To use LaTeX overlays, you must import the KaTeX stylesheet in your application:
+  ```typescript
+  import "katex/dist/katex.min.css";
+  ```
+</Callout>
 
 ```typescript
 scene.create("overlay3d", {

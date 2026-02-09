@@ -1,0 +1,28 @@
+{
+  "name": "uzay-playground",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "uzay": "workspace:*",
+    "jotai": "^2.16.0",
+    "katex": "^0.16.28",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.181.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.181.0",
+    "@types/katex": "^0.16.8",
+    "@vitejs/plugin-react": "^5.1.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4"
+  }
+}

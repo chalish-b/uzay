@@ -5,8 +5,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --filter @uzay/core dev",
-    "build": "bun run --filter @uzay/core build",
+    "dev": "bun run --filter uzay-playground dev",
+    "build": "bun run --filter uzay build",
     "lint": "bun run --filter '*' lint"
   }
 }

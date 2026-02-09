@@ -9,17 +9,18 @@ Reactive 3D mathematical visualization library built with TypeScript, React, Thr
 ## Commands
 
 ```bash
-bun run dev          # Start Vite dev server for @uzay/core
-bun run build        # TypeScript check + Vite build for @uzay/core
+bun run dev          # Start Vite dev server for playground
+bun run build        # Vite library build for uzay
 ```
 
 No test framework is configured.
 
 ## Monorepo Structure
 
-Bun workspaces with two packages:
+Bun workspaces with three packages:
 
-- `packages/uzay` — Core library (`@uzay/core`)
+- `packages/uzay` — Core library (`uzay`), published to npm
+- `packages/playground` — Development playground with demos (`uzay-playground`, private)
 - `packages/docs` — Documentation site (Next.js + Fumadocs, static export)
 
 ## Architecture
@@ -61,8 +62,8 @@ Current item types: `point3d`, `line3d`, `parametricfunction3d`, `sphere3d`, `ax
 
 ## TypeScript
 
-Strict mode with `noUnusedLocals` and `noUnusedParameters` enabled. React Compiler (babel-plugin-react-compiler) is active via Vite.
+Strict mode with `noUnusedLocals` and `noUnusedParameters` enabled. React Compiler (babel-plugin-react-compiler) is active in the playground via Vite.
 
 ## Ohter notes
 
-- After implementing a feature, if it's testable in a demo, edit demo1.tsx (sanbox demo) to create a test scenario for it, to see whether all features work.
+- After implementing a feature, if it's testable in a demo, edit demo1.tsx (sandbox demo in `packages/playground/src/demos/`) to create a test scenario for it, to see whether all features work.
