@@ -1,36 +1,42 @@
 {
-  "name": "@uzay/core",
-  "private": true,
-  "version": "0.0.0",
+  "name": "uzay",
+  "version": "0.1.0",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+  "description": "Reactive 3D mathematical visualization library",
+  "license": "MIT",
+  "author": "chalish-b",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chalish-b/uzay.git",
+    "directory": "packages/uzay"
   },
-  "dependencies": {
+  "homepage": "https://github.com/chalish-b/uzay",
+  "keywords": ["3d", "math", "visualization", "threejs", "jotai", "reactive"],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "peerDependencies": {
     "jotai": "^2.16.0",
     "katex": "^0.16.28",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "three": "^0.181.2"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.181.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
     "@types/katex": "^0.16.8",
-    "@types/node": "^24.10.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/three": "^0.181.0",
-    "@vitejs/plugin-react": "^5.1.1",
-    "babel-plugin-react-compiler": "^1.0.0",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"
+  },
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "lint": "eslint ."
   }
 }

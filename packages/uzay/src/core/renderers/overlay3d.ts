@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import katex from "katex";
-import "katex/dist/katex.min.css";
 import type { ItemSnapshot } from "../common-types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { anchorToTranslate } from "../common-types/overlay";
