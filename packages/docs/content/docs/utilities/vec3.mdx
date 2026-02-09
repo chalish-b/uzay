@@ -3,54 +3,26 @@ title: Vec3
 description: 3D vector type and operations
 ---
 
-## What is Vec3?
+import { Callout } from "fumadocs-ui/components/callout";
 
-`Vec3` is a simple object type representing a 3D vector with `x`, `y`, and `z` components:
+<Callout type="warning">
+These are lightweight utilities for basic vector math within Uzay. For a more complete, mature, and optimized solution, consider dedicated libraries like [gl-matrix](https://glmatrix.net/), [Three.js math](https://threejs.org/docs/#api/en/math/Vector3), or [mathjs](https://mathjs.org/).
+</Callout>
 
-```typescript
-type Vec3 = { x: number; y: number; z: number };
-```
+A plain object type `{ x, y, z }` used throughout Uzay for positions and directions.
 
-It's used throughout Uzay for positions, directions, and any 3D coordinate data.
-
-## Creating Vectors
-
-Use the `vec3()` helper function to create vectors. Notice the lowercase name and no `new` keyword.
+There are two exports: `vec3` (lowercase) is a helper function for creating vectors, and `Vec3` (capitalized) is a namespace containing operations and constants.
 
 ```typescript
-import { vec3 } from "uzay";
+import { vec3, Vec3 } from "uzay";
 
-const origin = vec3(0, 0, 0);
 const position = vec3(1, 2, 3);
-const direction = vec3(0, 1, 0); // Up
+const doubled = Vec3.scaled(position, 2); // { x: 2, y: 4, z: 6 }
 ```
 
-## Using with Atoms
+## Operations
 
-Vectors work seamlessly with the atom system:
-
-```typescript
-// Static position
-const point = scene.create("point3d", {
-  coords: vec3(1, 2, 3),
-});
-
-// Reactive position
-const posAtom = scene.atom(vec3(0, 0, 0));
-const point = scene.create("point3d", {
-  coords: posAtom,
-});
-
-// Update position
-posAtom.set(vec3(5, 5, 5));
-
-// Update based on the previous value
-posAtom.set((prev) => Vec3.add(prev, vec3(1, 1, 1)));
-```
-
-## Vector Operations
-
-The `Vec3` namespace provides common vector math operations. All operations return new vectors.
+All operations return new vectors.
 
 ### Addition
 
@@ -117,38 +89,6 @@ const z = Vec3.cross(x, y); // { x: 0, y: 0, z: 1 }
 ```typescript
 const v = vec3(1, 2, 3);
 const arr = Vec3.asArray(v); // [1, 2, 3]
-```
-
-## Constants
-
-Commonly used vectors are available as frozen constants:
-
-```typescript
-Vec3.ZERO // { x: 0, y: 0, z: 0 }
-Vec3.ONE  // { x: 1, y: 1, z: 1 }
-```
-
-These are frozen objects and cannot be modified.
-
-## Example: Circular Motion
-
-```typescript
-const t = scene.atom(0);
-
-const point = scene.create("point3d", {
-  coords: scene.atom((get) => {
-    const angle = get(t);
-    return vec3(Math.cos(angle), Math.sin(angle), 0);
-  }),
-  color: "gold",
-});
-
-// Animate
-function animate() {
-  t.set(t.get() + 0.02);
-  requestAnimationFrame(animate);
-}
-animate();
 ```
 
 ---

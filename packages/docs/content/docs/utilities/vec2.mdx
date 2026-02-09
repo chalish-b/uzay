@@ -3,30 +3,26 @@ title: Vec2
 description: 2D vector type and operations
 ---
 
-## What is Vec2?
+import { Callout } from "fumadocs-ui/components/callout";
 
-`Vec2` is a simple object type representing a 2D vector with `x` and `y` components:
+<Callout type="warning">
+These are lightweight utilities for basic vector math within Uzay. For a more complete, mature, and optimized solution, consider dedicated libraries like [gl-matrix](https://glmatrix.net/), [Three.js math](https://threejs.org/docs/#api/en/math/Vector2), or [mathjs](https://mathjs.org/).
+</Callout>
 
-```typescript
-type Vec2 = { x: number; y: number };
-```
+A plain object type `{ x, y }` for 2D calculations, screen coordinates, or planar math.
 
-While Uzay primarily works in 3D, Vec2 is useful for 2D calculations, screen coordinates, or planar math.
-
-## Creating Vectors
-
-Use the `vec2()` helper function to create vectors:
+There are two exports: `vec2` (lowercase) is a helper function for creating vectors, and `Vec2` (capitalized) is a namespace containing operations and constants.
 
 ```typescript
-import { vec2 } from "uzay";
+import { vec2, Vec2 } from "uzay";
 
-const origin = vec2(0, 0);
 const position = vec2(3, 4);
+const doubled = Vec2.scaled(position, 2); // { x: 6, y: 8 }
 ```
 
-## Vector Operations
+## Operations
 
-The `Vec2` namespace provides common 2D vector operations. All operations return new vectors.
+All operations return new vectors.
 
 ### Addition
 
@@ -97,13 +93,6 @@ const b = vec2(3, 4);
 
 Vec2.distance(a, b);        // 5
 Vec2.distanceSquared(a, b); // 25 (faster, no sqrt)
-```
-
-## Constants
-
-```typescript
-Vec2.ZERO // { x: 0, y: 0 }
-Vec2.ONE  // { x: 1, y: 1 }
 ```
 
 ---
