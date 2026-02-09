@@ -9,8 +9,8 @@ Reactive 3D mathematical visualization library built with TypeScript, React, Thr
 ## Commands
 
 ```bash
-bun run dev          # Start Vite dev server for @mathlib/core
-bun run build        # TypeScript check + Vite build for @mathlib/core
+bun run dev          # Start Vite dev server for @uzay/core
+bun run build        # TypeScript check + Vite build for @uzay/core
 ```
 
 No test framework is configured.
@@ -19,12 +19,12 @@ No test framework is configured.
 
 Bun workspaces with two packages:
 
-- `packages/mathlib` — Core library (`@mathlib/core`)
+- `packages/uzay` — Core library (`@uzay/core`)
 - `packages/docs` — Documentation site (Next.js + Fumadocs, static export)
 
 ## Architecture
 
-### Core Abstractions (`packages/mathlib/src/core/`)
+### Core Abstractions (`packages/uzay/src/core/`)
 
 **Scene3D** (`scene3d.ts`) — Central state container. Owns a Jotai store, manages all items, provides `scene.create(kind, options)` factory API and `scene.atom()` for creating reactive atoms. Triggers invalidation on changes.
 

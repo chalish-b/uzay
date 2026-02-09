@@ -1,12 +1,12 @@
 {
-  "name": "math-lib-monorepo",
+  "name": "uzay-monorepo",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --filter @mathlib/core dev",
-    "build": "bun run --filter @mathlib/core build",
+    "dev": "bun run --filter @uzay/core dev",
+    "build": "bun run --filter @uzay/core build",
     "lint": "bun run --filter '*' lint"
   }
 }

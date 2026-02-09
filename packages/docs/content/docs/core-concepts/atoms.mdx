@@ -7,7 +7,7 @@ description: Reactive state primitives for dynamic visualizations
 
 Atoms are reactive state containers, based on [Jotai](https://jotai.org/)'s implementation. They hold values that, when changed, automatically trigger updates to any objects that depend on them.
 
-The key insight is that any property of any scene object can be an atom. When that atom changes, MathLib automatically:
+The key insight is that any property of any scene object can be an atom. When that atom changes, Uzay automatically:
 
 1. Marks the affected objects as dirty
 2. Schedules a re-render
@@ -15,7 +15,7 @@ The key insight is that any property of any scene object can be an atom. When th
 
 This makes it trivial to create dynamic, interactive visualizations.
 
-To learn more about atoms, check out [Jotai](https://jotai.org). The atom implementation in MathLib is a simple wrapper around it, which binds atoms to the scene's `store`.
+To learn more about atoms, check out [Jotai](https://jotai.org). The atom implementation in Uzay is a simple wrapper around it, which binds atoms to the scene's `store`.
 
 ## Creating Atoms
 
@@ -84,7 +84,7 @@ This is useful for creating two-way bindings between atoms.
 
 ## Bound Atoms
 
-Unlike regular Jotai atoms, MathLib atoms are "bound" to the scene's store. This means you can call `.get()`, `.set()`, and `.sub()` directly on them without passing a store:
+Unlike regular Jotai atoms, Uzay atoms are "bound" to the scene's store. This means you can call `.get()`, `.set()`, and `.sub()` directly on them without passing a store:
 
 ```typescript
 // Jotai (requires a separate store)
@@ -93,7 +93,7 @@ const myAtom = atom(42);
 const value = store.get(myAtom);
 store.set(myAtom, newValue);
 
-// MathLib (bound to scene's store)
+// Uzay (bound to scene's store)
 const myAtom = scene.atom(42);
 const value = myAtom.get();
 myAtom.set(newValue);
@@ -244,7 +244,7 @@ offset.set(5);
 
 ## Automatic Atomization
 
-If you pass a plain value where an atom is expected, MathLib automatically wraps it in a primitive atom.
+If you pass a plain value where an atom is expected, Uzay automatically wraps it in a primitive atom.
 
 These methods are all equivalent:
 

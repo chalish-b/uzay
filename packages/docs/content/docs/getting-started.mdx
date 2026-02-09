@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Install MathLib and create your first 3D visualization
+description: Install Uzay and create your first 3D visualization
 ---
 
 ## Installation
@@ -8,26 +8,26 @@ description: Install MathLib and create your first 3D visualization
 Install the library using your preferred package manager:
 
 ```bash tab="npm"
-npm install mathlib
+npm install uzay
 ```
 
 ```bash tab="pnpm"
-pnpm add mathlib
+pnpm add uzay
 ```
 
 ```bash tab="bun"
-bun add mathlib
+bun add uzay
 ```
 
 ## HTML Setup
 
-MathLib renders to a container element. Create an HTML file with a container div:
+Uzay renders to a container element. Create an HTML file with a container div:
 
 ```html
 <!DOCTYPE html>
 <html>
   <head>
-    <title>MathLib Demo</title>
+    <title>Uzay Demo</title>
     <style>
       #container {
         width: 100vw;
@@ -47,7 +47,7 @@ MathLib renders to a container element. Create an HTML file with a container div
 Create a `main.ts` file with a minimal scene:
 
 ```typescript
-import { Scene3D, View3D, vec3 } from "mathlib";
+import { Scene3D, View3D, vec3 } from "uzay";
 
 // 1. Create a scene
 const scene = new Scene3D();
@@ -80,10 +80,10 @@ This creates a 3D scene with coordinate axes and a red point. You can orbit the 
 
 ## Adding Reactivity
 
-The power of MathLib comes from reactive atoms. Let's make the point move:
+The power of Uzay comes from reactive atoms. Let's make the point move:
 
 ```typescript
-import { Scene3D, View3D, vec3 } from "mathlib";
+import { Scene3D, View3D, vec3 } from "uzay";
 
 const scene = new Scene3D();
 

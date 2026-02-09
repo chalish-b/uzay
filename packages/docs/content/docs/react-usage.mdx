@@ -1,20 +1,20 @@
 ---
 title: React Usage
-description: How to properly use MathLib in React applications
+description: How to properly use Uzay in React applications
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
 <Callout type="info" title="React Wrapper Coming Soon">
   A dedicated React wrapper with hooks and components is planned for a future release.
-  Until then, this guide shows the recommended patterns for integrating MathLib with React manually.
+  Until then, this guide shows the recommended patterns for integrating Uzay with React manually.
 
   The current approach isn't the very clean, but the core imperative library needs to get stable before proper React integration.
 </Callout>
 
 ## Basic Setup
 
-When using MathLib in React, you need to handle the Three.js lifecycle properly. The key points are:
+When using Uzay in React, you need to handle the Three.js lifecycle properly. The key points are:
 
 1. **Create the scene once** on component mount
 2. **Clean up properly** on unmount using `view.dispose()`
@@ -22,11 +22,11 @@ When using MathLib in React, you need to handle the Three.js lifecycle properly.
 
 ## Minimal Example
 
-Here's the simplest way to set up a MathLib scene in React:
+Here's the simplest way to set up a Uzay scene in React:
 
 ```tsx
 import { useEffect, useRef } from "react";
-import { Scene3D, View3D, vec3 } from "mathlib";
+import { Scene3D, View3D, vec3 } from "uzay";
 
 function MyScene() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,8 +82,8 @@ Store atoms in a ref so you can update them from React state changes:
 
 ```tsx
 import { useEffect, useRef, useState } from "react";
-import { Scene3D, View3D, vec3 } from "mathlib";
-import type { BoundAtom } from "mathlib";
+import { Scene3D, View3D, vec3 } from "uzay";
+import type { BoundAtom } from "uzay";
 import type { PrimitiveAtom } from "jotai";
 
 function InteractiveScene() {
@@ -226,8 +226,8 @@ Here's a complete example with animation controls and proper cleanup:
 
 ```tsx
 import { useEffect, useRef, useState } from "react";
-import { Scene3D, View3D, vec3 } from "mathlib";
-import type { BoundAtom } from "mathlib";
+import { Scene3D, View3D, vec3 } from "uzay";
+import type { BoundAtom } from "uzay";
 import type { PrimitiveAtom } from "jotai";
 
 export default function AnimatedScene() {

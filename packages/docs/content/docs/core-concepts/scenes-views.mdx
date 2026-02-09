@@ -11,10 +11,10 @@ A **Scene** is the container that holds all your 3D objects. Think of it as a st
 - **State**: Reactive atoms that drive dynamic updates
 - **Invalidation**: Tracking what needs to re-render
 
-Every MathLib application starts with creating a scene:
+Every Uzay application starts with creating a scene:
 
 ```typescript
-import { Scene3D } from "mathlib";
+import { Scene3D } from "uzay";
 
 const scene = new Scene3D();
 ```
@@ -77,7 +77,7 @@ To render a scene, create a View with three arguments:
 3. The DOM container element
 
 ```typescript
-import { Scene3D, View3D, vec3 } from "mathlib";
+import { Scene3D, View3D, vec3 } from "uzay";
 
 const scene = new Scene3D();
 
