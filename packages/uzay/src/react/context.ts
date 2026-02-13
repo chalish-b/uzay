@@ -27,7 +27,7 @@ export function useSceneAtom<Value>(
 ): BoundAtom<Atom<Value>>;
 export function useSceneAtom<Value, Args extends unknown[], Result>(
   read: Parameters<Scene3D["atom"]>[0],
-  write: Parameters<Scene3D["atom"]>[1]
+  write: (...args: any[]) => any
 ): BoundAtom<WritableAtom<Value, Args, Result>>;
 export function useSceneAtom(...args: any[]): any {
   const scene = useScene();
@@ -39,6 +39,7 @@ export function useSceneAtom(...args: any[]): any {
 export type CameraRegistry = {
   registerCamera: (id: ItemId, active: boolean) => void;
   unregisterCamera: (id: ItemId) => void;
+  activateCamera: (id: ItemId) => void;
 };
 
 export const CameraRegistryContext = createContext<CameraRegistry | null>(null);

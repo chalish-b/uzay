@@ -14,99 +14,86 @@ export type Scene3DViewProps = {
 export function Scene3DView({ scene: sceneProp, className, style, children }: Scene3DViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Scene: use provided or create internally via lazy useState
   const [internalScene] = useState(() => sceneProp ? null : new Scene3DCore());
   const scene = sceneProp ?? internalScene!;
 
-  // View3D, fallback camera, and camera tracking state stored in refs
-  const viewRef = useRef<View3D | null>(null);
-  const fallbackCamRef = useRef<ItemInstanceOf<"camera3d"> | null>(null);
-  const registeredCamerasRef = useRef<Set<ItemId>>(new Set());
-  const activeCamIdRef = useRef<ItemId | null>(null);
-
-  // Tracks whether the View3D has been initialized (drives children rendering)
   const [ready, setReady] = useState(false);
+  const [registry, setRegistry] = useState<CameraRegistry | null>(null);
 
-  // Camera registry callbacks stored in a ref so the stable registry
-  // always delegates to the latest version
-  const registryRef = useRef<CameraRegistry>(null!);
-  registryRef.current = {
-    registerCamera(id: ItemId, active: boolean) {
-      const registered = registeredCamerasRef.current;
-      registered.add(id);
-
-      const view = viewRef.current;
-      if (!view) return;
-
-      if (active || registered.size === 1) {
-        view.changeActiveCam(id);
-        activeCamIdRef.current = id;
-
-        if (fallbackCamRef.current) {
-          scene.remove(fallbackCamRef.current as any);
-          fallbackCamRef.current = null;
-        }
-      }
-    },
-    unregisterCamera(id: ItemId) {
-      const registered = registeredCamerasRef.current;
-      registered.delete(id);
-
-      const view = viewRef.current;
-      if (!view) return;
-
-      if (activeCamIdRef.current === id) {
-        if (registered.size > 0) {
-          const nextId = registered.values().next().value!;
-          view.changeActiveCam(nextId);
-          activeCamIdRef.current = nextId;
-        } else {
-          const fallback = scene.create("camera3d", {});
-          fallbackCamRef.current = fallback as ItemInstanceOf<"camera3d">;
-          view.changeActiveCam(fallback.id);
-          activeCamIdRef.current = fallback.id;
-        }
-      }
-    },
-  };
-
-  // Stable registry object that delegates to current ref
-  const [stableRegistry] = useState<CameraRegistry>(() => ({
-    registerCamera: (id: ItemId, active: boolean) => registryRef.current.registerCamera(id, active),
-    unregisterCamera: (id: ItemId) => registryRef.current.unregisterCamera(id),
-  }));
-
-  // Initialize View3D on mount
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // All mutable state lives here, inside the effect closure
+    let fallbackCam: ItemInstanceOf<"camera3d"> | null;
+    let activeCamId: ItemId;
+    const registeredCameras = new Set<ItemId>();
+
+    // Create fallback camera + view
     const fallback = scene.create("camera3d", {});
-    fallbackCamRef.current = fallback as ItemInstanceOf<"camera3d">;
-    activeCamIdRef.current = fallback.id;
-
+    fallbackCam = fallback as ItemInstanceOf<"camera3d">;
+    activeCamId = fallback.id;
     const view = new View3D(scene, fallback.id, containerRef.current);
-    viewRef.current = view;
 
+    function switchTo(id: ItemId) {
+      // Guard against stale IDs (e.g. after HMR re-mount)
+      if (!scene.items.has(id)) return;
+      view.changeActiveCam(id);
+      activeCamId = id;
+
+      if (fallbackCam) {
+        scene.remove(fallbackCam as any);
+        fallbackCam = null;
+      }
+    }
+
+    // Build the registry that Camera3D children will use
+    const reg: CameraRegistry = {
+      registerCamera(id: ItemId, active: boolean) {
+        registeredCameras.add(id);
+
+        if (active || registeredCameras.size === 1) {
+          switchTo(id);
+        }
+      },
+      unregisterCamera(id: ItemId) {
+        registeredCameras.delete(id);
+
+        if (activeCamId === id) {
+          if (registeredCameras.size > 0) {
+            const nextId = registeredCameras.values().next().value!;
+            view.changeActiveCam(nextId);
+            activeCamId = nextId;
+          } else {
+            const fb = scene.create("camera3d", {});
+            fallbackCam = fb as ItemInstanceOf<"camera3d">;
+            view.changeActiveCam(fb.id);
+            activeCamId = fb.id;
+          }
+        }
+      },
+      activateCamera(id: ItemId) {
+        if (!registeredCameras.has(id)) return;
+        switchTo(id);
+      },
+    };
+
+    setRegistry(reg);
     setReady(true);
 
     return () => {
       view.dispose();
-      viewRef.current = null;
       setReady(false);
+      setRegistry(null);
 
-      if (fallbackCamRef.current) {
-        scene.remove(fallbackCamRef.current as any);
-        fallbackCamRef.current = null;
+      if (fallbackCam) {
+        scene.remove(fallbackCam as any);
       }
-
-      registeredCamerasRef.current.clear();
-      activeCamIdRef.current = null;
     };
   }, [scene]);
 
   return (
     <SceneContext.Provider value={scene}>
-      <CameraRegistryContext.Provider value={stableRegistry}>
+      <CameraRegistryContext.Provider value={registry}>
         <div
           ref={containerRef}
           className={className}

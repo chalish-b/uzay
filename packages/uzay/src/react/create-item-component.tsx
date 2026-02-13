@@ -1,24 +1,12 @@
 import { memo, useEffect, useRef } from "react";
-import type { Atom } from "jotai";
 import type { ItemKind, ItemOptions, ItemInstanceOf } from "../core/common-types/item-registry";
-import type { BoundAtom } from "../core/atom-wrapper";
 import type { DragHandler, ClickHandler, HoverHandler } from "../core/common-types/interaction-events";
 import type { Scene3D } from "../core/scene3d";
 import { useScene } from "./context";
+import { isBoundAtom, shallowEqual } from "./utils";
 
 // Keys that are not item options
 const NON_OPTION_KEYS = new Set(["onDrag", "onClick", "onHover", "ref"]);
-
-function isBoundAtom(value: unknown): value is BoundAtom<Atom<unknown>> {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    "read" in value &&
-    typeof (value as any).read === "function" &&
-    "get" in (value as any) &&
-    typeof (value as any).get === "function"
-  );
-}
 
 export type ItemComponentProps<K extends ItemKind> = ItemOptions<K> & {
   onDrag?: DragHandler<K>;
@@ -91,11 +79,9 @@ export function createItemComponent<K extends ItemKind>(kind: K) {
         const value = (props as any)[key];
         nextProps[key] = value;
 
-        // Skip atoms (they are self-managing)
         if (isBoundAtom(value)) continue;
 
-        // Only update if the value actually changed
-        if (!Object.is(value, prev[key])) {
+        if (!shallowEqual(value, prev[key])) {
           const field = (item as any)[key];
           if (field && typeof field.set === "function") {
             field.set(value);

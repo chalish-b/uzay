@@ -20,9 +20,6 @@
   - Have a better distinction between click vs. drag
 - Custom material options.
   - Just allow the user to pass MessPhongMaterialParameters (or some kind of atomized version of it?). This includes shader as well so they can write their own shaders if they want.
-- React wrapper
-  - Just start with normal components + `useEffect` for now
-  - In the future, we can actually implement a proper thing with React reconciler.
 - 2D scenes
 - Vectors fields
   - I think making a vector field a special (separate) item is more useful and performant (so that we can have a single geometry for it all, if that's possible)

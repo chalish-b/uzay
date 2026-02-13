@@ -1,22 +1,10 @@
 import { memo, useContext, useEffect, useRef } from "react";
 import type { ItemOptions, ItemInstanceOf } from "../core/common-types/item-registry";
-import type { BoundAtom } from "../core/atom-wrapper";
-import type { Atom } from "jotai";
 import type { Scene3D } from "../core/scene3d";
 import { useScene, CameraRegistryContext } from "./context";
+import { isBoundAtom, shallowEqual } from "./utils";
 
 const NON_OPTION_KEYS = new Set(["active", "ref"]);
-
-function isBoundAtom(value: unknown): value is BoundAtom<Atom<unknown>> {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    "read" in value &&
-    typeof (value as any).read === "function" &&
-    "get" in (value as any) &&
-    typeof (value as any).get === "function"
-  );
-}
 
 export type Camera3DProps = ItemOptions<"camera3d"> & {
   active?: boolean;
@@ -61,6 +49,13 @@ function Camera3DComponent(props: Camera3DProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, registry]);
 
+  // When `active` prop changes to true, tell the registry to switch
+  useEffect(() => {
+    const item = itemRef.current;
+    if (!item || !props.active) return;
+    registry?.activateCamera(item.id);
+  }, [props.active, registry]);
+
   // Sync ref
   useEffect(() => {
     const ref = props.ref;
@@ -90,7 +85,7 @@ function Camera3DComponent(props: Camera3DProps) {
 
       if (isBoundAtom(value)) continue;
 
-      if (!Object.is(value, prev[key])) {
+      if (!shallowEqual(value, prev[key])) {
         const field = (item as any)[key];
         if (field && typeof field.set === "function") {
           field.set(value);

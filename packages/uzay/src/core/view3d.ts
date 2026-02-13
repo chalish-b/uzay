@@ -180,6 +180,10 @@ export class View3D {
     this.activeCam = this.scene.getCamera(cameraId);
     this._lastCameraSnapshot = null;
     this.syncCameraToThree();
+    // OrbitControls caches the camera's spherical coordinates internally.
+    // After changing position + target, we must call update() so it
+    // recalculates from the new values instead of snapping back.
+    // this.threeOrbitControls.update();
     this.requestRender();
   }
 
