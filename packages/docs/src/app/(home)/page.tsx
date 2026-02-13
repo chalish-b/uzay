@@ -22,7 +22,7 @@ export default function HomePage() {
       </div>
 
       <div className="flex flex-col gap-3 rounded-lg border border-fd-border bg-fd-card p-5 text-sm">
-        <code className="text-fd-muted-foreground">bun add uzay</code>
+        <code className="text-fd-muted-foreground">npm install uzay</code>
         <div className="border-t border-fd-border" />
         <p>
           Read the{" "}
