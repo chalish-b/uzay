@@ -4,13 +4,14 @@ import type { Scene3D } from "../scene3d";
 import { BaseItem } from "../item";
 
 type CameraProjection = "perspective" | "orthogonal";
-type CameraControls = "orbit" | "pan";
 
 export type Camera3DFields = {
   position: Vec3;
   lookAt: Vec3;
   projection: CameraProjection;
-  controls: CameraControls;
+  enableOrbit: boolean;
+  enablePan: boolean;
+  enableZoom: boolean;
   fov: number;
   zoom: number;
   near: number;
@@ -24,7 +25,9 @@ function mergeDefaults<Opts extends Camera3DOptions>(options: Opts) {
     position: options.position ?? vec3(10, 10, 10),
     lookAt: options.lookAt ?? vec3(0, 0, 0),
     projection: options.projection ?? "perspective",
-    controls: options.controls ?? "orbit",
+    enableOrbit: options.enableOrbit ?? true,
+    enablePan: options.enablePan ?? true,
+    enableZoom: options.enableZoom ?? true,
     fov: options.fov ?? 60,
     zoom: options.zoom ?? 1,
     near: options.near ?? 0.1,
@@ -38,7 +41,9 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
   position: Field<Vec3, "position", Opts>;
   lookAt: Field<Vec3, "lookAt", Opts>;
   projection: Field<CameraProjection, "projection", Opts>;
-  controls: Field<CameraControls, "controls", Opts>;
+  enableOrbit: Field<boolean, "enableOrbit", Opts>;
+  enablePan: Field<boolean, "enablePan", Opts>;
+  enableZoom: Field<boolean, "enableZoom", Opts>;
   fov: Field<number, "fov", Opts>;
   zoom: Field<number, "zoom", Opts>;
   near: Field<number, "near", Opts>;
@@ -52,7 +57,9 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
     this.position = scene.atomize(opts.position) as any;
     this.lookAt = scene.atomize(opts.lookAt) as any;
     this.projection = scene.atomize(opts.projection) as any;
-    this.controls = scene.atomize(opts.controls) as any;
+    this.enableOrbit = scene.atomize(opts.enableOrbit) as any;
+    this.enablePan = scene.atomize(opts.enablePan) as any;
+    this.enableZoom = scene.atomize(opts.enableZoom) as any;
     this.fov = scene.atomize(opts.fov) as any;
     this.zoom = scene.atomize(opts.zoom) as any;
     this.near = scene.atomize(opts.near) as any;
@@ -61,7 +68,9 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
       this.position,
       this.lookAt,
       this.projection,
-      this.controls,
+      this.enableOrbit,
+      this.enablePan,
+      this.enableZoom,
       this.fov,
       this.zoom,
       this.near,
@@ -77,7 +86,9 @@ export class Camera3D<Opts extends Camera3DOptions = {}> extends BaseItem<Camera
       position: this.position.get(),
       lookAt: this.lookAt.get(),
       projection: this.projection.get(),
-      controls: this.controls.get(),
+      enableOrbit: this.enableOrbit.get(),
+      enablePan: this.enablePan.get(),
+      enableZoom: this.enableZoom.get(),
       fov: this.fov.get(),
       zoom: this.zoom.get(),
       near: this.near.get(),

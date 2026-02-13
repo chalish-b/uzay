@@ -313,6 +313,17 @@ export class View3D {
         this.threeCamera.updateProjectionMatrix();
       }
 
+      // OrbitControls enable/disable
+      if (!last || snap.enableOrbit !== last.enableOrbit) {
+        this.threeOrbitControls.enableRotate = snap.enableOrbit;
+      }
+      if (!last || snap.enablePan !== last.enablePan) {
+        this.threeOrbitControls.enablePan = snap.enablePan;
+      }
+      if (!last || snap.enableZoom !== last.enableZoom) {
+        this.threeOrbitControls.enableZoom = snap.enableZoom;
+      }
+
       // Recalculate OrbitControls' internal spherical state from the current
       // position + target so the next update() in _render() doesn't reposition
       // the camera based on stale internals.

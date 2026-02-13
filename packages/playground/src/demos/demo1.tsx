@@ -44,6 +44,12 @@ export default function Demo1() {
   const [camY, setCamY] = useState(10);
   const [camZ, setCamZ] = useState(12);
   const [fov, setFov] = useState(60);
+  const [enableOrbit, setEnableOrbit] = useState(true);
+  const [enablePan, setEnablePan] = useState(true);
+  const [enableZoom, setEnableZoom] = useState(true);
+  const enableOrbitAtomRef = useRef<BoundAtom<PrimitiveAtom<boolean>> | null>(null);
+  const enablePanAtomRef = useRef<BoundAtom<PrimitiveAtom<boolean>> | null>(null);
+  const enableZoomAtomRef = useRef<BoundAtom<PrimitiveAtom<boolean>> | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -268,6 +274,13 @@ export default function Demo1() {
     camZAtomRef.current = camZAtom;
     fovAtomRef.current = fovAtom;
 
+    const enableOrbitAtom = scene.atom(true);
+    const enablePanAtom = scene.atom(true);
+    const enableZoomAtom = scene.atom(true);
+    enableOrbitAtomRef.current = enableOrbitAtom;
+    enablePanAtomRef.current = enablePanAtom;
+    enableZoomAtomRef.current = enableZoomAtom;
+
     camXAtom.sub(() => setCamX(camXAtom.get()));
     camYAtom.sub(() => setCamY(camYAtom.get()));
     camZAtom.sub(() => setCamZ(camZAtom.get()));
@@ -277,6 +290,9 @@ export default function Demo1() {
       position: cameraPosAtom,
       lookAt: vec3(0, 0, 0),
       fov: fovAtom,
+      enableOrbit: enableOrbitAtom,
+      enablePan: enablePanAtom,
+      enableZoom: enableZoomAtom,
     });
 
     const camera2 = scene.create("camera3d", {
@@ -305,6 +321,9 @@ export default function Demo1() {
   useEffect(() => { camYAtomRef.current?.set(camY); }, [camY]);
   useEffect(() => { camZAtomRef.current?.set(camZ); }, [camZ]);
   useEffect(() => { fovAtomRef.current?.set(fov); }, [fov]);
+  useEffect(() => { enableOrbitAtomRef.current?.set(enableOrbit); }, [enableOrbit]);
+  useEffect(() => { enablePanAtomRef.current?.set(enablePan); }, [enablePan]);
+  useEffect(() => { enableZoomAtomRef.current?.set(enableZoom); }, [enableZoom]);
 
   const sliderStyle = { color: "white", fontSize: 13 } as const;
   const rowStyle = { display: "flex", alignItems: "center", gap: 8 } as const;
@@ -379,6 +398,18 @@ export default function Demo1() {
           Switch to {activeCamLabel === "Camera 1" ? "Camera 2" : "Camera 1"}
         </button>
         <span style={sliderStyle}>Active: {activeCamLabel}</span>
+        <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.2)", margin: "4px 0" }} />
+        <div style={rowStyle}>
+          <label style={sliderStyle}>Orbit</label>
+          <input type="checkbox" checked={enableOrbit}
+            onChange={(e) => setEnableOrbit(e.target.checked)} />
+          <label style={sliderStyle}>Pan</label>
+          <input type="checkbox" checked={enablePan}
+            onChange={(e) => setEnablePan(e.target.checked)} />
+          <label style={sliderStyle}>Zoom</label>
+          <input type="checkbox" checked={enableZoom}
+            onChange={(e) => setEnableZoom(e.target.checked)} />
+        </div>
       </div>
     </div>
   );

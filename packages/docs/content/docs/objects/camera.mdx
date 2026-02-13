@@ -139,7 +139,7 @@ view.changeActiveCam(topCamera.id);
 
 ## Reactive Camera
 
-Since cameras are scene items, their properties can be atoms:
+Since cameras are scene items, their properties can be atoms. Camera sync is **bidirectional**: atom changes update the Three.js camera, and orbit control interactions update the atoms.
 
 ```typescript
 const cameraY = scene.atom(10);
@@ -178,6 +178,35 @@ const camera = scene.create("camera3d", {
 });
 ```
 
+### Bidirectional Sync with UI
+
+When you pass writable atoms for `position` or `lookAt`, orbit control interactions (rotating, panning) write back to those atoms. This lets you build UI that stays in sync with user interactions:
+
+```typescript
+const camX = scene.atom(10);
+const camY = scene.atom(10);
+const camZ = scene.atom(10);
+
+const cameraPosAtom = scene.atom(
+  (get) => vec3(get(camX), get(camY), get(camZ)),
+  (_get, set, next: Vec3) => {
+    set(camX, next.x);
+    set(camY, next.y);
+    set(camZ, next.z);
+  },
+);
+
+const camera = scene.create("camera3d", {
+  position: cameraPosAtom,
+  lookAt: vec3(0, 0, 0),
+});
+
+// Subscribe to see orbit changes reflected in individual atoms
+camX.sub(() => console.log("Camera X:", camX.get()));
+```
+
+If `position` or `lookAt` is a read-only derived atom, writeback is skipped gracefully.
+
 ## Orbit Controls
 
 Views come with built-in orbit controls that let users interact with the camera:
@@ -186,7 +215,33 @@ Views come with built-in orbit controls that let users interact with the camera:
 - **Right-click + drag**: Pan the camera
 - **Scroll**: Zoom in/out
 
-These controls modify the Three.js camera directly. Note that the orbit controls don't currently sync back to the `Camera3D` item's atoms.
+Each of these can be independently enabled or disabled via camera properties:
+
+```typescript
+// Rotation only, no panning or zooming
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  enableOrbit: true,
+  enablePan: false,
+  enableZoom: false,
+});
+```
+
+Since these are atoms, you can toggle them reactively:
+
+```typescript
+const canOrbit = scene.atom(true);
+
+const camera = scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  enableOrbit: canOrbit,
+});
+
+// Disable orbiting later
+canOrbit.set(false);
+```
 
 ---
 
@@ -199,7 +254,9 @@ These controls modify the Three.js camera directly. Note that the orbit controls
 | `position` | `Vec3` | `{ x: 10, y: 10, z: 10 }` | Camera location |
 | `lookAt` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Point the camera aims at |
 | `projection` | `"perspective" \| "orthogonal"` | `"perspective"` | Projection type |
-| `controls` | `"orbit" \| "pan"` | `"orbit"` | Control mode |
+| `enableOrbit` | `boolean` | `true` | Enable rotation (left-click drag) |
+| `enablePan` | `boolean` | `true` | Enable panning (right-click drag) |
+| `enableZoom` | `boolean` | `true` | Enable zooming (scroll) |
 | `fov` | `number` | `60` | Vertical field of view (degrees) |
 | `zoom` | `number` | `1` | Zoom level |
 | `near` | `number` | `0.1` | Near clipping plane |
@@ -213,9 +270,10 @@ These controls modify the Three.js camera directly. Note that the orbit controls
 | `position` | `BoundAtom<Vec3>` | Position atom |
 | `lookAt` | `BoundAtom<Vec3>` | Target atom |
 | `projection` | `BoundAtom<"perspective" \| "orthogonal">` | Projection atom |
-| `controls` | `BoundAtom<"orbit" \| "pan">` | Controls atom |
+| `enableOrbit` | `BoundAtom<boolean>` | Orbit toggle atom |
+| `enablePan` | `BoundAtom<boolean>` | Pan toggle atom |
+| `enableZoom` | `BoundAtom<boolean>` | Zoom toggle atom |
 | `fov` | `BoundAtom<number>` | FOV atom |
 | `zoom` | `BoundAtom<number>` | Zoom atom |
 | `near` | `BoundAtom<number>` | Near plane atom |
 | `far` | `BoundAtom<number>` | Far plane atom |
-

@@ -3,13 +3,10 @@
 - Add a dedicated examples section in documentation
   - Show more patterns like:
     - How to constrain points to be on a sphere, on a plane etc.
-    - 
 - Camera improvements
-  - Updating the camera using atoms
-  - Switching between multiple cameras
   - A single scene having multiple views
   - Perspective / Orthographics camera choice
-  - A way to disable orbit controls and panning (separately if possible)
+  - Camera reset button (easy to lose track of position when orbiting)
 - Function improvements
   - Handling discontinuities: Just allow the user to pass discontinuous t values manually, it's the simplest approach. Otherwise detection is kinda complex, especially if we don't have access to the symbolic representation of the function
 - Optimizations
@@ -41,8 +38,6 @@
   - In addition to a separate examples section, add small examples inside the pages themselves. Currently we do this, but the examples are kind of mixed with the explanations.
   - Convert the API reference stuff to "type tables" in Fumadocs.
 - Infinite grid and axes
-- Camera controls and syncing between `Scene <-> View`
-  - Add some kind of camera reset button while you're at it, it's really easy to lose track of the position and stuff.
 - Filled in shaped / functions
 - Opacity option for stuff
   - We can't directly pass an rgba color to the color property, so we need a separate field
