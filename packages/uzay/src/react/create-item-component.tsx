@@ -1,0 +1,138 @@
+import { memo, useEffect, useRef } from "react";
+import type { Atom } from "jotai";
+import type { ItemKind, ItemOptions, ItemInstanceOf } from "../core/common-types/item-registry";
+import type { BoundAtom } from "../core/atom-wrapper";
+import type { DragHandler, ClickHandler, HoverHandler } from "../core/common-types/interaction-events";
+import type { Scene3D } from "../core/scene3d";
+import { useScene } from "./context";
+
+// Keys that are not item options
+const NON_OPTION_KEYS = new Set(["onDrag", "onClick", "onHover", "ref"]);
+
+function isBoundAtom(value: unknown): value is BoundAtom<Atom<unknown>> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "read" in value &&
+    typeof (value as any).read === "function" &&
+    "get" in (value as any) &&
+    typeof (value as any).get === "function"
+  );
+}
+
+export type ItemComponentProps<K extends ItemKind> = ItemOptions<K> & {
+  onDrag?: DragHandler<K>;
+  onClick?: ClickHandler<K>;
+  onHover?: HoverHandler<K>;
+  ref?: React.Ref<ItemInstanceOf<K>>;
+};
+
+export function createItemComponent<K extends ItemKind>(kind: K) {
+  function ItemComponent(props: ItemComponentProps<K>) {
+    const scene = useScene();
+    const itemRef = useRef<ItemInstanceOf<K> | null>(null);
+    const prevPropsRef = useRef<Record<string, unknown>>({});
+
+    // Mount: create item; Unmount: remove item
+    useEffect(() => {
+      const options: Record<string, unknown> = {};
+      for (const key of Object.keys(props)) {
+        if (!NON_OPTION_KEYS.has(key)) {
+          options[key] = (props as any)[key];
+        }
+      }
+
+      const item = (scene as Scene3D).create(kind, options as ItemOptions<K>);
+      itemRef.current = item as ItemInstanceOf<K>;
+
+      // scene.create() doesn't invalidate automatically, so we need to
+      // notify the View3D that a new item exists and needs rendering.
+      scene.invalidateScene();
+
+      // Capture initial plain-value props for future diffing
+      const initialProps: Record<string, unknown> = {};
+      for (const key of Object.keys(options)) {
+        initialProps[key] = options[key];
+      }
+      prevPropsRef.current = initialProps;
+
+      return () => {
+        scene.remove(item as any);
+        itemRef.current = null;
+      };
+      // Only run on mount/unmount
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [scene]);
+
+    // Sync ref
+    useEffect(() => {
+      const ref = props.ref;
+      if (!ref) return undefined;
+      if (typeof ref === "function") {
+        ref(itemRef.current);
+        return () => { ref(null); };
+      }
+      (ref as React.RefObject<ItemInstanceOf<K> | null>).current = itemRef.current;
+      return () => {
+        (ref as React.RefObject<ItemInstanceOf<K> | null>).current = null;
+      };
+    });
+
+    // Update plain-value props that changed
+    useEffect(() => {
+      const item = itemRef.current;
+      if (!item) return;
+
+      const prev = prevPropsRef.current;
+      const nextProps: Record<string, unknown> = {};
+
+      for (const key of Object.keys(props)) {
+        if (NON_OPTION_KEYS.has(key)) continue;
+        const value = (props as any)[key];
+        nextProps[key] = value;
+
+        // Skip atoms (they are self-managing)
+        if (isBoundAtom(value)) continue;
+
+        // Only update if the value actually changed
+        if (!Object.is(value, prev[key])) {
+          const field = (item as any)[key];
+          if (field && typeof field.set === "function") {
+            field.set(value);
+          }
+        }
+      }
+
+      prevPropsRef.current = nextProps;
+    });
+
+    // Event handlers: re-register every render (closures may change identity)
+    useEffect(() => {
+      const item = itemRef.current;
+      if (!item) return;
+
+      if (props.onDrag) {
+        item.on("drag", props.onDrag as any);
+      } else {
+        item.off("drag");
+      }
+
+      if (props.onClick) {
+        item.on("click", props.onClick as any);
+      } else {
+        item.off("click");
+      }
+
+      if (props.onHover) {
+        item.on("hover", props.onHover as any);
+      } else {
+        item.off("hover");
+      }
+    });
+
+    return null;
+  }
+
+  ItemComponent.displayName = kind.charAt(0).toUpperCase() + kind.slice(1);
+  return memo(ItemComponent) as React.FC<ItemComponentProps<K>>;
+}

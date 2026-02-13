@@ -16,6 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
+      "uzay/react": ["../uzay/src/react/index.ts"],
       "uzay": ["../uzay/src/index.ts"]
     },
 

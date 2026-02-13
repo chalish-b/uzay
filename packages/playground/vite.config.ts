@@ -12,6 +12,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      "uzay/react": resolve(__dirname, "../uzay/src/react/index.ts"),
       uzay: resolve(__dirname, "../uzay/src/index.ts"),
     },
   },

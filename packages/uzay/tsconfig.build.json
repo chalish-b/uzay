@@ -25,5 +25,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": false
   },
-  "include": ["src/core", "src/index.ts"]
+  "include": ["src/core", "src/index.ts", "src/react"]
 }
