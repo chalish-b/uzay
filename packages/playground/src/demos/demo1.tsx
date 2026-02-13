@@ -28,10 +28,22 @@ export default function Demo1() {
   const heightAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
   const opacityAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
   const showEdgesAtomRef = useRef<BoundAtom<PrimitiveAtom<boolean>> | null>(null);
+  const camXAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const camYAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const camZAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const fovAtomRef = useRef<BoundAtom<PrimitiveAtom<number>> | null>(null);
+  const viewRef = useRef<View3D | null>(null);
+  const cam2IdRef = useRef<string | null>(null);
+  const cam1IdRef = useRef<string | null>(null);
+  const [activeCamLabel, setActiveCamLabel] = useState("Camera 1");
   const [width, setWidth] = useState(6);
   const [height, setHeight] = useState(6);
   const [opacity, setOpacity] = useState(0.5);
   const [showEdges, setShowEdges] = useState(true);
+  const [camX, setCamX] = useState(12);
+  const [camY, setCamY] = useState(10);
+  const [camZ, setCamZ] = useState(12);
+  const [fov, setFov] = useState(60);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -44,7 +56,7 @@ export default function Demo1() {
       coords: centerAtom,
       color: "cyan",
       radius: 3,
-      draggable: "xyz",
+      draggable: "x",
     });
 
     scene.create("overlay3d", {
@@ -236,14 +248,52 @@ export default function Demo1() {
       thickness: 2,
     });
 
-    const camera = scene.create("camera3d", {
-      position: vec3(12, 10, 12),
-      lookAt: vec3(0, 2, 0),
+    // Camera atoms for bidirectional sync
+    const camXAtom = scene.atom(12);
+    const camYAtom = scene.atom(10);
+    const camZAtom = scene.atom(12);
+    const fovAtom = scene.atom(60);
+
+    const cameraPosAtom = scene.atom(
+      (get) => vec3(get(camXAtom), get(camYAtom), get(camZAtom)),
+      (_get, set, next: Vec3) => {
+        set(camXAtom, next.x);
+        set(camYAtom, next.y);
+        set(camZAtom, next.z);
+      },
+    );
+
+    camXAtomRef.current = camXAtom;
+    camYAtomRef.current = camYAtom;
+    camZAtomRef.current = camZAtom;
+    fovAtomRef.current = fovAtom;
+
+    camXAtom.sub(() => setCamX(camXAtom.get()));
+    camYAtom.sub(() => setCamY(camYAtom.get()));
+    camZAtom.sub(() => setCamZ(camZAtom.get()));
+    fovAtom.sub(() => setFov(fovAtom.get()));
+
+    const camera1 = scene.create("camera3d", {
+      position: cameraPosAtom,
+      lookAt: vec3(0, 0, 0),
+      fov: fovAtom,
     });
-    const view = new View3D(scene, camera.id, containerRef.current);
+
+    const camera2 = scene.create("camera3d", {
+      position: vec3(-10, 15, -10),
+      lookAt: vec3(0, 0, 0),
+      fov: 45,
+    });
+
+    cam1IdRef.current = camera1.id;
+    cam2IdRef.current = camera2.id;
+
+    const view = new View3D(scene, camera1.id, containerRef.current);
+    viewRef.current = view;
 
     return () => {
       view.dispose();
+      viewRef.current = null;
     };
   }, []);
 
@@ -251,6 +301,10 @@ export default function Demo1() {
   useEffect(() => { heightAtomRef.current?.set(height); }, [height]);
   useEffect(() => { opacityAtomRef.current?.set(opacity); }, [opacity]);
   useEffect(() => { showEdgesAtomRef.current?.set(showEdges); }, [showEdges]);
+  useEffect(() => { camXAtomRef.current?.set(camX); }, [camX]);
+  useEffect(() => { camYAtomRef.current?.set(camY); }, [camY]);
+  useEffect(() => { camZAtomRef.current?.set(camZ); }, [camZ]);
+  useEffect(() => { fovAtomRef.current?.set(fov); }, [fov]);
 
   const sliderStyle = { color: "white", fontSize: 13 } as const;
   const rowStyle = { display: "flex", alignItems: "center", gap: 8 } as const;
@@ -286,6 +340,45 @@ export default function Demo1() {
           <input type="checkbox" checked={showEdges}
             onChange={(e) => setShowEdges(e.target.checked)} />
         </div>
+        <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.2)", margin: "4px 0" }} />
+        <div style={rowStyle}>
+          <label style={{ ...sliderStyle, minWidth: 50 }}>Cam X</label>
+          <input type="range" min="-30" max="30" step="0.1" value={camX}
+            onChange={(e) => setCamX(parseFloat(e.target.value))} />
+          <span style={{ ...sliderStyle, minWidth: 32 }}>{camX.toFixed(1)}</span>
+        </div>
+        <div style={rowStyle}>
+          <label style={{ ...sliderStyle, minWidth: 50 }}>Cam Y</label>
+          <input type="range" min="-30" max="30" step="0.1" value={camY}
+            onChange={(e) => setCamY(parseFloat(e.target.value))} />
+          <span style={{ ...sliderStyle, minWidth: 32 }}>{camY.toFixed(1)}</span>
+        </div>
+        <div style={rowStyle}>
+          <label style={{ ...sliderStyle, minWidth: 50 }}>Cam Z</label>
+          <input type="range" min="-30" max="30" step="0.1" value={camZ}
+            onChange={(e) => setCamZ(parseFloat(e.target.value))} />
+          <span style={{ ...sliderStyle, minWidth: 32 }}>{camZ.toFixed(1)}</span>
+        </div>
+        <div style={rowStyle}>
+          <label style={{ ...sliderStyle, minWidth: 50 }}>FOV</label>
+          <input type="range" min="10" max="120" step="1" value={fov}
+            onChange={(e) => setFov(parseFloat(e.target.value))} />
+          <span style={{ ...sliderStyle, minWidth: 32 }}>{fov.toFixed(0)}</span>
+        </div>
+        <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.2)", margin: "4px 0" }} />
+        <button
+          style={{ ...sliderStyle, padding: "4px 10px", borderRadius: 4, cursor: "pointer" }}
+          onClick={() => {
+            const view = viewRef.current;
+            if (!view || !cam1IdRef.current || !cam2IdRef.current) return;
+            const isCam1 = activeCamLabel === "Camera 1";
+            view.changeActiveCam(isCam1 ? cam2IdRef.current : cam1IdRef.current);
+            setActiveCamLabel(isCam1 ? "Camera 2" : "Camera 1");
+          }}
+        >
+          Switch to {activeCamLabel === "Camera 1" ? "Camera 2" : "Camera 1"}
+        </button>
+        <span style={sliderStyle}>Active: {activeCamLabel}</span>
       </div>
     </div>
   );

@@ -64,7 +64,7 @@ Current item types: `point3d`, `line3d`, `parametricfunction3d`, `sphere3d`, `ax
 
 Strict mode with `noUnusedLocals` and `noUnusedParameters` enabled. React Compiler (babel-plugin-react-compiler) is active in the playground via Vite.
 
-## Ohter notes
+## Other notes
 
 - After implementing a feature, if it's testable in a demo, edit demo1.tsx (sandbox demo in `packages/playground/src/demos/`) to create a test scenario for it, to see whether all features work.
 - After finishing a documentation or write up, do another pass to replace all instances of em dashes with something more natural (commas, colons, or just restructure the sentence to flow better). No em dashes.

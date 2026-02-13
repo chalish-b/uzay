@@ -34,6 +34,11 @@ export class View3D {
   // Scene snapshots. Initially an empty list, so all items will be added
   lastSceneSnapshot: SceneSnapshot = { itemSnapshots: new Map() };
 
+  // Camera sync state
+  private _isSyncingToThree = false;
+  private _isSyncingFromThree = false;
+  private _lastCameraSnapshot: ReturnType<Camera3D<any>["getItemSnapshot"]> | null = null;
+
   // Interaction system
   raycaster = new THREE.Raycaster();
   pointer = new THREE.Vector2();
@@ -117,18 +122,20 @@ export class View3D {
     this.css2dRenderer.domElement.style.pointerEvents = "none";
     containerElem.appendChild(this.css2dRenderer.domElement);
 
-    // TODO: We need a way to sync our camera object in the scene with
-    // This three.js camera as it's controlled.
     this.threeOrbitControls = new OrbitControls(
       this.threeCamera,
       this.threeRenderer.domElement
     );
     // TODO: Make damping an option
     this.threeOrbitControls.enableDamping = false;
-    this.threeOrbitControls.target.set(0, 0, 0);
-    this.threeOrbitControls.addEventListener("change", () =>
-      this.requestRender()
-    );
+    this.threeOrbitControls.target.set(...Vec3.asArray(camera.lookAt));
+    this.threeOrbitControls.addEventListener("change", () => {
+      this.syncCameraFromThree();
+      this.requestRender();
+    });
+
+    // Initialize camera snapshot cache
+    this._lastCameraSnapshot = this.activeCam.getItemSnapshot();
 
     // Interaction event listeners
     const canvas = this.threeRenderer.domElement;
@@ -171,7 +178,9 @@ export class View3D {
 
   changeActiveCam(cameraId: ItemId) {
     this.activeCam = this.scene.getCamera(cameraId);
-    // TODO: Update the camera fields of the threeCamera as well
+    this._lastCameraSnapshot = null;
+    this.syncCameraToThree();
+    this.requestRender();
   }
 
   onSceneChanged() {
@@ -198,6 +207,9 @@ export class View3D {
     for (const id of unrenderedItems) {
       this.removeItem(id);
     }
+
+    // Sync camera atoms to Three.js if camera changed
+    this.syncCameraToThree();
 
     // Render the updated scene and finish
     this.lastSceneSnapshot = newSceneSnapshot;
@@ -250,24 +262,99 @@ export class View3D {
     this.css2dRenderer.setSize(size.x, size.y);
 
     // Update camera position, and sync the directional light for it
-    const cameraUpdated = this.threeOrbitControls.update();
+    this.threeOrbitControls.update();
     this.directionalLight.position.copy(this.threeCamera.position);
     this.directionalLight.target.position.set(0, 0, 0);
 
     // Render
     this.threeRenderer.render(this.threeScene, this.threeCamera);
     this.css2dRenderer.render(this.threeScene, this.threeCamera);
+  }
 
-    if (cameraUpdated) {
-      // TODO: When connecting the camera position updating the scene and causing a re-render,
-      // This will probably cause an infinite loop
-      // threejs camera updating -> scene camera updating -> causing a re-render -> ...
-      // but I'm not sure, maybe cameraUpdated guard already handles this, idk.
-      // TODO: Now that we're only passing snapshots to the renderer, find a way to
-      // Pass the events like orbit back to the scene so it can update the items
-      // (including the camera, which is now just an item)
-      // this.camera.position.set(this.threeCamera.position)
-      // this.camera.lookAt.set(this.threeOrbitControls.target);
+  // ========== Camera Sync ==========
+
+  syncCameraToThree() {
+    if (this._isSyncingFromThree) return;
+
+    const snap = this.activeCam.getItemSnapshot();
+    const last = this._lastCameraSnapshot;
+
+    this._isSyncingToThree = true;
+    try {
+      // Position
+      if (!last || !Vec3.equals(snap.position, last.position)) {
+        this.threeCamera.position.set(...Vec3.asArray(snap.position));
+      }
+
+      // LookAt -> OrbitControls target
+      if (!last || !Vec3.equals(snap.lookAt, last.lookAt)) {
+        this.threeOrbitControls.target.set(...Vec3.asArray(snap.lookAt));
+      }
+
+      // Projection properties
+      let needsProjectionUpdate = false;
+      if (!last || snap.fov !== last.fov) {
+        this.threeCamera.fov = snap.fov;
+        needsProjectionUpdate = true;
+      }
+      if (!last || snap.zoom !== last.zoom) {
+        this.threeCamera.zoom = snap.zoom;
+        needsProjectionUpdate = true;
+      }
+      if (!last || snap.near !== last.near) {
+        this.threeCamera.near = snap.near;
+        needsProjectionUpdate = true;
+      }
+      if (!last || snap.far !== last.far) {
+        this.threeCamera.far = snap.far;
+        needsProjectionUpdate = true;
+      }
+      if (needsProjectionUpdate) {
+        this.threeCamera.updateProjectionMatrix();
+      }
+
+      // Recalculate OrbitControls' internal spherical state from the current
+      // position + target so the next update() in _render() doesn't reposition
+      // the camera based on stale internals.
+      // I don't think this has any effect so I disabled it for now.
+      // this.threeOrbitControls.update();
+
+      this._lastCameraSnapshot = snap;
+    } finally {
+      this._isSyncingToThree = false;
+    }
+  }
+
+  syncCameraFromThree() {
+    if (this._isSyncingToThree) return;
+
+    this._isSyncingFromThree = true;
+    try {
+      const cam = this.activeCam;
+      const tp = this.threeCamera.position;
+      const tt = this.threeOrbitControls.target;
+
+      const newPos = vec3(tp.x, tp.y, tp.z);
+      const newLookAt = vec3(tt.x, tt.y, tt.z);
+
+      // Only write back if the atom is writable and the value actually changed
+      const posAtom = cam.position as any;
+      if (!Vec3.equals(newPos, posAtom.get())) {
+        if (typeof posAtom.write === "function") {
+          posAtom.set(newPos);
+        }
+      }
+      const lookAtAtom = cam.lookAt as any;
+      if (!Vec3.equals(newLookAt, lookAtAtom.get())) {
+        if (typeof lookAtAtom.write === "function") {
+          lookAtAtom.set(newLookAt);
+        }
+      }
+
+      // Update snapshot cache so next reconciliation doesn't see a false diff
+      this._lastCameraSnapshot = cam.getItemSnapshot();
+    } finally {
+      this._isSyncingFromThree = false;
     }
   }
 

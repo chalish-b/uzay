@@ -47,4 +47,10 @@ export namespace Vec3 {
       a.x * b.y - a.y * b.x
     );
   }
+
+  export function equals(a: Vec3, b: Vec3, epsilon = 1e-10): boolean {
+    return Math.abs(a.x - b.x) < epsilon
+        && Math.abs(a.y - b.y) < epsilon
+        && Math.abs(a.z - b.z) < epsilon;
+  }
 }
