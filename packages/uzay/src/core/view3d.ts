@@ -445,6 +445,14 @@ export class View3D {
     }
   }
 
+  // Check whether an item has any hover consumer (custom or default).
+  // We use this to avoid dispatching high-frequency hover events unnecessarily.
+  hasHoverListener(itemId: ItemId): boolean {
+    const item = this.scene.items.get(itemId);
+    if (!item) return false;
+    return !!item.getHandler("hover") || typeof item.handleHover === "function";
+  }
+
   // Get drag constraint from item snapshot
   // TODO: This should be a method on the Item class itself, the item should provide its own drag constraint and behavior
   getItemDragConstraint(
@@ -687,7 +695,7 @@ export class View3D {
       // Leave old
       if (this.hoveredItemId) {
         const oldItem = this.scene.items.get(this.hoveredItemId);
-        if (oldItem) {
+        if (oldItem && this.hasHoverListener(this.hoveredItemId)) {
           this.dispatchEvent("hover", {
             type: "hover",
             phase: "leave",
@@ -703,7 +711,7 @@ export class View3D {
       // Enter new
       if (newHoveredId && hit) {
         const newItem = this.scene.items.get(newHoveredId);
-        if (newItem) {
+        if (newItem && this.hasHoverListener(newHoveredId)) {
           this.dispatchEvent("hover", {
             type: "hover",
             phase: "enter",
@@ -718,6 +726,19 @@ export class View3D {
 
       this.hoveredItemId = newHoveredId;
       this.updateCursor();
+    } else if (newHoveredId && hit) {
+      const currentItem = this.scene.items.get(newHoveredId);
+      if (currentItem && this.hasHoverListener(newHoveredId)) {
+        this.dispatchEvent("hover", {
+          type: "hover",
+          phase: "move",
+          itemId: newHoveredId,
+          itemKind: currentItem.kind,
+          screenPosition: { x: event.clientX, y: event.clientY },
+          worldPosition: hit.worldPosition,
+          ray: this.getCurrentRay(),
+        });
+      }
     }
   };
 

@@ -96,11 +96,6 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
     return "grab";
   }
 
-  handleClick(event: ClickEvent<"point3d">) {
-    // Just for testing the click behavior works as intended
-    console.log("Point3D handleClick", event);
-  }
-
   handleDrag(event: DragEvent<"point3d">) {
     const draggable = this.draggable.get();
     if (draggable === "none") return;
