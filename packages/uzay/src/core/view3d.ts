@@ -38,6 +38,7 @@ export class View3D {
   private _isSyncingToThree = false;
   private _isSyncingFromThree = false;
   private _lastCameraSnapshot: ReturnType<Camera3D<any>["getItemSnapshot"]> | null = null;
+  private _warnedUnsupportedProjectionCameraIds = new Set<ItemId>();
 
   // Interaction system
   raycaster = new THREE.Raycaster();
@@ -282,6 +283,19 @@ export class View3D {
 
     const snap = this.activeCam.getItemSnapshot();
     const last = this._lastCameraSnapshot;
+
+    // Projection mode handling: for now View3D only supports perspective camera internals.
+    // If users pass "orthogonal", keep rendering with perspective and warn once per camera.
+    if (
+      snap.projection !== "perspective" &&
+      !this._warnedUnsupportedProjectionCameraIds.has(snap.id)
+    ) {
+      this._warnedUnsupportedProjectionCameraIds.add(snap.id);
+      console.warn(
+        `[View3D] Camera "${snap.id}" requested projection "${snap.projection}", ` +
+          `but only "perspective" is currently supported. Falling back to perspective.`
+      );
+    }
 
     this._isSyncingToThree = true;
     try {

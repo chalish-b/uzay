@@ -95,6 +95,15 @@ scene.create("camera3d", {
 });
 ```
 
+## Projection Mode (Incomplete)
+
+`Camera3D` includes a `projection` field for future support of multiple projection modes.
+
+- `"perspective"` is fully supported.
+- `"orthogonal"` is not implemented yet in `View3D`.
+
+If you set `projection: "orthogonal"`, Uzay currently logs a warning and falls back to perspective rendering.
+
 ## Clipping Planes
 
 Objects closer than `near` or farther than `far` are not rendered:
@@ -253,7 +262,7 @@ canOrbit.set(false);
 |----------|------|---------|-------------|
 | `position` | `Vec3` | `{ x: 10, y: 10, z: 10 }` | Camera location |
 | `lookAt` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Point the camera aims at |
-| `projection` | `"perspective" \| "orthogonal"` | `"perspective"` | Projection type |
+| `projection` | `"perspective" \| "orthogonal"` | `"perspective"` | Projection mode (`"orthogonal"` currently warns and falls back to perspective) |
 | `enableOrbit` | `boolean` | `true` | Enable rotation (left-click drag) |
 | `enablePan` | `boolean` | `true` | Enable panning (right-click drag) |
 | `enableZoom` | `boolean` | `true` | Enable zooming (scroll) |
