@@ -30,12 +30,8 @@ export function createItemComponent<K extends ItemKind>(kind: K) {
         }
       }
 
-      const item = (scene as Scene3D).create(kind, options as ItemOptions<K>);
+      const item = scene.create(kind, options as ItemOptions<K>);
       itemRef.current = item as ItemInstanceOf<K>;
-
-      // scene.create() doesn't invalidate automatically, so we need to
-      // notify the View3D that a new item exists and needs rendering.
-      scene.invalidateScene();
 
       // Capture initial plain-value props for future diffing
       const initialProps: Record<string, unknown> = {};
@@ -92,7 +88,7 @@ export function createItemComponent<K extends ItemKind>(kind: K) {
       prevPropsRef.current = nextProps;
     });
 
-    // Event handlers: re-register every render (closures may change identity)
+    // Event handlers: register only when handler props change.
     useEffect(() => {
       const item = itemRef.current;
       if (!item) return;
@@ -114,7 +110,14 @@ export function createItemComponent<K extends ItemKind>(kind: K) {
       } else {
         item.off("hover");
       }
-    });
+
+      // Always clear handlers when deps change/unmount to avoid stale callbacks.
+      return () => {
+        item.off("drag");
+        item.off("click");
+        item.off("hover");
+      };
+    }, [props.onDrag, props.onClick, props.onHover]);
 
     return null;
   }

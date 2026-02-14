@@ -63,12 +63,21 @@ export class Scene3D {
     item.setupAtomInvalidations(() => {
       this.invalidateScene();
     });
+
+    // Creating an item changes scene membership immediately, so trigger reconciliation.
+    this.invalidateScene();
     return item;
   }
 
   remove<T extends Item>(item: T) {
+    // If the item isn't in this scene, there is nothing to remove or invalidate.
+    if (!this.items.has(item.id)) return;
+
     item.removeFromScene();
     this.items.delete(item.id);
+
+    // Removing an item changes scene membership immediately, so trigger reconciliation.
+    this.invalidateScene();
   }
 
   atomize<V, A extends Atom<V>>(value: BoundAtom<A>): BoundAtom<A>;

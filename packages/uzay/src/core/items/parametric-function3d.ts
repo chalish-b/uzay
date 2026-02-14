@@ -1,4 +1,4 @@
-import { vec3 } from "three/src/Three.TSL.js";
+import { vec3 } from "../common-types/vec3";
 import type { AtomLikeOptions, Field } from "../atom-wrapper";
 import type { Color } from "../common-types/colors";
 import type { ItemTags } from "../common-types/tags";

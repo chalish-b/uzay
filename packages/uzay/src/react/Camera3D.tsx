@@ -29,8 +29,6 @@ function Camera3DComponent(props: Camera3DProps) {
     const item = (scene as Scene3D).create("camera3d", options as ItemOptions<"camera3d">);
     itemRef.current = item as ItemInstanceOf<"camera3d">;
 
-    scene.invalidateScene();
-
     // Capture initial props for diffing
     const initialProps: Record<string, unknown> = {};
     for (const key of Object.keys(options)) {
