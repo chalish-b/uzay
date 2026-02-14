@@ -4,7 +4,12 @@ import type { ItemTags } from "../common-types/tags";
 import { type Vec3, Vec3 as Vec3Utils, vec3 } from "../common-types/vec3";
 import { applyDragConstraint } from "../common-types/drag-utils";
 import { BaseItem } from "../item";
-import type { AtomLikeOptions, Field } from "../atom-wrapper";
+import {
+  isWritableBoundAtom,
+  setBoundAtomIfWritable,
+  type AtomLikeOptions,
+  type Field,
+} from "../atom-wrapper";
 import type { Scene3D } from "../scene3d";
 import type { ClickEvent, DragEvent } from "../common-types/interaction-events";
 
@@ -87,7 +92,7 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
     const draggable = this.draggable.get();
     if (draggable === "none") return null;
     // Only show grab cursor if coords is writable
-    if (typeof (this.coords as any).write !== "function") return null;
+    if (!isWritableBoundAtom(this.coords)) return null;
     return "grab";
   }
 
@@ -100,8 +105,8 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
     const draggable = this.draggable.get();
     if (draggable === "none") return;
 
-    // Check if coords atom is writable
-    if (typeof (this.coords as any).write !== "function") {
+    // If coords is read-only, dragging cannot write updates back.
+    if (!isWritableBoundAtom(this.coords)) {
       if (!this.warnedReadOnly) {
         this.warnedReadOnly = true;
         console.warn(
@@ -123,6 +128,6 @@ export class Point3D<Opts extends Point3DOptions = {}> extends BaseItem<
       adjusted,
       draggable
     );
-    (this.coords as { set: (v: Vec3) => void }).set(newCoords);
+    setBoundAtomIfWritable(this.coords, newCoords);
   }
 }

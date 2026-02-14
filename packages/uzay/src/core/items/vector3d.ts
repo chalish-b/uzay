@@ -4,7 +4,12 @@ import type { ItemTags } from "../common-types/tags";
 import { type Vec3, Vec3 as Vec3Utils, vec3 } from "../common-types/vec3";
 import { applyDragConstraint } from "../common-types/drag-utils";
 import { BaseItem } from "../item";
-import type { AtomLikeOptions, Field } from "../atom-wrapper";
+import {
+  isWritableBoundAtom,
+  setBoundAtomIfWritable,
+  type AtomLikeOptions,
+  type Field,
+} from "../atom-wrapper";
 import type { Scene3D } from "../scene3d";
 import type { DragEvent } from "../common-types/interaction-events";
 
@@ -102,7 +107,7 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
   getCursorState() {
     const draggable = this.draggable.get();
     if (draggable === "none") return null;
-    if (typeof (this.vector as any).write !== "function") return null;
+    if (!isWritableBoundAtom(this.vector)) return null;
     return "grab";
   }
 
@@ -110,7 +115,7 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
     const draggable = this.draggable.get();
     if (draggable === "none") return;
 
-    if (typeof (this.vector as any).write !== "function") {
+    if (!isWritableBoundAtom(this.vector)) {
       if (!this.warnedReadOnly) {
         this.warnedReadOnly = true;
         console.warn(
@@ -133,6 +138,6 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
     const adjusted = Vec3Utils.subtract(event.worldPosition, this._dragOffset);
     const constrained = applyDragConstraint(tipPos, adjusted, draggable);
     const newVector = Vec3Utils.subtract(constrained, origin);
-    (this.vector as { set: (v: Vec3) => void }).set(newVector);
+    setBoundAtomIfWritable(this.vector, newVector);
   }
 }

@@ -75,17 +75,11 @@ export function createSceneAtom(store: Store) {
     // Treat it as a BoundAtom and attach helpers
     const bound = a as BoundAtom<typeof a>;
 
-    // TODO: Currently `set` is always added at runtime, even for read-only atoms.
-    // TypeScript correctly hides `set` for read-only atoms, but at runtime calling
-    // it will crash with "atom.write is not a function".
-    //
-    // Options to fix:
-    // 1. Only add `set` if atom is writable: `if (typeof a.write === 'function')`
-    // 2. Add a `set` that throws a helpful error for read-only atoms
-    //
-    // For now, code that needs to check writability can use: `typeof atom.write === 'function'`
     (bound as any).get = () => store.get(a as any);
-    (bound as any).set = (...setArgs: any[]) => store.set(a as any, ...setArgs);
+    // Expose .set only for writable atoms so runtime behavior matches the type-level API.
+    if (typeof (a as any).write === "function") {
+      (bound as any).set = (...setArgs: any[]) => store.set(a as any, ...setArgs);
+    }
     (bound as any).sub = (listener: () => void) =>
       store.sub(a as any, listener);
 
@@ -100,6 +94,25 @@ export function createSceneAtom(store: Store) {
 export type SceneAtomFunction = ReturnType<typeof createSceneAtom>;
 
 export type SceneAtom<T> = BoundAtom<Atom<T>>;
+export type WritableBoundAtom<V> = BoundAtom<WritableAtom<V, [V], unknown>>;
+
+export function isWritableBoundAtom<V>(
+  atom: BoundAtom<Atom<V>>
+): atom is WritableBoundAtom<V> {
+  return (
+    typeof (atom as any).write === "function" &&
+    typeof (atom as any).set === "function"
+  );
+}
+
+export function setBoundAtomIfWritable<V>(
+  atom: BoundAtom<Atom<V>>,
+  value: V
+): boolean {
+  if (!isWritableBoundAtom(atom)) return false;
+  atom.set(value);
+  return true;
+}
 
 // Convert all fields in an object to be AtomLike and optional
 export type AtomLikeInput<V> = V | BoundAtom<Atom<V>>;

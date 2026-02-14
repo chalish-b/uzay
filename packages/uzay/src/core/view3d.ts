@@ -5,7 +5,7 @@ import type { Camera3D, Camera3DFields } from "./items/camera3d";
 import type { Scene3D, SceneSnapshot } from "./scene3d";
 import { Vec3, vec3 } from "./common-types/vec3";
 import type { ItemId, ItemSnapshot } from "./common-types/item-registry";
-import type { AtomLikeOptions } from "./atom-wrapper";
+import { setBoundAtomIfWritable, type AtomLikeOptions } from "./atom-wrapper";
 import { getRenderer, type ThreeSceneObject } from "./renderers";
 import type {
   InteractionEvent,
@@ -352,18 +352,12 @@ export class View3D {
       const newPos = vec3(tp.x, tp.y, tp.z);
       const newLookAt = vec3(tt.x, tt.y, tt.z);
 
-      // Only write back if the atom is writable and the value actually changed
-      const posAtom = cam.position as any;
-      if (!Vec3.equals(newPos, posAtom.get())) {
-        if (typeof posAtom.write === "function") {
-          posAtom.set(newPos);
-        }
+      // Write back camera state only when the destination atom is writable.
+      if (!Vec3.equals(newPos, cam.position.get())) {
+        setBoundAtomIfWritable(cam.position, newPos);
       }
-      const lookAtAtom = cam.lookAt as any;
-      if (!Vec3.equals(newLookAt, lookAtAtom.get())) {
-        if (typeof lookAtAtom.write === "function") {
-          lookAtAtom.set(newLookAt);
-        }
+      if (!Vec3.equals(newLookAt, cam.lookAt.get())) {
+        setBoundAtomIfWritable(cam.lookAt, newLookAt);
       }
 
       // Update snapshot cache so next reconciliation doesn't see a false diff
