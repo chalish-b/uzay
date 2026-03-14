@@ -91,66 +91,51 @@ The normal does not need to be a unit vector, it will be normalized internally.
 
 ## Reactive Planes
 
-### Tilting Plane
+### Normal Defined by a Vector
 
-A plane whose normal rotates over time:
+Use a draggable vector to control the plane's orientation:
 
 ```typescript
-const t = scene.atom(0);
+const normal = scene.create("vector3d", {
+  origin: vec3(0, 0, 0),
+  vector: vec3(0, 2, 1),
+  color: "tomato",
+});
 
-const plane = scene.create("plane3d", {
-  point: vec3(0, 2, 0),
-  normal: scene.atom((get) => {
-    const time = get(t);
-    return vec3(Math.sin(time), 1, Math.cos(time));
-  }),
+scene.create("plane3d", {
+  point: vec3(0, 0, 0),
+  normal: normal.vector,
   width: 4,
   height: 4,
   color: "gold",
   opacity: 0.5,
 });
-
-function animate() {
-  t.set((prev) => prev + 0.02);
-  requestAnimationFrame(animate);
-}
-animate();
 ```
 
-### Tangent Plane to a Sphere
+Drag the vector tip to tilt the plane.
 
-A plane that tracks a point on a sphere, always tangent to the surface:
+### Plane Through a Draggable Point
+
+A plane that moves with a point but keeps a fixed orientation:
 
 ```typescript
-const theta = scene.atom(Math.PI / 4);
-const phi = scene.atom(Math.PI / 4);
-const radius = 3;
-
-const surfacePoint = scene.atom((get) => {
-  const t = get(theta), p = get(phi);
-  return vec3(
-    radius * Math.sin(t) * Math.cos(p),
-    radius * Math.cos(t),
-    radius * Math.sin(t) * Math.sin(p),
-  );
-});
-
-// The normal at any point on a sphere is the normalized position vector
-const normal = scene.atom((get) => {
-  const pt = get(surfacePoint);
-  const len = Math.sqrt(pt.x * pt.x + pt.y * pt.y + pt.z * pt.z);
-  return vec3(pt.x / len, pt.y / len, pt.z / len);
+const anchor = scene.create("point3d", {
+  coords: vec3(0, 2, 0),
+  color: "dodgerblue",
+  draggable: "y",
 });
 
 scene.create("plane3d", {
-  point: surfacePoint,
-  normal: normal,
-  width: 3,
-  height: 3,
-  color: "tomato",
+  point: anchor.coords,
+  normal: vec3(0, 1, 0),
+  width: 4,
+  height: 4,
+  color: "dodgerblue",
   opacity: 0.4,
 });
 ```
+
+The point is constrained to the y-axis, so dragging it slides the horizontal plane up and down.
 
 ## Updating Properties
 

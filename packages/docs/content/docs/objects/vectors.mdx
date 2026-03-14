@@ -93,52 +93,53 @@ Dragging only works when the `vector` field is a writable atom (a plain value or
 
 ## Reactive Vectors
 
-### Rotating Vector
+### Vector with Magnitude Label
 
-A vector that rotates around the y-axis:
+Drag the arrow tip and the overlay shows the current magnitude:
 
 ```typescript
-const t = scene.atom(0);
-
 const v = scene.create("vector3d", {
   origin: vec3(0, 0, 0),
-  vector: scene.atom((get) => {
-    const angle = get(t);
-    return vec3(Math.cos(angle) * 3, 0, Math.sin(angle) * 3);
-  }),
-  color: "yellow",
-  draggable: "none",
+  vector: vec3(3, 2, 1),
+  color: "cyan",
 });
 
-function animate() {
-  t.set((prev) => prev + 0.01);
-  requestAnimationFrame(animate);
-}
-animate();
+scene.create("overlay3d", {
+  position: scene.atom((get) => {
+    const dir = get(v.vector);
+    return vec3(dir.x / 2, dir.y / 2, dir.z / 2);
+  }),
+  content: scene.atom((get) => {
+    const { x, y, z } = get(v.vector);
+    const len = Math.sqrt(x * x + y * y + z * z);
+    return `|v| = ${len.toFixed(2)}`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
 ```
 
 ### Vector Between Two Points
 
-Draw a vector from one point to another:
+Draw a vector from one draggable point to another:
 
 ```typescript
-const a = scene.atom(vec3(0, 0, 0));
-const b = scene.atom(vec3(3, 2, 1));
-
-scene.create("point3d", { coords: a, color: "red" });
-scene.create("point3d", { coords: b, color: "blue" });
+const a = scene.create("point3d", { coords: vec3(0, 0, 0), color: "red" });
+const b = scene.create("point3d", { coords: vec3(3, 2, 1), color: "blue" });
 
 scene.create("vector3d", {
-  origin: a,
+  origin: a.coords,
   vector: scene.atom((get) => {
-    const from = get(a);
-    const to = get(b);
-    return vec3(to.x - from.x, to.y - from.y, to.z - from.z);
+    const from = get(a.coords);
+    const to = get(b.coords);
+    return Vec3.subtract(to, from);
   }),
   color: "white",
   draggable: "none",
 });
 ```
+
+Drag either point and the vector updates.
 
 ## Updating Properties
 

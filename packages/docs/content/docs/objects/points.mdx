@@ -49,68 +49,51 @@ scene.create("point3d", { coords: vec3(4, 0, 0), radius: 5 });  // Large
 
 ## Reactive Points
 
-### Reactive Position
+### Labeled Point
 
-Make a point that moves based on an atom:
+A draggable point with an overlay that displays its coordinates:
 
 ```typescript
-const t = scene.atom(0);
-
 const point = scene.create("point3d", {
-  coords: scene.atom((get) => {
-    const time = get(t);
-    return vec3(time, Math.sin(time), 0);
-  }),
+  coords: vec3(2, 1, 0),
   color: "gold",
-});
-
-// Animate
-function animate() {
-  t.set((prev) => prev + 0.02);
-  requestAnimationFrame(animate);
-}
-animate();
-```
-
-### Point Following a Helix
-
-A point that traces a helix curve:
-
-```typescript
-const t = scene.atom(0);
-
-const point = scene.create("point3d", {
-  coords: scene.atom((get) => {
-    const x = get(t);
-    return vec3(x, Math.sin(x), Math.cos(x));
-  }),
-  color: "gold",
-  radius: 2,
-});
-```
-
-The position $(x, \sin x, \cos x)$ traces a helix as $t$ increases.
-
-### Reactive Color
-
-Colors can also be reactive:
-
-```typescript
-const hue = scene.atom(0);
-
-const point = scene.create("point3d", {
-  coords: vec3(0, 0, 0),
-  color: scene.atom((get) => `hsl(${get(hue)}, 70%, 60%)`),
   radius: 3,
 });
 
-// Cycle through colors
-function animate() {
-  hue.set((prev) => (prev + 1) % 360);
-  requestAnimationFrame(animate);
-}
-animate();
+scene.create("overlay3d", {
+  position: point.coords,
+  content: scene.atom((get) => {
+    const { x, y, z } = get(point.coords);
+    return `(${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
 ```
+
+Drag the point and the label updates automatically.
+
+### Mirrored Point
+
+A second point whose position is derived from the first:
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(2, 1, 0),
+  color: "gold",
+});
+
+// Mirror across the origin
+scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const { x, y, z } = get(point.coords);
+    return vec3(-x, -y, -z);
+  }),
+  color: "skyblue",
+});
+```
+
+Drag the gold point and the blue one moves to the opposite position.
 
 ## Updating Properties
 

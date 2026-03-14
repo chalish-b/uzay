@@ -59,41 +59,46 @@ scene.create("sphere3d", { center: vec3(3, 0, 0), radius: 1 });   // Medium
 scene.create("sphere3d", { center: vec3(6, 0, 0), radius: 2 });   // Large
 ```
 
-## Reactive Spheres
+## Interactive Spheres
 
-### Growing Sphere
+### Click to Change Color
 
-A sphere whose radius changes over time:
+Toggle the sphere's color each time it's clicked:
 
 ```typescript
-const t = scene.atom(0);
+const colors = ["tomato", "dodgerblue", "gold", "mediumseagreen"];
+let index = 0;
 
 const sphere = scene.create("sphere3d", {
-  center: vec3(0, 0, 0),
-  radius: scene.atom((get) => 1 + Math.sin(get(t)) * 0.5),
-  color: "gold",
-  opacity: 0.5,
+  center: vec3(0, 1, 0),
+  radius: 1.5,
+  color: colors[0],
 });
 
-function animate() {
-  t.set((prev) => prev + 0.02);
-  requestAnimationFrame(animate);
-}
-animate();
+sphere.on("click", () => {
+  index = (index + 1) % colors.length;
+  sphere.color.set(colors[index]);
+});
 ```
 
-### Moving Sphere
+### Hover to Highlight
+
+Change the sphere's opacity when the pointer enters and leaves:
 
 ```typescript
-const t = scene.atom(0);
-
 const sphere = scene.create("sphere3d", {
-  center: scene.atom((get) => {
-    const time = get(t);
-    return vec3(Math.cos(time) * 3, 0, Math.sin(time) * 3);
-  }),
-  radius: 1,
-  color: "tomato",
+  center: vec3(0, 1, 0),
+  radius: 1.5,
+  color: "dodgerblue",
+  opacity: 0.4,
+});
+
+sphere.on("hover", (event) => {
+  if (event.phase === "enter") {
+    sphere.opacity.set(0.8);
+  } else if (event.phase === "leave") {
+    sphere.opacity.set(0.4);
+  }
 });
 ```
 

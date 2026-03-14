@@ -26,6 +26,10 @@ export namespace Vec3 {
     return vec3(a.x - b.x, a.y - b.y, a.z - b.z);
   }
 
+  export function length(vec: Vec3): number {
+    return Math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+  }
+
   export function normalized(vec: Vec3): Vec3 {
     const length = Math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
     if (length === 0) return vec3(0, 0, 0);

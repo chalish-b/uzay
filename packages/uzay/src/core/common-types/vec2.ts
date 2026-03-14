@@ -33,6 +33,10 @@ export namespace Vec2 {
     return vec2(a.x - b.x, a.y - b.y);
   }
 
+  export function length(vec: Vec2): number {
+    return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
+  }
+
   export function normalized(vec: Vec2): Vec2 {
     const length = Math.sqrt(vec.x * vec.x + vec.y * vec.y);
     if (length === 0) return vec2(0, 0);

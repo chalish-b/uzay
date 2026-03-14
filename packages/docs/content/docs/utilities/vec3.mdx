@@ -54,6 +54,13 @@ const halved = Vec3.scaled(v, 0.5);  // { x: 0.5, y: 1, z: 1.5 }
 const negated = Vec3.scaled(v, -1);  // { x: -1, y: -2, z: -3 }
 ```
 
+### Length
+
+```typescript
+const v = vec3(1, 2, 2);
+Vec3.length(v); // 3
+```
+
 ### Normalization
 
 Get a unit vector (length = 1) pointing in the same direction:
@@ -114,6 +121,7 @@ const arr = Vec3.asArray(v); // [1, 2, 3]
 |----------|-----------|-------------|
 | `Vec3.add` | `(...vectors: Vec3[]) => Vec3` | Sum of all input vectors |
 | `Vec3.subtract` | `(a: Vec3, b: Vec3) => Vec3` | Vector subtraction `a - b` |
+| `Vec3.length` | `(v: Vec3) => number` | Vector magnitude |
 | `Vec3.scaled` | `(v: Vec3, scalar: number) => Vec3` | Multiply vector by scalar |
 | `Vec3.normalized` | `(v: Vec3) => Vec3` | Unit vector in same direction |
 | `Vec3.dot` | `(a: Vec3, b: Vec3) => number` | Dot product |

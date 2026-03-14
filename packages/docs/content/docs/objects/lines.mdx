@@ -57,43 +57,53 @@ scene.create("line3d", {
 
 ## Reactive Lines
 
-### Reactive Endpoints
-
-Make a line where one or both endpoints depend on atoms:
-
-```typescript
-const t = scene.atom(0);
-
-const line = scene.create("line3d", {
-  start: vec3(0, 0, 0), // Fixed
-  end: scene.atom((get) => {
-    const time = get(t);
-    return vec3(Math.cos(time), Math.sin(time), 0);
-  }),
-  color: "yellow",
-});
-```
-
 ### Connecting Two Points
 
-A line that always connects two point objects:
+Pass point atoms directly as line endpoints:
 
 ```typescript
-const p1Coords = scene.atom(vec3(0, 0, 0));
-const p2Coords = scene.atom(vec3(3, 3, 3));
+const p1 = scene.create("point3d", { coords: vec3(0, 0, 0), color: "red" });
+const p2 = scene.create("point3d", { coords: vec3(3, 3, 3), color: "blue" });
 
-const point1 = scene.create("point3d", { coords: p1Coords, color: "red" });
-const point2 = scene.create("point3d", { coords: p2Coords, color: "blue" });
-
-const line = scene.create("line3d", {
-  start: p1Coords,
-  end: p2Coords,
+scene.create("line3d", {
+  start: p1.coords,
+  end: p2.coords,
   color: "white",
   thickness: 0.5,
 });
 ```
 
-When either point moves, the line updates automatically.
+Drag either point and the line follows.
+
+### Line with Length Label
+
+```typescript
+const p1 = scene.create("point3d", { coords: vec3(0, 0, 0), color: "red" });
+const p2 = scene.create("point3d", { coords: vec3(3, 2, 1), color: "blue" });
+
+scene.create("line3d", {
+  start: p1.coords,
+  end: p2.coords,
+  color: "white",
+});
+
+// Label at the midpoint showing the line's length
+const midpoint = scene.atom((get) => {
+  const start = get(p1.coords);
+  const end = get(p2.coords);
+  return vec3((start.x + end.x) / 2, (start.y + end.y) / 2, (start.z + end.z) / 2);
+});
+
+scene.create("overlay3d", {
+  position: midpoint,
+  content: scene.atom((get) => {
+    const diff = Vec3.subtract(get(p2.coords), get(p1.coords));
+    return `d = ${Vec3.length(diff).toFixed(2)}`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(6, -6),
+});
+```
 
 ## Updating Properties
 

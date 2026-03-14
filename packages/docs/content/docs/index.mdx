@@ -9,50 +9,19 @@ Uzay (oo-zai) is a library for creating interactive 3D mathematical visualizatio
 Uzay is in early development. The API is unstable, features may be incomplete or missing, and breaking changes can happen at any time. Use it for experimentation and prototyping, but keep in mind that things will change.
 </Callout>
 
-## Quick Example
-
-```typescript
-import { Scene3D, View3D, vec3 } from "uzay";
-
-// Create a scene to hold all objects
-const scene = new Scene3D();
-
-// Create a reactive value
-const t = scene.atom(0);
-
-// Create a helix curve that grows as t increases
-const helix = scene.create("parametricfunction3d", {
-  f: (u) => vec3(u, Math.sin(u), Math.cos(u)),
-  tStart: 0,
-  tEnd: t,  // Reactive! Curve updates when t changes
-  color: "dodgerblue",
-  samples: scene.atom((get) => get(t) * 16), // Dynamic sample count
-});
-
-// Add a camera and render to the DOM
-const camera = scene.create("camera3d", {
-  position: vec3(10, 10, 10),
-  lookAt: vec3(0, 0, 0),
-});
-
-const view = new View3D(scene, camera.id, document.getElementById("container"));
-
-// Animate the curve
-function animate() {
-  t.set((prev) => prev + 0.05);
-  requestAnimationFrame(animate);
-}
-animate();
-```
+{/* TODO: Replace this section with a live interactive demo once we have embedded
+   scenes. Should be an impressive showcase combining dragging, derived state,
+   overlays, and maybe a parametric curve, not a minimal example. */}
 
 ## Key Features
 
 - **Reactive by design**: Values are atoms that automatically trigger re-renders when updated
 - **Declarative API**: Describe what you want, not how to render it
 - **TypeScript-first**: Full type safety and autocomplete support
+- **Interactive by default**: Points and vectors are draggable out of the box, with built-in drag, click, and hover events
 - **Three.js powered**: Hardware-accelerated 3D rendering
 
-## Learn More
+Get up and running in a few minutes with the [Getting Started](/docs/getting-started) guide.
 
 <Cards>
   <Card title="Getting Started" href="/docs/getting-started" description="Installation and first steps" />

@@ -52,6 +52,13 @@ const doubled = Vec2.scaled(v, 2);  // { x: 6, y: 8 }
 const halved = Vec2.scaled(v, 0.5); // { x: 1.5, y: 2 }
 ```
 
+### Length
+
+```typescript
+const v = vec2(3, 4);
+Vec2.length(v); // 5
+```
+
 ### Normalization
 
 Get a unit vector (length = 1):
@@ -118,6 +125,7 @@ Vec2.distanceSquared(a, b); // 25 (faster, no sqrt)
 |----------|-----------|-------------|
 | `Vec2.add` | `(...vectors: Vec2[]) => Vec2` | Sum of all input vectors |
 | `Vec2.subtract` | `(a: Vec2, b: Vec2) => Vec2` | Vector subtraction `a - b` |
+| `Vec2.length` | `(v: Vec2) => number` | Vector magnitude |
 | `Vec2.scaled` | `(v: Vec2, scalar: number) => Vec2` | Multiply vector by scalar |
 | `Vec2.normalized` | `(v: Vec2) => Vec2` | Unit vector in same direction |
 | `Vec2.dot` | `(a: Vec2, b: Vec2) => number` | Dot product |
