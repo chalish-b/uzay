@@ -8,6 +8,7 @@ import Demo6 from "./demo6";
 import Demo7 from "./demo7";
 import Demo8 from "./demo8";
 import Demo9 from "./demo9";
+import Demo11 from "./demo11";
 
 const demos = {
   demo1: {
@@ -45,6 +46,10 @@ const demos = {
   demo9: {
     title: "Gravity Sculptor",
     component: <Demo9 />,
+  },
+  demo11: {
+    title: "Sphere-Line Intersection",
+    component: <Demo11 />,
   },
 };
 

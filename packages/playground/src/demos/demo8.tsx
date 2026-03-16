@@ -88,7 +88,7 @@ export default function Demo8() {
     });
 
     // Centroid - computed point (not draggable)
-    const centroidPoint = scene.create("point3d", {
+    scene.create("point3d", {
       coords: scene.atom((get) =>
         centroid(get(vertexA.coords), get(vertexB.coords), get(vertexC.coords))
       ),
