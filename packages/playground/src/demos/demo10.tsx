@@ -43,34 +43,8 @@ function cloneVec(v: Vec3): Vec3 {
   return vec3(v.x, v.y, v.z);
 }
 
-function subtract(a: Vec3, b: Vec3): Vec3 {
-  return vec3(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-function add(a: Vec3, b: Vec3): Vec3 {
-  return vec3(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-function scale(v: Vec3, s: number): Vec3 {
-  return vec3(v.x * s, v.y * s, v.z * s);
-}
-
-function dot(a: Vec3, b: Vec3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-function length(v: Vec3): number {
-  return Math.sqrt(dot(v, v));
-}
-
-function normalized(v: Vec3): Vec3 {
-  const len = length(v);
-  if (len < 1e-8) return vec3(1, 0, 0);
-  return vec3(v.x / len, v.y / len, v.z / len);
-}
-
 function distance(a: Vec3, b: Vec3): number {
-  return length(subtract(a, b));
+  return Vec3.length(Vec3.subtract(a, b));
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -103,8 +77,8 @@ function computeIntersection(
   a: Vec3,
   b: Vec3
 ): IntersectionResult {
-  const direction = subtract(b, a);
-  const lineLengthSq = dot(direction, direction);
+  const direction = Vec3.subtract(b, a);
+  const lineLengthSq = Vec3.dot(direction, direction);
   const tangentTolerance = Math.max(0.06, radius * 0.02);
 
   if (lineLengthSq < 1e-8) {
@@ -124,14 +98,14 @@ function computeIntersection(
     };
   }
 
-  const fromCenter = subtract(a, center);
-  const qa = dot(direction, direction);
-  const qb = 2 * dot(direction, fromCenter);
-  const qc = dot(fromCenter, fromCenter) - radius * radius;
+  const fromCenter = Vec3.subtract(a, center);
+  const qa = Vec3.dot(direction, direction);
+  const qb = 2 * Vec3.dot(direction, fromCenter);
+  const qc = Vec3.dot(fromCenter, fromCenter) - radius * radius;
   const discriminant = qb * qb - 4 * qa * qc;
 
-  const projectionT = -dot(fromCenter, direction) / qa;
-  const projection = add(a, scale(direction, projectionT));
+  const projectionT = -Vec3.dot(fromCenter, direction) / qa;
+  const projection = Vec3.add(a, Vec3.scaled(direction, projectionT));
   const distanceToLine = distance(projection, center);
 
   if (Math.abs(distanceToLine - radius) <= tangentTolerance) {
@@ -159,8 +133,8 @@ function computeIntersection(
     kind: "secant",
     projection,
     distanceToLine,
-    point1: add(a, scale(direction, t1)),
-    point2: add(a, scale(direction, t2)),
+    point1: Vec3.add(a, Vec3.scaled(direction, t1)),
+    point2: Vec3.add(a, Vec3.scaled(direction, t2)),
   };
 }
 
@@ -295,24 +269,20 @@ export default function Demo10() {
     const lineDirectionAtom = scene.atom((get) => {
       const a = get(pointAAtom);
       const b = get(pointBAtom);
-      return normalized(subtract(b, a));
+      return Vec3.normalized(Vec3.subtract(b, a));
     });
-
-
 
     const longLineStartAtom = scene.atom((get) => {
       const a = get(pointAAtom);
       const dir = get(lineDirectionAtom);
-      return add(a, scale(dir, -12));
+      return Vec3.add(a, Vec3.scaled(dir, -12));
     });
 
     const longLineEndAtom = scene.atom((get) => {
       const b = get(pointBAtom);
       const dir = get(lineDirectionAtom);
-      return add(b, scale(dir, 12));
+      return Vec3.add(b, Vec3.scaled(dir, 12));
     });
-
-
 
     const intersectionAtom = scene.atom((get) =>
       computeIntersection(get(centerAtom), get(radiusAtom), get(pointAAtom), get(pointBAtom))
