@@ -16,6 +16,7 @@ export const point3dRenderer: ItemRenderer<"point3d"> = {
     const size = item.radius / pointScaleDown;
     mesh.scale.set(size, size, size);
     mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
+    mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
     return {
@@ -31,6 +32,7 @@ export const point3dRenderer: ItemRenderer<"point3d"> = {
     const size = item.radius / pointScaleDown;
     obj.mesh.scale.set(size, size, size);
     obj.mesh.position.set(item.coords.x, item.coords.y, item.coords.z);
+    obj.mesh.visible = item.visible;
   },
 
   dispose(obj: ThreeSceneTypes["point3d"], threeScene: THREE.Scene): void {

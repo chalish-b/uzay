@@ -13,6 +13,7 @@ export type Line3DFields = {
   end: Vec3;
   color: Color;
   thickness: number;
+  visible: boolean;
   pointerEvents: PointerEvents;
 };
 export type Line3DOptions = AtomLikeOptions<Line3DFields>;
@@ -24,6 +25,7 @@ function mergeDefaults<Opts extends Line3DOptions>(options: Opts) {
     end: options.end ?? vec3(0, 0, 0),
     color: options.color ?? "white",
     thickness: options.thickness ?? 1,
+    visible: options.visible ?? true,
     pointerEvents: options.pointerEvents ?? "auto",
   };
 }
@@ -39,6 +41,7 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
   end: Field<Vec3, "end", Opts>;
   color: Field<Color, "color", Opts>;
   thickness: Field<number, "thickness", Opts>;
+  visible: Field<boolean, "visible", Opts>;
   pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Line3DOptions = {} as any) {
@@ -51,6 +54,7 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
     this.end = scene.atomize(opts.end) as any;
     this.color = scene.atomize(opts.color) as any;
     this.thickness = scene.atomize(opts.thickness) as any;
+    this.visible = scene.atomize(opts.visible) as any;
     this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
@@ -58,6 +62,7 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
       this.end,
       this.color,
       this.thickness,
+      this.visible,
       this.pointerEvents
     );
   }
@@ -72,6 +77,7 @@ export class Line3D<Opts extends Line3DOptions = {}> extends BaseItem<
       end: this.end.get(),
       color: this.color.get(),
       thickness: this.thickness.get(),
+      visible: this.visible.get(),
       pointerEvents: this.pointerEvents.get(),
     };
   }

@@ -4,7 +4,7 @@
   - Show more patterns like:
     - How to constrain points to be on a sphere, on a plane etc.
 - Camera improvements
-  - A single scene having multiple views
+  - A single scene having multiple views (multiple cameras in one scene is already implemented, but never tried multiple views of the same scene, that can be interesting)
   - Perspective / Orthographics camera choice
   - Camera reset button (easy to lose track of position when orbiting)
 - Function improvements
@@ -36,6 +36,7 @@
   - Convert the API reference stuff to "type tables" in Fumadocs.
 - Infinite grid and axes
 - Filled in shaped / functions
+- Add the `visible` property to all items
 - Opacity option for stuff
   - We can't directly pass an rgba color to the color property, so we need a separate field
 - Better looking visuals
@@ -45,8 +46,7 @@
   - More granular customization, like a function plot having a color gradient for the curve (not just a single color)
     - For simplicity, we can start off by making `color` also able to be a function of `t` and somehow handle this idk
 - Helper functions to encapsulate some complex logic
-  - In React wrapper, these would just be some components that include the primitives.
-  - For vanilla library these are function that can take the scene object, and some options, and set up some complex scenarios.
+  - For vanilla library these are functions that can take the scene object, and some options, and set up some complex scenarios.
   - Basically just helper functions that you can technically do yourself, but provided for common use cases.
   - I think this could simplify some of the stuff, and help us move things from the renderer / scene to the application logic.
     - For example, maybe an "Axis" object could just be a single axis. But we can create a helper function to create three different axes at the same time for common configs
@@ -55,7 +55,8 @@
     - Function plot with area under it filled in
     - Line with two points at the ends
     - Point on a sphere, point on a function, basically points constrained to some surface or path
-      - Maybe we can even provide an easier thing in React wrapper like: If we put the point inside a function component, it'll automatically be constrained to that, idk.
+    - Get some more ideas from GeoGebra:
+      - Showing the intersection of two surfaces
 - Edit mode
   - Being able to click on an object, and directly changing its properties and atoms on the interface
 

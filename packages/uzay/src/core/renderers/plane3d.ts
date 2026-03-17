@@ -38,6 +38,7 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
     mesh.scale.set(item.width, item.height, 1);
     mesh.position.set(item.point.x, item.point.y, item.point.z);
     orientToNormal(mesh, item.normal);
+    mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
 
@@ -69,6 +70,7 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
     obj.mesh.scale.set(item.width, item.height, 1);
     obj.mesh.position.set(item.point.x, item.point.y, item.point.z);
     orientToNormal(obj.mesh, item.normal);
+    obj.mesh.visible = item.visible;
 
     if (item.showEdges && !obj.edgeLines) {
       const edges = createEdges(obj.geometry, item.color);

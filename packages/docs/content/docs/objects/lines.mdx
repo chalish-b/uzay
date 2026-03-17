@@ -135,6 +135,7 @@ line.thickness.set(2);
 | `end` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Ending point |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
+| `visible` | `boolean` | `true` | Whether the line is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the line receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
 
@@ -147,5 +148,6 @@ line.thickness.set(2);
 | `end` | `BoundAtom<Vec3>` | End point atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

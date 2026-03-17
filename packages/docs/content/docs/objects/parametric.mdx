@@ -199,6 +199,7 @@ const point = scene.create("point3d", {
 | `samples` | `number` | `64` | Number of sample points |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
+| `visible` | `boolean` | `true` | Whether the curve is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the curve receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
 
@@ -213,5 +214,6 @@ const point = scene.create("point3d", {
 | `samples` | `BoundAtom<number>` | Sample count atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

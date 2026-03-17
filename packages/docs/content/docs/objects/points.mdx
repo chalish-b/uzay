@@ -150,6 +150,7 @@ You can also listen for drag, click, and hover events. See [Interactions](/docs/
 | `color` | `string` | `"white"` | CSS color string |
 | `radius` | `number` | `2` | Visual size of the sphere |
 | `draggable` | `"xyz" \| "xy" \| "xz" \| "yz" \| "x" \| "y" \| "z" \| "none"` | `"xyz"` | Axes the point can be dragged along |
+| `visible` | `boolean` | `true` | Whether the point is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the point receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
 
@@ -164,5 +165,6 @@ The `scene.create("point3d", options)` call returns a `Point3D` object with thes
 | `color` | `BoundAtom<string>` | Color atom |
 | `radius` | `BoundAtom<number>` | Size atom |
 | `draggable` | `BoundAtom<...>` | Draggable constraint atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

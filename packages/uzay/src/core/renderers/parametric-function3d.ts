@@ -25,6 +25,7 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
       color: item.color, specular: 0xAAAAAA, shininess: 5
     });
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
     return {
@@ -63,6 +64,7 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
     obj.geometry = geometry;
     obj.mesh.geometry = geometry;
     oldGeometry.dispose();
+    obj.mesh.visible = item.visible;
   },
 
   dispose(obj: ThreeSceneTypes["parametricfunction3d"], threeScene: THREE.Scene): void {

@@ -16,6 +16,7 @@ export type Plane3DFields = {
   color: Color;
   opacity: number;
   showEdges: boolean;
+  visible: boolean;
   pointerEvents: PointerEvents;
 };
 export type Plane3DOptions = AtomLikeOptions<Plane3DFields>;
@@ -30,6 +31,7 @@ function mergeDefaults<Opts extends Plane3DOptions>(options: Opts) {
     color: options.color ?? "white",
     opacity: options.opacity ?? 0.5,
     showEdges: options.showEdges ?? true,
+    visible: options.visible ?? true,
     pointerEvents: options.pointerEvents ?? "auto",
   };
 }
@@ -48,6 +50,7 @@ export class Plane3D<Opts extends Plane3DOptions = {}> extends BaseItem<
   color: Field<Color, "color", Opts>;
   opacity: Field<number, "opacity", Opts>;
   showEdges: Field<boolean, "showEdges", Opts>;
+  visible: Field<boolean, "visible", Opts>;
   pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Plane3DOptions = {} as any) {
@@ -62,6 +65,7 @@ export class Plane3D<Opts extends Plane3DOptions = {}> extends BaseItem<
     this.color = scene.atomize(opts.color) as any;
     this.opacity = scene.atomize(opts.opacity) as any;
     this.showEdges = scene.atomize(opts.showEdges) as any;
+    this.visible = scene.atomize(opts.visible) as any;
     this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
@@ -72,6 +76,7 @@ export class Plane3D<Opts extends Plane3DOptions = {}> extends BaseItem<
       this.color,
       this.opacity,
       this.showEdges,
+      this.visible,
       this.pointerEvents
     );
   }
@@ -89,6 +94,7 @@ export class Plane3D<Opts extends Plane3DOptions = {}> extends BaseItem<
       color: this.color.get(),
       opacity: this.opacity.get(),
       showEdges: this.showEdges.get(),
+      visible: this.visible.get(),
       pointerEvents: this.pointerEvents.get(),
     };
   }

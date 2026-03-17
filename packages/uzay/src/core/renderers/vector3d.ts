@@ -29,6 +29,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
 
     positionParts(item, group, shaftMesh, headMesh, shaftLen, headLength, length);
 
+    group.visible = item.visible;
     threeScene.add(group);
 
     return {
@@ -69,6 +70,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
       headLength,
       length
     );
+    obj.group.visible = item.visible;
   },
 
   dispose(

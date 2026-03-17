@@ -130,6 +130,7 @@ sphere.opacity.set(0.5);
 | `radius` | `number` | `1` | Sphere radius in world units |
 | `color` | `string` | `"white"` | CSS color string |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `visible` | `boolean` | `true` | Whether the sphere is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the sphere receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
 
@@ -142,5 +143,6 @@ sphere.opacity.set(0.5);
 | `radius` | `BoundAtom<number>` | Radius atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

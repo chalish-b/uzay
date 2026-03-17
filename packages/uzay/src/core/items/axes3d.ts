@@ -15,6 +15,7 @@ export type Axes3DFields = {
   z: boolean | [number, number];
   color: Color;
   thickness: number;
+  visible: boolean;
   pointerEvents: PointerEvents;
 };
 export type Axes3DOptions = AtomLikeOptions<Axes3DFields>;
@@ -27,6 +28,7 @@ function mergeDefaults<Opts extends Axes3DOptions>(options: Opts) {
     z: options.z ?? true,
     color: options.color ?? "white",
     thickness: options.thickness ?? 1,
+    visible: options.visible ?? true,
     pointerEvents: options.pointerEvents ?? "auto",
   };
 }
@@ -43,6 +45,7 @@ export class Axes3D<Opts extends Axes3DOptions = {}> extends BaseItem<
   z: Field<boolean | [number, number], "z", Opts>;
   color: Field<Color, "color", Opts>;
   thickness: Field<number, "thickness", Opts>;
+  visible: Field<boolean, "visible", Opts>;
   pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Axes3DOptions = {} as any) {
@@ -56,6 +59,7 @@ export class Axes3D<Opts extends Axes3DOptions = {}> extends BaseItem<
     this.z = scene.atomize(opts.z) as any;
     this.color = scene.atomize(opts.color) as any;
     this.thickness = scene.atomize(opts.thickness) as any;
+    this.visible = scene.atomize(opts.visible) as any;
     this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
@@ -64,6 +68,7 @@ export class Axes3D<Opts extends Axes3DOptions = {}> extends BaseItem<
       this.z,
       this.color,
       this.thickness,
+      this.visible,
       this.pointerEvents
     );
   }
@@ -79,6 +84,7 @@ export class Axes3D<Opts extends Axes3DOptions = {}> extends BaseItem<
       z: this.z.get(),
       color: this.color.get(),
       thickness: this.thickness.get(),
+      visible: this.visible.get(),
       pointerEvents: this.pointerEvents.get(),
     };
   }

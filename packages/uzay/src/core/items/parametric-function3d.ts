@@ -18,6 +18,7 @@ export type ParametricFunction3DFields = {
   color: Color;
   thickness: number;
   samples: number;
+  visible: boolean;
   pointerEvents: PointerEvents;
 };
 export type ParametricFunction3DOptions =
@@ -34,6 +35,7 @@ function mergeDefaults<Opts extends ParametricFunction3DOptions>(
     color: options.color ?? "white",
     thickness: options.thickness ?? 1,
     samples: options.samples ?? 64,
+    visible: options.visible ?? true,
     pointerEvents: options.pointerEvents ?? "auto",
   };
 }
@@ -50,6 +52,7 @@ export class ParametricFunction3D<
   color: Field<Color, "color", Opts>;
   thickness: Field<number, "thickness", Opts>;
   samples: Field<number, "samples", Opts>;
+  visible: Field<boolean, "visible", Opts>;
   pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(
@@ -67,6 +70,7 @@ export class ParametricFunction3D<
     this.color = scene.atomize(opts.color) as any;
     this.thickness = scene.atomize(opts.thickness) as any;
     this.samples = scene.atomize(opts.samples) as any;
+    this.visible = scene.atomize(opts.visible) as any;
     this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
@@ -76,6 +80,7 @@ export class ParametricFunction3D<
       this.color,
       this.thickness,
       this.samples,
+      this.visible,
       this.pointerEvents
     );
   }
@@ -92,6 +97,7 @@ export class ParametricFunction3D<
       color: this.color.get(),
       thickness: this.thickness.get(),
       samples: this.samples.get(),
+      visible: this.visible.get(),
       pointerEvents: this.pointerEvents.get(),
     };
   }

@@ -24,6 +24,7 @@ export type Vector3DFields = {
   thickness: number;
   headLength: number;
   headWidth: number;
+  visible: boolean;
   pointerEvents: PointerEvents;
 };
 export type Vector3DOptions = AtomLikeOptions<Vector3DFields>;
@@ -38,6 +39,7 @@ function mergeDefaults<Opts extends Vector3DOptions>(options: Opts) {
     thickness: options.thickness ?? 1,
     headLength: options.headLength ?? 0.2,
     headWidth: options.headWidth ?? 0.1,
+    visible: options.visible ?? true,
     pointerEvents: options.pointerEvents ?? "auto",
   };
 }
@@ -59,6 +61,7 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
   thickness: Field<number, "thickness", Opts>;
   headLength: Field<number, "headLength", Opts>;
   headWidth: Field<number, "headWidth", Opts>;
+  visible: Field<boolean, "visible", Opts>;
   pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Vector3DOptions = {} as any) {
@@ -73,6 +76,7 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
     this.thickness = scene.atomize(opts.thickness) as any;
     this.headLength = scene.atomize(opts.headLength) as any;
     this.headWidth = scene.atomize(opts.headWidth) as any;
+    this.visible = scene.atomize(opts.visible) as any;
     this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
@@ -83,6 +87,7 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
       this.thickness,
       this.headLength,
       this.headWidth,
+      this.visible,
       this.pointerEvents
     );
   }
@@ -100,6 +105,7 @@ export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
       thickness: this.thickness.get(),
       headLength: this.headLength.get(),
       headWidth: this.headWidth.get(),
+      visible: this.visible.get(),
       pointerEvents: this.pointerEvents.get(),
     };
   }

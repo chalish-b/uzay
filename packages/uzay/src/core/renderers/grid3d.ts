@@ -84,6 +84,7 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
     // lineMaterial.resolution.set()
 
     const mesh = new Line2(geometry, material);
+    mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
 
@@ -161,6 +162,7 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
     obj.geometry = geometry;
     obj.mesh.geometry = geometry;
     oldGeometry.dispose();
+    obj.mesh.visible = item.visible;
   },
 
   dispose(obj: ThreeSceneTypes["grid3d"], threeScene: THREE.Scene): void {

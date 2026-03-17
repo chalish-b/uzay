@@ -57,15 +57,9 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     // If the axes are "false", just hide the meshes
     // TODO: This is inefficient. It would just be better to not construct the axis
     // in the first place if it's disabled. But it's fine for now.
-    if (item.x === false) {
-      xMesh.visible = false;
-    }
-    if (item.y === false) {
-      yMesh.visible = false;
-    }
-    if (item.z === false) {
-      zMesh.visible = false;
-    }
+    xMesh.visible = item.visible && item.x !== false;
+    yMesh.visible = item.visible && item.y !== false;
+    zMesh.visible = item.visible && item.z !== false;
     return {
       kind: "axes3d",
       x: {
@@ -96,9 +90,9 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     obj.z.material.color.set(item.color);
 
     // Update visibility
-    obj.x.mesh.visible = item.x !== false;
-    obj.y.mesh.visible = item.y !== false;
-    obj.z.mesh.visible = item.z !== false;
+    obj.x.mesh.visible = item.visible && item.x !== false;
+    obj.y.mesh.visible = item.visible && item.y !== false;
+    obj.z.mesh.visible = item.visible && item.z !== false;
 
     // Recalculate ranges
     const xRange =

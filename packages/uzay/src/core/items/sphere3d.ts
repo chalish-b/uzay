@@ -13,6 +13,7 @@ export type Sphere3DFields = {
   radius: number;
   color: Color;
   opacity: number;
+  visible: boolean;
   pointerEvents: PointerEvents;
 };
 export type Sphere3DOptions = AtomLikeOptions<Sphere3DFields>;
@@ -24,6 +25,7 @@ function mergeDefaults<Opts extends Sphere3DOptions>(options: Opts) {
     radius: options.radius ?? 1,
     color: options.color ?? "white",
     opacity: options.opacity ?? 1,
+    visible: options.visible ?? true,
     pointerEvents: options.pointerEvents ?? "auto",
   };
 }
@@ -39,6 +41,7 @@ export class Sphere3D<Opts extends Sphere3DOptions = {}> extends BaseItem<
   radius: Field<number, "radius", Opts>;
   color: Field<Color, "color", Opts>;
   opacity: Field<number, "opacity", Opts>;
+  visible: Field<boolean, "visible", Opts>;
   pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
 
   constructor(scene: Scene3D, options: Opts & Sphere3DOptions = {} as any) {
@@ -50,6 +53,7 @@ export class Sphere3D<Opts extends Sphere3DOptions = {}> extends BaseItem<
     this.radius = scene.atomize(opts.radius) as any;
     this.color = scene.atomize(opts.color) as any;
     this.opacity = scene.atomize(opts.opacity) as any;
+    this.visible = scene.atomize(opts.visible) as any;
     this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
     this.addAtomFields(
       this.tags,
@@ -57,6 +61,7 @@ export class Sphere3D<Opts extends Sphere3DOptions = {}> extends BaseItem<
       this.radius,
       this.color,
       this.opacity,
+      this.visible,
       this.pointerEvents
     );
   }
@@ -71,6 +76,7 @@ export class Sphere3D<Opts extends Sphere3DOptions = {}> extends BaseItem<
       radius: this.radius.get(),
       color: this.color.get(),
       opacity: this.opacity.get(),
+      visible: this.visible.get(),
       pointerEvents: this.pointerEvents.get(),
     };
   }

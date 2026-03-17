@@ -18,6 +18,7 @@ export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.scale.set(item.radius, item.radius, item.radius);
     mesh.position.set(item.center.x, item.center.y, item.center.z);
+    mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
     return {
@@ -37,6 +38,7 @@ export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
     obj.material.transparent = item.opacity < 1;
     obj.mesh.scale.set(item.radius, item.radius, item.radius);
     obj.mesh.position.set(item.center.x, item.center.y, item.center.z);
+    obj.mesh.visible = item.visible;
   },
 
   dispose(
