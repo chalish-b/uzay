@@ -1,5 +1,4 @@
 import type { Atom } from "jotai";
-import type { Store } from "jotai/vanilla/store";
 import { isBoundAtom, type BoundAtom } from "./atom-wrapper";
 import type { AtomizeMode } from "./item-definition";
 import type {
@@ -30,11 +29,6 @@ export abstract class BaseItem<T, K extends string> {
   id: ItemId = crypto.randomUUID();
   isDirty: boolean = false;
   invalidateScene: () => void = () => { };
-
-  // When added to the scene, will be set by the scene.
-  // This also means we can't directly change a field before adding it to the scene.
-  // But I think it's alright.
-  store?: Store = undefined;
 
   // Event handlers for interaction events (drag, click, hover)
   eventHandlers: Map<
@@ -87,7 +81,7 @@ export abstract class BaseItem<T, K extends string> {
   // Event handler methods for interaction events
   on<E extends InteractionEventType>(
     event: E,
-    handler: InteractionHandler<any>[E]
+    handler: InteractionHandler<K>[E]
   ): void {
     if (this.eventHandlers.has(event)) {
       console.warn(`Overwriting existing "${event}" handler on item ${this.id}`);
@@ -101,8 +95,8 @@ export abstract class BaseItem<T, K extends string> {
 
   getHandler<E extends InteractionEventType>(
     event: E
-  ): InteractionHandler<any>[E] | undefined {
-    return this.eventHandlers.get(event) as InteractionHandler<any>[E] | undefined;
+  ): InteractionHandler<K>[E] | undefined {
+    return this.eventHandlers.get(event) as InteractionHandler<K>[E] | undefined;
   }
 
   // Returns the cursor to show when hovering over this item.
@@ -113,9 +107,9 @@ export abstract class BaseItem<T, K extends string> {
 
   // Default interaction handlers. Override in subclasses to provide custom behavior.
   // These are called when no custom handler is set via on().
-  handleDrag?(event: DragEvent<any>): void;
-  handleClick?(event: ClickEvent<any>): void;
-  handleHover?(event: HoverEvent<any>): void;
+  handleDrag?(event: DragEvent<K>): void;
+  handleClick?(event: ClickEvent<K>): void;
+  handleHover?(event: HoverEvent<K>): void;
 
   // Will be implemented by the subclasses
   // Will be passed to the renderer
@@ -158,7 +152,6 @@ class DefinedItem<
         DefinitionKind<Definition>
       > &
         RuntimeFields<DefinitionFields<Definition>>,
-      fields: this as RuntimeFields<DefinitionFields<Definition>>,
       state,
     };
 

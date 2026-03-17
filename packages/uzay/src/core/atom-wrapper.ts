@@ -97,7 +97,7 @@ export function createSceneAtom(store: Store) {
 export type SceneAtomFunction = ReturnType<typeof createSceneAtom>;
 
 export type SceneAtom<T> = BoundAtom<Atom<T>>;
-export type WritableBoundAtom<V> = BoundAtom<WritableAtom<V, [V], unknown>>;
+type WritableBoundAtom<V> = BoundAtom<WritableAtom<V, [V], unknown>>;
 
 // Use a symbol brand so the rest of the codebase can reliably recognize
 // scene-bound atoms without repeating fragile Jotai duck-typing checks.
@@ -133,15 +133,3 @@ export type AtomLikeInput<V> = V | BoundAtom<Atom<V>>;
 export type AtomLikeOptions<T extends object> = {
   [K in keyof T]?: AtomLikeInput<T[K]>;
 };
-
-export type AtomizeResult<V, In> = In extends BoundAtom<infer A>
-  ? BoundAtom<A & Atom<V>>
-  : BoundAtom<PrimitiveAtom<V>>;
-
-type OptOrDefault<Opts, K extends PropertyKey, D> = K extends keyof Opts
-  ? Opts[K]
-  : D;
-export type Field<T, K extends string, Opts> = AtomizeResult<
-  T,
-  OptOrDefault<Opts, K, T>
->;

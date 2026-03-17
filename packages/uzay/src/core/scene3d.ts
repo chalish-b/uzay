@@ -46,8 +46,7 @@ export class Scene3D {
 
   create<K extends ItemKind, Opts extends ItemOptions<K>>(
     kind: K,
-    options: Opts,
-    ..._check: Opts extends ItemOptions<K> ? [] : ["Invalid options for kind"]
+    options: Opts
   ): ItemInstance<K, Opts> {
     const definition = itemDefinitions[kind] as (typeof itemDefinitions)[K];
     const item = createRuntimeItem(
@@ -56,7 +55,6 @@ export class Scene3D {
       options
     ) as ItemInstance<K, Opts>;
     this.items.set(item.id, item as unknown as Item);
-    item.store = this.store;
 
     // When the item has any reactive field updated, it'll invalidate the whole scene.
     // Which will then schedule a re-render on the view.

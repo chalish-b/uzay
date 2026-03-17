@@ -91,7 +91,6 @@ export type ItemContext<
   State extends object,
 > = {
   item: BaseItem<Fields, Kind> & RuntimeFields<Fields>;
-  fields: RuntimeFields<Fields>;
   state: State;
 };
 
