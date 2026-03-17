@@ -41,9 +41,8 @@ export abstract class BaseItem<T, K extends string> {
     this.invalidateScene();
   }
 
-  // These atom fields are important for invalidation.
-  // We set up a subscription so that when any atom field changes, the item is marked dirty.
-  // This usually happens in the constructor of the item
+  // These atom fields drive item invalidation.
+  // Definition-built items register their fields during runtime item creation.
   atomFields: Set<BoundAtom<Atom<any>>> = new Set();
   // NOTE: You must call this function after setting the atom fields for proper updates.
   addAtomFields(...fields: BoundAtom<Atom<any>>[]) {
@@ -100,19 +99,18 @@ export abstract class BaseItem<T, K extends string> {
   }
 
   // Returns the cursor to show when hovering over this item.
-  // Override in subclasses to provide custom cursor behavior.
+  // Runtime item definitions can override this to provide custom behavior.
   getCursorState(): string | null {
     return null;
   }
 
-  // Default interaction handlers. Override in subclasses to provide custom behavior.
+  // Default interaction handlers. Runtime item definitions can override these.
   // These are called when no custom handler is set via on().
   handleDrag?(event: DragEvent<K>): void;
   handleClick?(event: ClickEvent<K>): void;
   handleHover?(event: HoverEvent<K>): void;
 
-  // Will be implemented by the subclasses
-  // Will be passed to the renderer
+  // Each runtime item must expose a plain snapshot for the renderer layer.
   abstract getItemSnapshot(): {
     id: ItemId;
     kind: K;

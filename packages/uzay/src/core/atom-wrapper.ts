@@ -93,7 +93,7 @@ export function createSceneAtom(store: Store) {
 }
 
 // Types
-// Convenience type to use on the class
+// Convenience type for the scene's bound atom factory.
 export type SceneAtomFunction = ReturnType<typeof createSceneAtom>;
 
 export type SceneAtom<T> = BoundAtom<Atom<T>>;

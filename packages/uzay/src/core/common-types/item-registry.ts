@@ -74,5 +74,5 @@ export type ItemInstanceOf<K extends ItemKind = ItemKind> = K extends ItemKind
   ? ItemInstance<K, ItemOptions<K>>
   : never;
 
-// Union of all concrete item classes, preserving their discriminating "kind"
+// Union of all concrete item handles, preserving their discriminating "kind"
 export type Item = ItemInstanceOf<ItemKind>;
