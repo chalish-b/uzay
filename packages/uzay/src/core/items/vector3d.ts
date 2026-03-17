@@ -3,15 +3,17 @@ import type { Color } from "../common-types/colors";
 import type { ItemTags } from "../common-types/tags";
 import { type Vec3, Vec3 as Vec3Utils, vec3 } from "../common-types/vec3";
 import { applyDragConstraint } from "../common-types/drag-utils";
-import { BaseItem } from "../item";
 import {
   isWritableBoundAtom,
   setBoundAtomIfWritable,
   type AtomLikeOptions,
-  type Field,
 } from "../atom-wrapper";
-import type { Scene3D } from "../scene3d";
 import type { DragEvent } from "../common-types/interaction-events";
+import {
+  defineItem,
+  field,
+  type ItemHandleFromDefinition,
+} from "../item-definition";
 
 export type PointerEvents = "auto" | "none";
 
@@ -29,121 +31,67 @@ export type Vector3DFields = {
 };
 export type Vector3DOptions = AtomLikeOptions<Vector3DFields>;
 
-function mergeDefaults<Opts extends Vector3DOptions>(options: Opts) {
-  return {
-    tags: options.tags ?? [],
-    origin: options.origin ?? vec3(0, 0, 0),
-    vector: options.vector ?? vec3(1, 0, 0),
-    draggable: options.draggable ?? "xyz",
-    color: options.color ?? "white",
-    thickness: options.thickness ?? 1,
-    headLength: options.headLength ?? 0.2,
-    headWidth: options.headWidth ?? 0.1,
-    visible: options.visible ?? true,
-    pointerEvents: options.pointerEvents ?? "auto",
-  };
-}
+type Vector3DState = {
+  warnedReadOnly: boolean;
+  dragOffset: Vec3;
+};
 
-export class Vector3D<Opts extends Vector3DOptions = {}> extends BaseItem<
-  Vector3DFields,
-  "vector3d"
-> {
-  kind = "vector3d" as const;
-
-  warnedReadOnly = false;
-  private _dragOffset: Vec3 = vec3(0, 0, 0);
-
-  tags: Field<ItemTags, "tags", Opts>;
-  origin: Field<Vec3, "origin", Opts>;
-  vector: Field<Vec3, "vector", Opts>;
-  draggable: Field<PointDraggableDir, "draggable", Opts>;
-  color: Field<Color, "color", Opts>;
-  thickness: Field<number, "thickness", Opts>;
-  headLength: Field<number, "headLength", Opts>;
-  headWidth: Field<number, "headWidth", Opts>;
-  visible: Field<boolean, "visible", Opts>;
-  pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
-
-  constructor(scene: Scene3D, options: Opts & Vector3DOptions = {} as any) {
-    super();
-    const opts = mergeDefaults(options);
-
-    this.tags = scene.atomize(opts.tags) as any;
-    this.origin = scene.atomize(opts.origin) as any;
-    this.vector = scene.atomize(opts.vector) as any;
-    this.draggable = scene.atomize(opts.draggable) as any;
-    this.color = scene.atomize(opts.color) as any;
-    this.thickness = scene.atomize(opts.thickness) as any;
-    this.headLength = scene.atomize(opts.headLength) as any;
-    this.headWidth = scene.atomize(opts.headWidth) as any;
-    this.visible = scene.atomize(opts.visible) as any;
-    this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
-    this.addAtomFields(
-      this.tags,
-      this.origin,
-      this.vector,
-      this.draggable,
-      this.color,
-      this.thickness,
-      this.headLength,
-      this.headWidth,
-      this.visible,
-      this.pointerEvents
-    );
-  }
-
-  getItemSnapshot() {
-    return {
-      id: this.id,
-      kind: this.kind,
-      isDirty: this.isDirty,
-      tags: this.tags.get(),
-      origin: this.origin.get(),
-      vector: this.vector.get(),
-      draggable: this.draggable.get(),
-      color: this.color.get(),
-      thickness: this.thickness.get(),
-      headLength: this.headLength.get(),
-      headWidth: this.headWidth.get(),
-      visible: this.visible.get(),
-      pointerEvents: this.pointerEvents.get(),
-    };
-  }
-
-  getCursorState() {
-    const draggable = this.draggable.get();
+export const vector3dDefinition = defineItem({
+  kind: "vector3d",
+  fields: {
+    tags: field<ItemTags>(() => []),
+    origin: field<Vec3>(() => vec3(0, 0, 0)),
+    vector: field<Vec3>(() => vec3(1, 0, 0)),
+    draggable: field<PointDraggableDir>("xyz"),
+    color: field<Color>("white"),
+    thickness: field(1),
+    headLength: field(0.2),
+    headWidth: field(0.1),
+    visible: field(true),
+    pointerEvents: field<PointerEvents>("auto"),
+  },
+  state: (): Vector3DState => ({
+    warnedReadOnly: false,
+    dragOffset: vec3(0, 0, 0),
+  }),
+  // Dragging edits the vector tip, so a read-only direction atom should not
+  // advertise interactivity even if the vector is still rendered reactively.
+  getCursorState({ item }) {
+    const draggable = item.draggable.get();
     if (draggable === "none") return null;
-    if (!isWritableBoundAtom(this.vector)) return null;
+    if (!isWritableBoundAtom(item.vector)) return null;
     return "grab";
-  }
-
-  handleDrag(event: DragEvent<"vector3d">) {
-    const draggable = this.draggable.get();
+  },
+  handleDrag({ item, state }, event: DragEvent<"vector3d">) {
+    const draggable = item.draggable.get();
     if (draggable === "none") return;
 
-    if (!isWritableBoundAtom(this.vector)) {
-      if (!this.warnedReadOnly) {
-        this.warnedReadOnly = true;
+    if (!isWritableBoundAtom(item.vector)) {
+      if (!state.warnedReadOnly) {
+        state.warnedReadOnly = true;
         console.warn(
-          `[Vector3D] Item "${this.id}" has read-only vector atom, but draggable is "${draggable}". ` +
+          `[Vector3D] Item "${item.id}" has read-only vector atom, but draggable is "${draggable}". ` +
             `Dragging is disabled. Set draggable: "none", or make the vector atom writable.`
         );
       }
       return;
     }
 
-    const origin = this.origin.get();
-    const currentVector = this.vector.get();
+    const origin = item.origin.get();
+    const currentVector = item.vector.get();
     const tipPos = Vec3Utils.add(origin, currentVector);
 
     if (event.phase === "start") {
-      this._dragOffset = Vec3Utils.subtract(event.worldPosition, tipPos);
+      state.dragOffset = Vec3Utils.subtract(event.worldPosition, tipPos);
       return;
     }
 
-    const adjusted = Vec3Utils.subtract(event.worldPosition, this._dragOffset);
+    const adjusted = Vec3Utils.subtract(event.worldPosition, state.dragOffset);
     const constrained = applyDragConstraint(tipPos, adjusted, draggable);
-    const newVector = Vec3Utils.subtract(constrained, origin);
-    setBoundAtomIfWritable(this.vector, newVector);
-  }
-}
+    const nextVector = Vec3Utils.subtract(constrained, origin);
+    setBoundAtomIfWritable(item.vector, nextVector);
+  },
+});
+
+export type Vector3D<Opts extends Vector3DOptions = {}> =
+  ItemHandleFromDefinition<typeof vector3dDefinition, Opts>;

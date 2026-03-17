@@ -34,11 +34,13 @@ type Write<Args extends unknown[], Result> = (
 type WithInitialValue<Value> = {
   init: Value;
 };
+const BOUND_ATOM_SYMBOL = Symbol("uzay.boundAtom");
 
 // Wrapper that binds a Jotai atom to a specific store
 export type BoundAtom<A extends AnyAtom> = A & {
   get: () => A extends Atom<infer V> ? V : never;
   sub: (listener: () => void) => () => void;
+  readonly [BOUND_ATOM_SYMBOL]: true;
 } & (A extends WritableAtom<any, infer Args, infer Result>
     ? { set: (...args: Args) => Result }
     : {});
@@ -75,6 +77,7 @@ export function createSceneAtom(store: Store) {
     // Treat it as a BoundAtom and attach helpers
     const bound = a as BoundAtom<typeof a>;
 
+    (bound as any)[BOUND_ATOM_SYMBOL] = true;
     (bound as any).get = () => store.get(a as any);
     // Expose .set only for writable atoms so runtime behavior matches the type-level API.
     if (typeof (a as any).write === "function") {
@@ -95,6 +98,16 @@ export type SceneAtomFunction = ReturnType<typeof createSceneAtom>;
 
 export type SceneAtom<T> = BoundAtom<Atom<T>>;
 export type WritableBoundAtom<V> = BoundAtom<WritableAtom<V, [V], unknown>>;
+
+// Use a symbol brand so the rest of the codebase can reliably recognize
+// scene-bound atoms without repeating fragile Jotai duck-typing checks.
+export function isBoundAtom(value: unknown): value is BoundAtom<Atom<unknown>> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    (value as BoundAtom<Atom<unknown>>)[BOUND_ATOM_SYMBOL] === true
+  );
+}
 
 export function isWritableBoundAtom<V>(
   atom: BoundAtom<Atom<V>>

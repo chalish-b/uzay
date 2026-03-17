@@ -1,9 +1,10 @@
-import type { ItemId, ItemKind } from "./item-registry";
 import type { Vec3 } from "./vec3";
 import type { Vec2 } from "./vec2";
 
+type ItemId = string;
+
 // Base event with common fields
-type BaseInteractionEvent<K extends ItemKind = ItemKind> = {
+type BaseInteractionEvent<K extends string = string> = {
   itemId: ItemId;
   itemKind: K;
   worldPosition: Vec3; // 3D position where event occurred
@@ -12,7 +13,7 @@ type BaseInteractionEvent<K extends ItemKind = ItemKind> = {
 };
 
 // Drag event
-export type DragEvent<K extends ItemKind = ItemKind> = BaseInteractionEvent<K> & {
+export type DragEvent<K extends string = string> = BaseInteractionEvent<K> & {
   type: "drag";
   phase: "start" | "move" | "end";
   startWorldPosition: Vec3;
@@ -20,18 +21,18 @@ export type DragEvent<K extends ItemKind = ItemKind> = BaseInteractionEvent<K> &
 };
 
 // Click event
-export type ClickEvent<K extends ItemKind = ItemKind> = BaseInteractionEvent<K> & {
+export type ClickEvent<K extends string = string> = BaseInteractionEvent<K> & {
   type: "click";
 };
 
 // Hover event
-export type HoverEvent<K extends ItemKind = ItemKind> = BaseInteractionEvent<K> & {
+export type HoverEvent<K extends string = string> = BaseInteractionEvent<K> & {
   type: "hover";
   phase: "enter" | "move" | "leave";
 };
 
 // Union type
-export type InteractionEvent<K extends ItemKind = ItemKind> =
+export type InteractionEvent<K extends string = string> =
   | DragEvent<K>
   | ClickEvent<K>
   | HoverEvent<K>;
@@ -40,11 +41,11 @@ export type InteractionEvent<K extends ItemKind = ItemKind> =
 export type InteractionEventType = "drag" | "click" | "hover";
 
 // Handler function types
-export type DragHandler<K extends ItemKind = ItemKind> = (event: DragEvent<K>) => void;
-export type ClickHandler<K extends ItemKind = ItemKind> = (event: ClickEvent<K>) => void;
-export type HoverHandler<K extends ItemKind = ItemKind> = (event: HoverEvent<K>) => void;
+export type DragHandler<K extends string = string> = (event: DragEvent<K>) => void;
+export type ClickHandler<K extends string = string> = (event: ClickEvent<K>) => void;
+export type HoverHandler<K extends string = string> = (event: HoverEvent<K>) => void;
 
-export type InteractionHandler<K extends ItemKind = ItemKind> = {
+export type InteractionHandler<K extends string = string> = {
   drag: DragHandler<K>;
   click: ClickHandler<K>;
   hover: HoverHandler<K>;

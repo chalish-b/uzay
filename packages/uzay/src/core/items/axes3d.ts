@@ -1,8 +1,11 @@
 import type { Color } from "../common-types/colors";
 import type { ItemTags } from "../common-types/tags";
-import type { AtomLikeOptions, Field } from "../atom-wrapper";
-import { BaseItem } from "../item";
-import type { Scene3D } from "../scene3d";
+import type { AtomLikeOptions } from "../atom-wrapper";
+import {
+  defineItem,
+  field,
+  type ItemHandleFromDefinition,
+} from "../item-definition";
 
 export type PointerEvents = "auto" | "none";
 
@@ -20,72 +23,19 @@ export type Axes3DFields = {
 };
 export type Axes3DOptions = AtomLikeOptions<Axes3DFields>;
 
-function mergeDefaults<Opts extends Axes3DOptions>(options: Opts) {
-  return {
-    tags: options.tags ?? [],
-    x: options.x ?? true,
-    y: options.y ?? true,
-    z: options.z ?? true,
-    color: options.color ?? "white",
-    thickness: options.thickness ?? 1,
-    visible: options.visible ?? true,
-    pointerEvents: options.pointerEvents ?? "auto",
-  };
-}
+export const axes3dDefinition = defineItem({
+  kind: "axes3d",
+  fields: {
+    tags: field<ItemTags>(() => []),
+    x: field<boolean | [number, number]>(true),
+    y: field<boolean | [number, number]>(true),
+    z: field<boolean | [number, number]>(true),
+    color: field<Color>("white"),
+    thickness: field(1),
+    visible: field(true),
+    pointerEvents: field<PointerEvents>("auto"),
+  },
+});
 
-export class Axes3D<Opts extends Axes3DOptions = {}> extends BaseItem<
-  Axes3DFields,
-  "axes3d"
-> {
-  kind = "axes3d" as const;
-
-  tags: Field<ItemTags, "tags", Opts>;
-  x: Field<boolean | [number, number], "x", Opts>;
-  y: Field<boolean | [number, number], "y", Opts>;
-  z: Field<boolean | [number, number], "z", Opts>;
-  color: Field<Color, "color", Opts>;
-  thickness: Field<number, "thickness", Opts>;
-  visible: Field<boolean, "visible", Opts>;
-  pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
-
-  constructor(scene: Scene3D, options: Opts & Axes3DOptions = {} as any) {
-    super();
-    const opts = mergeDefaults(options);
-
-    // Atomize all the options and add the atom fields
-    this.tags = scene.atomize(opts.tags) as any;
-    this.x = scene.atomize(opts.x) as any;
-    this.y = scene.atomize(opts.y) as any;
-    this.z = scene.atomize(opts.z) as any;
-    this.color = scene.atomize(opts.color) as any;
-    this.thickness = scene.atomize(opts.thickness) as any;
-    this.visible = scene.atomize(opts.visible) as any;
-    this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
-    this.addAtomFields(
-      this.tags,
-      this.x,
-      this.y,
-      this.z,
-      this.color,
-      this.thickness,
-      this.visible,
-      this.pointerEvents
-    );
-  }
-
-  getItemSnapshot() {
-    return {
-      id: this.id,
-      kind: this.kind,
-      isDirty: this.isDirty,
-      tags: this.tags.get(),
-      x: this.x.get(),
-      y: this.y.get(),
-      z: this.z.get(),
-      color: this.color.get(),
-      thickness: this.thickness.get(),
-      visible: this.visible.get(),
-      pointerEvents: this.pointerEvents.get(),
-    };
-  }
-}
+export type Axes3D<Opts extends Axes3DOptions = {}> =
+  ItemHandleFromDefinition<typeof axes3dDefinition, Opts>;

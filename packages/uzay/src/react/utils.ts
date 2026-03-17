@@ -1,16 +1,4 @@
-import type { Atom } from "jotai";
-import type { BoundAtom } from "../core/atom-wrapper";
-
-export function isBoundAtom(value: unknown): value is BoundAtom<Atom<unknown>> {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    "read" in value &&
-    typeof (value as any).read === "function" &&
-    "get" in (value as any) &&
-    typeof (value as any).get === "function"
-  );
-}
+export { isBoundAtom } from "../core/atom-wrapper";
 
 // Shallow-equal for plain objects/arrays so that inline values like
 // `vec3(1,2,3)` or `[-8, 8]` don't reset atoms every render.

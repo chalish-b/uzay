@@ -3,9 +3,12 @@ import { type Vec3, vec3 } from "../common-types/vec3";
 import { type Vec2, vec2 } from "../common-types/vec2";
 import type { OverlayAnchor, OverlayFormat } from "../common-types/overlay";
 import type { PointerEvents } from "./point3d";
-import { BaseItem } from "../item";
-import type { AtomLikeOptions, Field } from "../atom-wrapper";
-import type { Scene3D } from "../scene3d";
+import type { AtomLikeOptions } from "../atom-wrapper";
+import {
+  defineItem,
+  field,
+  type ItemHandleFromDefinition,
+} from "../item-definition";
 
 export type Overlay3DFields = {
   tags: ItemTags;
@@ -21,85 +24,21 @@ export type Overlay3DFields = {
 };
 export type Overlay3DOptions = AtomLikeOptions<Overlay3DFields>;
 
-function mergeDefaults<Opts extends Overlay3DOptions>(options: Opts) {
-  return {
-    tags: options.tags ?? [],
-    position: options.position ?? vec3(0, 0, 0),
-    content: options.content ?? "",
-    format: options.format ?? "text",
-    offset: options.offset ?? vec2(0, 0),
-    anchor: options.anchor ?? "center",
-    visible: options.visible ?? true,
-    className: options.className ?? "",
-    style: options.style ?? "",
-    pointerEvents: options.pointerEvents ?? "none",
-  };
-}
+export const overlay3dDefinition = defineItem({
+  kind: "overlay3d",
+  fields: {
+    tags: field<ItemTags>(() => []),
+    position: field<Vec3>(() => vec3(0, 0, 0)),
+    content: field(""),
+    format: field<OverlayFormat>("text"),
+    offset: field<Vec2>(() => vec2(0, 0)),
+    anchor: field<OverlayAnchor>("center"),
+    visible: field(true),
+    className: field(""),
+    style: field(""),
+    pointerEvents: field<PointerEvents>("none"),
+  },
+});
 
-export class Overlay3D<Opts extends Overlay3DOptions = {}> extends BaseItem<
-  Overlay3DFields,
-  "overlay3d"
-> {
-  kind = "overlay3d" as const;
-
-  tags: Field<ItemTags, "tags", Opts>;
-  position: Field<Vec3, "position", Opts>;
-  content: Field<string, "content", Opts>;
-  format: Field<OverlayFormat, "format", Opts>;
-  offset: Field<Vec2, "offset", Opts>;
-  anchor: Field<OverlayAnchor, "anchor", Opts>;
-  visible: Field<boolean, "visible", Opts>;
-  className: Field<string, "className", Opts>;
-  style: Field<string, "style", Opts>;
-  pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
-
-  constructor(scene: Scene3D, options: Opts & Overlay3DOptions = {} as any) {
-    super();
-    const opts = mergeDefaults(options);
-
-    this.tags = scene.atomize(opts.tags) as any;
-    this.position = scene.atomize(opts.position) as any;
-    this.content = scene.atomize(opts.content) as any;
-    this.format = scene.atomize(opts.format) as any;
-    this.offset = scene.atomize(opts.offset) as any;
-    this.anchor = scene.atomize(opts.anchor) as any;
-    this.visible = scene.atomize(opts.visible) as any;
-    this.className = scene.atomize(opts.className) as any;
-    this.style = scene.atomize(opts.style) as any;
-    this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
-    this.addAtomFields(
-      this.tags,
-      this.position,
-      this.content,
-      this.format,
-      this.offset,
-      this.anchor,
-      this.visible,
-      this.className,
-      this.style,
-      this.pointerEvents
-    );
-  }
-
-  getItemSnapshot() {
-    return {
-      id: this.id,
-      kind: this.kind,
-      isDirty: this.isDirty,
-      tags: this.tags.get(),
-      position: this.position.get(),
-      content: this.content.get(),
-      format: this.format.get(),
-      offset: this.offset.get(),
-      anchor: this.anchor.get(),
-      visible: this.visible.get(),
-      className: this.className.get(),
-      style: this.style.get(),
-      pointerEvents: this.pointerEvents.get(),
-    };
-  }
-
-  getCursorState() {
-    return null;
-  }
-}
+export type Overlay3D<Opts extends Overlay3DOptions = {}> =
+  ItemHandleFromDefinition<typeof overlay3dDefinition, Opts>;

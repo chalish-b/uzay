@@ -1,9 +1,12 @@
 import type { Color } from "../common-types/colors";
 import type { ItemTags } from "../common-types/tags";
 import { type Vec3, vec3 } from "../common-types/vec3";
-import { BaseItem } from "../item";
-import type { AtomLikeOptions, Field } from "../atom-wrapper";
-import type { Scene3D } from "../scene3d";
+import type { AtomLikeOptions } from "../atom-wrapper";
+import {
+  defineItem,
+  field,
+  type ItemHandleFromDefinition,
+} from "../item-definition";
 
 export type PointerEvents = "auto" | "none";
 
@@ -18,66 +21,18 @@ export type Sphere3DFields = {
 };
 export type Sphere3DOptions = AtomLikeOptions<Sphere3DFields>;
 
-function mergeDefaults<Opts extends Sphere3DOptions>(options: Opts) {
-  return {
-    tags: options.tags ?? [],
-    center: options.center ?? vec3(0, 0, 0),
-    radius: options.radius ?? 1,
-    color: options.color ?? "white",
-    opacity: options.opacity ?? 1,
-    visible: options.visible ?? true,
-    pointerEvents: options.pointerEvents ?? "auto",
-  };
-}
+export const sphere3dDefinition = defineItem({
+  kind: "sphere3d",
+  fields: {
+    tags: field<ItemTags>(() => []),
+    center: field<Vec3>(() => vec3(0, 0, 0)),
+    radius: field(1),
+    color: field<Color>("white"),
+    opacity: field(1),
+    visible: field(true),
+    pointerEvents: field<PointerEvents>("auto"),
+  },
+});
 
-export class Sphere3D<Opts extends Sphere3DOptions = {}> extends BaseItem<
-  Sphere3DFields,
-  "sphere3d"
-> {
-  kind = "sphere3d" as const;
-
-  tags: Field<ItemTags, "tags", Opts>;
-  center: Field<Vec3, "center", Opts>;
-  radius: Field<number, "radius", Opts>;
-  color: Field<Color, "color", Opts>;
-  opacity: Field<number, "opacity", Opts>;
-  visible: Field<boolean, "visible", Opts>;
-  pointerEvents: Field<PointerEvents, "pointerEvents", Opts>;
-
-  constructor(scene: Scene3D, options: Opts & Sphere3DOptions = {} as any) {
-    super();
-    const opts = mergeDefaults(options);
-
-    this.tags = scene.atomize(opts.tags) as any;
-    this.center = scene.atomize(opts.center) as any;
-    this.radius = scene.atomize(opts.radius) as any;
-    this.color = scene.atomize(opts.color) as any;
-    this.opacity = scene.atomize(opts.opacity) as any;
-    this.visible = scene.atomize(opts.visible) as any;
-    this.pointerEvents = scene.atomize(opts.pointerEvents) as any;
-    this.addAtomFields(
-      this.tags,
-      this.center,
-      this.radius,
-      this.color,
-      this.opacity,
-      this.visible,
-      this.pointerEvents
-    );
-  }
-
-  getItemSnapshot() {
-    return {
-      id: this.id,
-      kind: this.kind,
-      isDirty: this.isDirty,
-      tags: this.tags.get(),
-      center: this.center.get(),
-      radius: this.radius.get(),
-      color: this.color.get(),
-      opacity: this.opacity.get(),
-      visible: this.visible.get(),
-      pointerEvents: this.pointerEvents.get(),
-    };
-  }
-}
+export type Sphere3D<Opts extends Sphere3DOptions = {}> =
+  ItemHandleFromDefinition<typeof sphere3dDefinition, Opts>;

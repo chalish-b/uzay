@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Scene3D, View3D, vec3, Point3D } from "uzay";
-import type { BoundAtom } from "uzay";
+import { Scene3D, View3D, vec3 } from "uzay";
+import type { BoundAtom, Point3D } from "uzay";
 import type { PrimitiveAtom } from "jotai";
 
 /** DEMO MADE BY GPT 5.1 */

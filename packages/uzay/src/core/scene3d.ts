@@ -5,11 +5,11 @@ import {
   type Item,
   type ItemOptions,
   type ItemInstance,
-  itemFactory,
+  itemDefinitions,
 } from "./common-types/item-registry";
-import type { SceneAtomFunction, BoundAtom, Store } from "./atom-wrapper";
+import type { SceneAtomFunction, Store } from "./atom-wrapper";
 import { createSceneAtom } from "./atom-wrapper";
-import type { Atom, PrimitiveAtom } from "jotai";
+import { createRuntimeItem } from "./item";
 
 export type SceneSnapshot = {
   itemSnapshots: Map<ItemId, ItemSnapshot>;
@@ -49,13 +49,13 @@ export class Scene3D {
     options: Opts,
     ..._check: Opts extends ItemOptions<K> ? [] : ["Invalid options for kind"]
   ): ItemInstance<K, Opts> {
-    const item = (
-      itemFactory[kind] as (
-        scene: Scene3D,
-        options: Opts
-      ) => ItemInstance<K, Opts>
-    )(this, options as any) as ItemInstance<K, Opts>;
-    this.items.set(item.id, item);
+    const definition = itemDefinitions[kind] as (typeof itemDefinitions)[K];
+    const item = createRuntimeItem(
+      this,
+      definition,
+      options
+    ) as ItemInstance<K, Opts>;
+    this.items.set(item.id, item as unknown as Item);
     item.store = this.store;
 
     // When the item has any reactive field updated, it'll invalidate the whole scene.
@@ -80,34 +80,6 @@ export class Scene3D {
     this.invalidateScene();
   }
 
-  atomize<V, A extends Atom<V>>(value: BoundAtom<A>): BoundAtom<A>;
-  atomize<T>(value: T): BoundAtom<PrimitiveAtom<T>>;
-  atomize(value: unknown): any {
-    const isBoundAtom = (value: unknown): value is BoundAtom<Atom<unknown>> => {
-      return (
-        value !== null &&
-        typeof value === "object" &&
-        "read" in value &&
-        typeof value.read === "function" &&
-        "get" in (value as any) &&
-        typeof (value as any).get === "function"
-      );
-    };
-
-    if (isBoundAtom(value)) {
-      return value;
-    }
-
-    // When the value itself is a function (e.g. parametric function fields), we
-    // need to treat it as a plain value, not as a Jotai read function.
-    if (typeof value === "function") {
-      const fnValue = value;
-      return this.atom(() => fnValue);
-    }
-
-    return this.atom(value as any);
-  }
-
   getSceneSnapshot(): SceneSnapshot {
     const itemSnapshots: Map<ItemId, ItemSnapshot> = new Map();
     for (const item of this.items.values()) {
@@ -125,12 +97,12 @@ export class Scene3D {
         `Camera with id ${cameraId} not found. Make sure to add a camera to the scene.`
       );
     }
-    return cam;
+    return cam as ItemInstance<"camera3d", ItemOptions<"camera3d">>;
   }
 
   // Called by the View when a render is done. Marks all the items clean again
   renderComplete() {
-    for (const [id, item] of this.items.entries()) {
+    for (const item of this.items.values()) {
       item.isDirty = false;
     }
   }
