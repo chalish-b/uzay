@@ -1,15 +1,6 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { Scene3D, vec3, Vec3 } from "uzay";
-import {
-  Scene3DView,
-  Camera3D,
-  Point3D,
-  Line3D,
-  Sphere3D,
-  Overlay3D,
-  Axes3D,
-  Grid3D,
-} from "uzay/react";
+import { Scene3DView, useAtomState } from "uzay/react";
 
 const COLORS = {
   ray: "#ff6b6b",
@@ -18,126 +9,193 @@ const COLORS = {
   hit: "#b95bfc",
 };
 
-const scene = new Scene3D();
-
-// Ray: defined by an origin point and a direction point (both draggable)
-const rayOriginAtom = scene.atom(vec3(-6, 3, 2));
-const rayDirPointAtom = scene.atom(vec3(2, 1, -1));
-
-// Sphere: center is draggable, radius controlled by slider
-const sphereCenterAtom = scene.atom(vec3(0, 0, 0));
-const sphereRadiusAtom = scene.atom(2.5);
-
-// Compute ray direction (normalized)
-const rayDirAtom = scene.atom((get) => {
-  const origin = get(rayOriginAtom);
-  const target = get(rayDirPointAtom);
-  return Vec3.normalized(Vec3.subtract(target, origin));
-});
-
-// Sphere-line intersection
-// Solve |origin + t * dir - center|^2 = r^2
-const intersectionAtom = scene.atom((get) => {
-  const origin = get(rayOriginAtom);
-  const dir = get(rayDirAtom);
-  const center = get(sphereCenterAtom);
-  const r = get(sphereRadiusAtom);
-
-  const oc = Vec3.subtract(origin, center);
-  const a = Vec3.dot(dir, dir);
-  const b = 2 * Vec3.dot(oc, dir);
-  const c = Vec3.dot(oc, oc) - r * r;
-  const discriminant = b * b - 4 * a * c;
-
-  if (discriminant < 0) {
-    return { hit: false as const, points: [] as Vec3[] };
-  }
-
-  const sqrtD = Math.sqrt(discriminant);
-  const t1 = (-b - sqrtD) / (2 * a);
-  const t2 = (-b + sqrtD) / (2 * a);
-
-  const points: Vec3[] = [];
-  if (Math.abs(t1 - t2) < 0.001) {
-    // Tangent: single intersection
-    points.push(Vec3.add(origin, Vec3.scaled(dir, t1)));
-  } else {
-    points.push(Vec3.add(origin, Vec3.scaled(dir, t1)));
-    points.push(Vec3.add(origin, Vec3.scaled(dir, t2)));
-  }
-
-  return { hit: true as const, points };
-});
-
-// Extend the ray visually past the direction point
-const rayExtentAtom = scene.atom((get) => {
-  const origin = get(rayOriginAtom);
-  const dir = get(rayDirAtom);
-  return Vec3.add(origin, Vec3.scaled(dir, 20));
-});
-
-const rayBackAtom = scene.atom((get) => {
-  const origin = get(rayOriginAtom);
-  const dir = get(rayDirAtom);
-  return Vec3.add(origin, Vec3.scaled(dir, -5));
-});
-
-// Intersection point atoms (for rendering)
-const hit1Atom = scene.atom((get) => {
-  const result = get(intersectionAtom);
-  return result.points[0] ?? vec3(0, 0, 0);
-});
-
-const hit2Atom = scene.atom((get) => {
-  const result = get(intersectionAtom);
-  return result.points[1] ?? vec3(0, 0, 0);
-});
-
-const hasHitAtom = scene.atom((get) => get(intersectionAtom).hit);
-const hasTwoHitsAtom = scene.atom(
-  (get) => get(intersectionAtom).points.length === 2
-);
-
-// Use radius to show/hide intersection points (Point3D has no `visible` prop)
-const hit1RadiusAtom = scene.atom((get) => (get(hasHitAtom) ? 2.5 : 0));
-const hit2RadiusAtom = scene.atom((get) => (get(hasTwoHitsAtom) ? 2.5 : 0));
-
-// Labels
 const labelStyle =
   "font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;";
 
-const hit1LabelAtom = scene.atom((get) => {
-  const p = get(hit1Atom);
-  return String.raw`(${p.x.toFixed(2)},\; ${p.y.toFixed(2)},\; ${p.z.toFixed(2)})`;
-});
+function createSphereLineScene() {
+  const scene = new Scene3D();
 
-const hit2LabelAtom = scene.atom((get) => {
-  const p = get(hit2Atom);
-  return String.raw`(${p.x.toFixed(2)},\; ${p.y.toFixed(2)},\; ${p.z.toFixed(2)})`;
-});
+  // Ray: origin + direction point (both draggable)
+  const rayOrigin = scene.atom(vec3(-6, 3, 2));
+  const rayDirPoint = scene.atom(vec3(4, 1, -1));
 
-const statusLabelAtom = scene.atom((get) => {
-  const result = get(intersectionAtom);
-  if (!result.hit) return String.raw`\text{No intersection}`;
-  if (result.points.length === 1) return String.raw`\text{Tangent (1 point)}`;
-  return String.raw`\text{2 intersections}`;
-});
+  // Sphere: center is draggable, radius + opacity controlled by sliders
+  const sphereCenter = scene.atom(vec3(0, 0, 0));
+  const sphereRadius = scene.atom(2.5);
+  const sphereOpacity = scene.atom(0.3);
+
+  // Derived: ray direction (normalized)
+  const rayDir = scene.atom((get) => {
+    const origin = get(rayOrigin);
+    const target = get(rayDirPoint);
+    return Vec3.normalized(Vec3.subtract(target, origin));
+  });
+
+  // Derived: sphere-line intersection
+  // Solve |origin + t * dir - center|^2 = r^2
+  const intersection = scene.atom((get) => {
+    const origin = get(rayOrigin);
+    const dir = get(rayDir);
+    const center = get(sphereCenter);
+    const r = get(sphereRadius);
+
+    const oc = Vec3.subtract(origin, center);
+    const a = Vec3.dot(dir, dir);
+    const b = 2 * Vec3.dot(oc, dir);
+    const c = Vec3.dot(oc, oc) - r * r;
+    const discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0) {
+      return { hit: false as const, points: [] as Vec3[] };
+    }
+
+    const sqrtD = Math.sqrt(discriminant);
+    const t1 = (-b - sqrtD) / (2 * a);
+    const t2 = (-b + sqrtD) / (2 * a);
+
+    const points: Vec3[] = [];
+    if (Math.abs(t1 - t2) < 0.001) {
+      points.push(Vec3.add(origin, Vec3.scaled(dir, t1)));
+    } else {
+      points.push(Vec3.add(origin, Vec3.scaled(dir, t1)));
+      points.push(Vec3.add(origin, Vec3.scaled(dir, t2)));
+    }
+
+    return { hit: true as const, points };
+  });
+
+  // Derived atoms for rendering
+  const rayExtent = scene.atom((get) =>
+    Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), 20))
+  );
+  const rayBack = scene.atom((get) =>
+    Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), -5))
+  );
+
+  const hit1 = scene.atom((get) => get(intersection).points[0] ?? vec3(0, 0, 0));
+  const hit2 = scene.atom((get) => get(intersection).points[1] ?? vec3(0, 0, 0));
+  const hasHit = scene.atom((get) => get(intersection).hit);
+  const hasTwoHits = scene.atom((get) => get(intersection).points.length === 2);
+  const hit1Radius = scene.atom((get) => (get(hasHit) ? 2.5 : 0));
+  const hit2Radius = scene.atom((get) => (get(hasTwoHits) ? 2.5 : 0));
+
+  // Build scene
+  scene.create("camera3d", {
+    position: vec3(10, 8, 10),
+    lookAt: vec3(0, 0, 0),
+    fov: 55,
+  });
+
+  scene.create("axes3d", { x: [-8, 8], y: [-8, 8], z: [-8, 8], thickness: 0.7 });
+  scene.create("grid3d", {
+    plane: "xz",
+    range1: [-8, 8],
+    range2: [-8, 8],
+    color: "#333",
+    thickness: 2,
+  });
+
+  // Sphere
+  scene.create("sphere3d", {
+    center: sphereCenter,
+    radius: sphereRadius,
+    color: COLORS.sphere,
+    opacity: sphereOpacity,
+    pointerEvents: "none",
+  });
+
+  // Ray line (extended both directions)
+  scene.create("line3d", {
+    start: rayBack,
+    end: rayExtent,
+    color: COLORS.ray,
+    thickness: 1,
+    pointerEvents: "none",
+  });
+
+  // Ray origin (draggable)
+  scene.create("point3d", { coords: rayOrigin, color: COLORS.ray, radius: 2.5, draggable: "xyz" });
+  scene.create("overlay3d", {
+    position: rayOrigin,
+    format: "text",
+    content: "ray origin",
+    anchor: "bottom",
+    offset: { x: 0, y: -8 },
+    style: `color: ${COLORS.ray}; ${labelStyle}`,
+  });
+
+  // Ray direction point (draggable)
+  scene.create("point3d", { coords: rayDirPoint, color: COLORS.rayDir, radius: 2, draggable: "xyz" });
+  scene.create("overlay3d", {
+    position: rayDirPoint,
+    format: "text",
+    content: "direction",
+    anchor: "bottom",
+    offset: { x: 0, y: -8 },
+    style: `color: ${COLORS.rayDir}; ${labelStyle}`,
+  });
+
+  // Sphere center (draggable)
+  scene.create("point3d", { coords: sphereCenter, color: COLORS.sphere, radius: 2, draggable: "xyz" });
+
+  // Intersection points
+  scene.create("point3d", { coords: hit1, color: COLORS.hit, radius: hit1Radius, draggable: "none" });
+  scene.create("overlay3d", {
+    position: hit1,
+    format: "latex",
+    content: scene.atom((get) => {
+      const p = get(hit1);
+      return String.raw`(${p.x.toFixed(2)},\; ${p.y.toFixed(2)},\; ${p.z.toFixed(2)})`;
+    }),
+    anchor: "bottom",
+    offset: { x: 0, y: -10 },
+    style: `color: ${COLORS.hit}; ${labelStyle}`,
+    visible: hasHit,
+  });
+
+  scene.create("point3d", { coords: hit2, color: COLORS.hit, radius: hit2Radius, draggable: "none" });
+  scene.create("overlay3d", {
+    position: hit2,
+    format: "latex",
+    content: scene.atom((get) => {
+      const p = get(hit2);
+      return String.raw`(${p.x.toFixed(2)},\; ${p.y.toFixed(2)},\; ${p.z.toFixed(2)})`;
+    }),
+    anchor: "bottom",
+    offset: { x: 0, y: -10 },
+    style: `color: ${COLORS.hit}; ${labelStyle}`,
+    visible: hasTwoHits,
+  });
+
+  // Status label near sphere
+  scene.create("overlay3d", {
+    position: sphereCenter,
+    format: "latex",
+    content: scene.atom((get) => {
+      const result = get(intersection);
+      if (!result.hit) return String.raw`\text{No intersection}`;
+      if (result.points.length === 1) return String.raw`\text{Tangent (1 point)}`;
+      return String.raw`\text{2 intersections}`;
+    }),
+    anchor: "top",
+    offset: { x: 0, y: 10 },
+    style: `color: #ccc; ${labelStyle}`,
+  });
+
+  return { scene, sphereRadius, sphereOpacity };
+}
 
 export default function Demo11() {
-  const [radius, setRadius] = useState(2.5);
-  const [opacity, setOpacity] = useState(0.3);
+  const { scene, sphereRadius, sphereOpacity } = useMemo(
+    () => createSphereLineScene(),
+    []
+  );
 
-  const handleRadiusChange = (value: number) => {
-    setRadius(value);
-    sphereRadiusAtom.set(value);
-  };
+  const [radius, setRadius] = useAtomState(sphereRadius);
+  const [opacity, setOpacity] = useAtomState(sphereOpacity);
 
   const sliderStyle = { color: "white", fontSize: 13 } as const;
-  const rowStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  } as const;
+  const rowStyle = { display: "flex", alignItems: "center", gap: 8 } as const;
 
   return (
     <div
@@ -148,126 +206,8 @@ export default function Demo11() {
         position: "relative",
       }}
     >
-      <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }}>
-        <Camera3D
-          position={vec3(10, 8, 10)}
-          lookAt={vec3(0, 0, 0)}
-          fov={55}
-          active
-        />
+      <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }} />
 
-        <Axes3D x={[-8, 8]} y={[-8, 8]} z={[-8, 8]} thickness={0.7} />
-        <Grid3D
-          plane="xz"
-          range1={[-8, 8]}
-          range2={[-8, 8]}
-          color="#333"
-          thickness={2}
-        />
-
-        {/* Sphere */}
-        <Sphere3D
-          center={sphereCenterAtom}
-          radius={sphereRadiusAtom}
-          color={COLORS.sphere}
-          opacity={opacity}
-          pointerEvents="none"
-        />
-
-        {/* Ray line (extended in both directions) */}
-        <Line3D
-          start={rayBackAtom}
-          end={rayExtentAtom}
-          color={COLORS.ray}
-          thickness={1}
-          pointerEvents="none"
-        />
-
-        {/* Ray origin point (draggable) */}
-        <Point3D
-          coords={rayOriginAtom}
-          color={COLORS.ray}
-          radius={2.5}
-          draggable="xyz"
-        />
-        <Overlay3D
-          position={rayOriginAtom}
-          format="text"
-          content="ray origin"
-          anchor="bottom"
-          offset={{ x: 0, y: -8 }}
-          style={`color: ${COLORS.ray}; ${labelStyle}`}
-        />
-
-        {/* Ray direction point (draggable) */}
-        <Point3D
-          coords={rayDirPointAtom}
-          color={COLORS.rayDir}
-          radius={2}
-          draggable="xyz"
-        />
-        <Overlay3D
-          position={rayDirPointAtom}
-          format="text"
-          content="direction"
-          anchor="bottom"
-          offset={{ x: 0, y: -8 }}
-          style={`color: ${COLORS.rayDir}; ${labelStyle}`}
-        />
-
-        {/* Sphere center (draggable) */}
-        <Point3D
-          coords={sphereCenterAtom}
-          color={COLORS.sphere}
-          radius={2}
-          draggable="xyz"
-        />
-
-        {/* Intersection points (radius=0 when no hit) */}
-        <Point3D
-          coords={hit1Atom}
-          color={COLORS.hit}
-          radius={hit1RadiusAtom}
-          draggable="none"
-        />
-        <Overlay3D
-          position={hit1Atom}
-          format="latex"
-          content={hit1LabelAtom}
-          anchor="bottom"
-          offset={{ x: 0, y: -10 }}
-          style={`color: ${COLORS.hit}; ${labelStyle}`}
-          visible={hasHitAtom}
-        />
-
-        <Point3D
-          coords={hit2Atom}
-          color={COLORS.hit}
-          radius={hit2RadiusAtom}
-          draggable="none"
-        />
-        <Overlay3D
-          position={hit2Atom}
-          format="latex"
-          content={hit2LabelAtom}
-          anchor="bottom"
-          offset={{ x: 0, y: -10 }}
-          style={`color: ${COLORS.hit}; ${labelStyle}`}
-          visible={hasTwoHitsAtom}
-        />
-
-        {/* Status label near sphere */}
-        <Overlay3D
-          position={sphereCenterAtom}
-          format="latex"
-          content={statusLabelAtom}
-          anchor="top"
-          offset={{ x: 0, y: 10 }}
-          style={`color: #ccc; ${labelStyle}`}
-        />
-      </Scene3DView>
-
-      {/* Controls */}
       <div
         style={{
           position: "absolute",
@@ -293,7 +233,7 @@ export default function Demo11() {
             max="6"
             step="0.1"
             value={radius}
-            onChange={(e) => handleRadiusChange(parseFloat(e.target.value))}
+            onChange={(e) => setRadius(parseFloat(e.target.value))}
           />
           <span style={{ ...sliderStyle, minWidth: 32 }}>
             {radius.toFixed(1)}

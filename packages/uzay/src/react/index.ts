@@ -1,5 +1,6 @@
 export { Scene3DView } from "./Scene3DView";
 export { useScene, useSceneAtom } from "./context";
+export { useAtomValue, useAtomState } from "./hooks";
 export { Camera3D } from "./Camera3D";
 export {
   Point3D,

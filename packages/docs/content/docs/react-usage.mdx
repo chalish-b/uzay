@@ -1,353 +1,418 @@
 ---
 title: React Usage
-description: Using Uzay with React components
+description: Embedding Uzay scenes in React applications
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-Uzay provides a React wrapper (`uzay/react`) that lets you declare scenes and items as JSX components. It handles the View3D lifecycle, cleanup, and camera management automatically.
+Uzay scenes are built the same way regardless of framework. The `uzay/react` package provides a thin integration layer for mounting scenes into React and bridging scene atoms to React state for UI controls.
 
-## Quick Start
+## Mounting a Scene
+
+Use `Scene3DView` to mount a scene into a React component. It creates a container div, initializes the Three.js renderer, and cleans everything up on unmount.
 
 ```tsx
+import { useMemo } from "react";
 import { Scene3D, vec3 } from "uzay";
-import { Scene3DView, Camera3D, Point3D, Axes3D } from "uzay/react";
+import { Scene3DView } from "uzay/react";
 
-const scene = new Scene3D();
+function createMyScene() {
+  const scene = new Scene3D();
+
+  scene.create("camera3d", {
+    position: vec3(5, 5, 5),
+    lookAt: vec3(0, 0, 0),
+  });
+
+  scene.create("point3d", {
+    coords: vec3(1, 2, 0),
+    color: "crimson",
+    radius: 3,
+    draggable: "xyz",
+  });
+
+  scene.create("axes3d", { x: [-5, 5], y: [-5, 5], z: [-5, 5] });
+
+  return { scene };
+}
 
 function App() {
+  const { scene } = useMemo(() => createMyScene(), []);
+
+  return <Scene3DView scene={scene} style={{ width: "100%", height: 500 }} />;
+}
+```
+
+The scene construction is identical to vanilla JS. The only React-specific part is `Scene3DView`, which handles the rendering lifecycle.
+
+## Connecting UI Controls
+
+When your scene has atoms that should be controllable from React UI (sliders, buttons, toggles), use `useAtomState` and `useAtomValue` to bridge them.
+
+### `useAtomState`
+
+Two-way binding between a scene atom and React. Returns `[value, setter]` like `useState`, but backed by the scene atom. The component re-renders when the atom changes from any source (UI, drag, other atoms).
+
+```tsx
+import { useMemo } from "react";
+import { Scene3D, vec3 } from "uzay";
+import { Scene3DView, useAtomState } from "uzay/react";
+
+function createScene() {
+  const scene = new Scene3D();
+
+  const radius = scene.atom(2);
+
+  scene.create("camera3d", { position: vec3(5, 5, 5), lookAt: vec3(0, 0, 0) });
+  scene.create("point3d", {
+    coords: vec3(0, 0, 0),
+    color: "cyan",
+    radius: radius,
+    draggable: "xyz",
+  });
+
+  return { scene, radius };
+}
+
+function App() {
+  const { scene, radius } = useMemo(() => createScene(), []);
+  const [r, setR] = useAtomState(radius);
+
   return (
-    <Scene3DView scene={scene} style={{ width: "100%", height: 500 }}>
+    <div>
+      <Scene3DView scene={scene} style={{ width: "100%", height: 400 }} />
+      <input
+        type="range" min="1" max="10" step="0.5"
+        value={r}
+        onChange={(e) => setR(parseFloat(e.target.value))}
+      />
+      <span>Radius: {r.toFixed(1)}</span>
+    </div>
+  );
+}
+```
+
+No manual dual-state syncing needed. `setR` updates the scene atom, and any change to the atom (from any source) updates the React state.
+
+### `useAtomValue`
+
+Read-only subscription to any atom, including derived ones. Useful for displaying computed values in React UI.
+
+```tsx
+function createScene() {
+  const scene = new Scene3D();
+
+  const pointA = scene.atom(vec3(0, 0, 0));
+  const pointB = scene.atom(vec3(3, 4, 0));
+
+  const distance = scene.atom((get) => {
+    const a = get(pointA);
+    const b = get(pointB);
+    return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2 + (b.z - a.z) ** 2);
+  });
+
+  scene.create("camera3d", { position: vec3(5, 5, 5), lookAt: vec3(0, 0, 0) });
+  scene.create("point3d", { coords: pointA, color: "red", radius: 3, draggable: "xyz" });
+  scene.create("point3d", { coords: pointB, color: "blue", radius: 3, draggable: "xyz" });
+  scene.create("line3d", { start: pointA, end: pointB, color: "#888" });
+
+  return { scene, distance };
+}
+
+function App() {
+  const { scene, distance } = useMemo(() => createScene(), []);
+  const d = useAtomValue(distance);
+
+  return (
+    <div>
+      <Scene3DView scene={scene} style={{ width: "100%", height: 400 }} />
+      <p>Distance: {d.toFixed(2)}</p>
+    </div>
+  );
+}
+```
+
+Drag either point and the distance display updates in real time.
+
+## Scene Builder Pattern
+
+The recommended pattern is to encapsulate scene construction in a builder function that returns the scene and any atoms the UI needs:
+
+```tsx
+function createSphereLineScene() {
+  const scene = new Scene3D();
+
+  // Internal atoms (not exposed to the UI)
+  const rayOrigin = scene.atom(vec3(-4, 2, 0));
+  const rayDir = scene.atom((get) => { /* ... */ });
+  const intersection = scene.atom((get) => { /* ... */ });
+
+  // ... create all items ...
+
+  // Public API: only what the UI needs to control or display
+  return {
+    scene,
+    sphereRadius: scene.atom(2.5),  // read + write from UI
+    hitCount: scene.atom((get) =>   // read-only for display
+      get(intersection).points.length
+    ),
+  };
+}
+```
+
+This gives you clean separation. Internal atoms and items are encapsulated. The return type is the public interface. The UI only subscribes to what it needs, only re-renders when those specific values change.
+
+## Reusable Constructions
+
+Since scenes are built with plain function calls, reusable "components" are just functions that take a scene and add items to it:
+
+```tsx
+function createTriangle(
+  scene: Scene3D,
+  vertices: [Vec3, Vec3, Vec3],
+  options?: { color?: string; showCentroid?: boolean }
+) {
+  const { color = "#888", showCentroid = true } = options ?? {};
+  const [a, b, c] = vertices.map((v) => scene.atom(v));
+
+  scene.create("point3d", { coords: a, color, radius: 3, draggable: "xy" });
+  scene.create("point3d", { coords: b, color, radius: 3, draggable: "xy" });
+  scene.create("point3d", { coords: c, color, radius: 3, draggable: "xy" });
+
+  scene.create("line3d", { start: a, end: b, color });
+  scene.create("line3d", { start: b, end: c, color });
+  scene.create("line3d", { start: c, end: a, color });
+
+  if (showCentroid) {
+    const centroid = scene.atom((get) => {
+      const va = get(a), vb = get(b), vc = get(c);
+      return vec3(
+        (va.x + vb.x + vc.x) / 3,
+        (va.y + vb.y + vc.y) / 3,
+        (va.z + vb.z + vc.z) / 3
+      );
+    });
+    scene.create("point3d", { coords: centroid, color: "gold", radius: 2.5 });
+  }
+
+  return { a, b, c };
+}
+```
+
+Use it in any scene:
+
+```tsx
+function createMyScene() {
+  const scene = new Scene3D();
+
+  scene.create("camera3d", { position: vec3(0, 0, 12), lookAt: vec3(0, 0, 0) });
+  scene.create("grid3d", { plane: "xy", range1: [-8, 8], range2: [-8, 8] });
+
+  // Two triangles in the same scene
+  createTriangle(scene, [vec3(-4, -2, 0), vec3(-1, -2, 0), vec3(-2.5, 1, 0)]);
+  createTriangle(scene, [vec3(1, -2, 0), vec3(4, -2, 0), vec3(2.5, 1, 0)], {
+    color: "dodgerblue",
+  });
+
+  return { scene };
+}
+```
+
+These construction functions work identically in vanilla JS. React just provides the mounting.
+
+## Camera Management
+
+If you don't create a camera in your scene, `Scene3DView` creates a default one internally.
+
+For explicit camera control (multiple cameras, switching), you can use the `Camera3D` component as a child of `Scene3DView`:
+
+```tsx
+import { Scene3DView, Camera3D } from "uzay/react";
+
+function App() {
+  const { scene } = useMemo(() => createMyScene(), []);
+  const [topDown, setTopDown] = useState(false);
+
+  return (
+    <div>
+      <Scene3DView scene={scene} style={{ width: "100%", height: 400 }}>
+        <Camera3D
+          position={vec3(5, 5, 5)}
+          lookAt={vec3(0, 0, 0)}
+          active={!topDown}
+        />
+        <Camera3D
+          position={vec3(0, 15, 0.01)}
+          lookAt={vec3(0, 0, 0)}
+          enableOrbit={false}
+          active={topDown}
+        />
+      </Scene3DView>
+      <button onClick={() => setTopDown(!topDown)}>Toggle View</button>
+    </div>
+  );
+}
+```
+
+## JSX Item Components
+
+Uzay also exports React components for each item type (`Point3D`, `Line3D`, `Sphere3D`, etc.). These are convenient for simple, static scenes where you want a quick setup without writing a builder function:
+
+```tsx
+import { Scene3DView, Camera3D, Point3D, Line3D, Axes3D } from "uzay/react";
+import { vec3 } from "uzay";
+
+function QuickDemo() {
+  return (
+    <Scene3DView style={{ width: "100%", height: 400 }}>
       <Camera3D position={vec3(5, 5, 5)} lookAt={vec3(0, 0, 0)} />
-      <Point3D coords={vec3(1, 2, 1)} color="crimson" radius={3} />
+      <Point3D coords={vec3(1, 2, 0)} color="cyan" radius={3} />
+      <Line3D start={vec3(0, 0, 0)} end={vec3(1, 2, 0)} color="white" />
       <Axes3D x={[-5, 5]} y={[-5, 5]} z={[-5, 5]} />
     </Scene3DView>
   );
 }
 ```
 
-`Scene3DView` creates a container div, initializes the Three.js renderer, and cleans everything up on unmount. Each item component (`Point3D`, `Line3D`, etc.) creates the corresponding scene object when it mounts and removes it when it unmounts.
-
-## Available Components
-
-Every scene object type has a matching React component:
-
-| Component | Description |
-|-----------|-------------|
-| `Scene3DView` | Container that manages the View3D lifecycle |
-| `Camera3D` | Camera with auto-registration |
-| `Point3D` | 3D point / sphere marker |
-| `Line3D` | Line segment between two points |
-| `Vector3D` | Arrow vector |
-| `Sphere3D` | Sphere at a given center |
-| `Plane3D` | Infinite plane |
-| `Axes3D` | Coordinate axes |
-| `Grid3D` | Grid on a coordinate plane |
-| `Overlay3D` | 2D text/LaTeX overlay anchored in 3D |
-| `ParametricFunction3D` | Parametric curve |
-
-Each component accepts the same options as `scene.create()` for that object type, plus event handler props (`onDrag`, `onClick`, `onHover`) and a `ref` prop.
-
-## Reactive Props
-
-There are two ways to make props reactive: plain React state and scene atoms.
-
-### React State
-
-For simple values that change occasionally (colors, sizes, toggles), regular React state works:
-
-```tsx
-import { useState } from "react";
-
-function App() {
-  const [color, setColor] = useState("red");
-
-  return (
-    <>
-      <Scene3DView scene={scene} style={{ width: "100%", height: 500 }}>
-        <Camera3D position={vec3(5, 5, 5)} lookAt={vec3(0, 0, 0)} />
-        <Point3D coords={vec3(1, 2, 1)} color={color} />
-      </Scene3DView>
-      <button onClick={() => setColor(color === "red" ? "blue" : "red")}>
-        Toggle Color
-      </button>
-    </>
-  );
-}
-```
-
-When a plain-value prop changes between renders, the component automatically syncs it to the item's internal atom. This goes through React's render cycle, which is perfectly fine for infrequent updates.
-
-### Scene Atoms
-
-For values that are shared across multiple items, change frequently (like during a drag), or need derived computations, use atoms:
-
-```tsx
-const scene = new Scene3D();
-const pos = scene.atom(vec3(0, 0, 0));
-
-// Derived atom: label text updates whenever pos changes
-const label = scene.atom((get) => {
-  const p = get(pos);
-  return `(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`;
-});
-
-function App() {
-  return (
-    <Scene3DView scene={scene} style={{ width: "100%", height: 500 }}>
-      <Camera3D position={vec3(5, 5, 5)} lookAt={vec3(0, 0, 0)} />
-      <Point3D coords={pos} color="cyan" draggable="xyz" />
-      <Overlay3D anchor={pos} content={label} />
-    </Scene3DView>
-  );
-}
-```
-
-Atom props bypass React entirely. When `pos` changes (e.g., during a drag), the point and overlay update directly through the atom system with no React re-render. This is important for smooth, high-frequency updates.
-
-### When to Use Which
-
-| Use React state when... | Use atoms when... |
-|--------------------------|-------------------|
-| The value is simple and local | Multiple items share the same value |
-| Updates are infrequent (button clicks, toggles) | Updates are frequent (drag, animation) |
-| You don't need derived computations | You need computed/derived values |
-
-You can mix both freely in the same component. For instance, use React state for a color toggle and atoms for a draggable position.
-
-## The `useSceneAtom` Hook
-
-If you prefer creating atoms inside your components (instead of at module scope), use the `useSceneAtom` hook. It works like `scene.atom()` but pulls the scene from context:
-
-```tsx
-import { Scene3DView, Camera3D, Point3D, useSceneAtom } from "uzay/react";
-import { vec3 } from "uzay";
-
-function App() {
-  return (
-    <Scene3DView style={{ width: "100%", height: 500 }}>
-      <MyVisualization />
-    </Scene3DView>
-  );
-}
-
-function MyVisualization() {
-  const pos = useSceneAtom(vec3(0, 0, 0));
-
-  return (
-    <>
-      <Camera3D position={vec3(5, 5, 5)} lookAt={vec3(0, 0, 0)} />
-      <Point3D coords={pos} color="gold" draggable="xyz" />
-    </>
-  );
-}
-```
-
-Notice that `Scene3DView` has no `scene` prop here. When omitted, it creates a `Scene3D` internally, and `useSceneAtom` accesses it through context.
-
-<Callout type="info" title="React Compiler">
-  `useSceneAtom` is backed by `useMemo` to keep the atom stable across re-renders. If you're using
-  [React Compiler](https://react.dev/learn/react-compiler), the memoization is handled automatically,
-  so you can use `scene.atom()` directly with `useScene()` if you prefer.
-</Callout>
-
-`useSceneAtom` supports all three atom types:
-
-```tsx
-// Primitive atom
-const radius = useSceneAtom(5);
-
-// Derived atom (read-only)
-const label = useSceneAtom((get) => `r = ${get(radius)}`);
-
-// Writable atom (read + write)
-const clamped = useSceneAtom(
-  (get) => Math.min(get(radius), 10),
-  (get, set, value: number) => set(radius, value),
-);
-```
-
-<Callout type="warning">
-  `useSceneAtom` must be called inside a child of `Scene3DView`, not in the same component that renders it.
-  This is because it reads the scene from React context, which is only available to children.
-</Callout>
-
-## Event Handlers
-
-Attach drag, click, and hover handlers as props:
-
-```tsx
-<Point3D
-  coords={pos}
-  color="cyan"
-  draggable="xyz"
-  onDrag={(event) => {
-    if (event.phase === "move") {
-      pos.set(event.worldPosition);
-    }
-  }}
-  onClick={(event) => {
-    console.log("Clicked at", event.worldPosition);
-  }}
-/>
-```
-
-These map directly to the imperative `.on()` method. The event objects are the same as documented in [Interactions](/docs/core-concepts/interactions).
-
-## Camera
-
-`Scene3DView` manages camera selection automatically.
-
-### Single Camera
-
-If there's one `Camera3D` child, it becomes the active camera:
-
-```tsx
-<Scene3DView scene={scene}>
-  <Camera3D position={vec3(10, 10, 10)} lookAt={vec3(0, 0, 0)} />
-  <Point3D coords={vec3(0, 0, 0)} />
-</Scene3DView>
-```
-
-### Multiple Cameras
-
-With multiple cameras, use the `active` prop to pick one:
-
-```tsx
-<Scene3DView scene={scene}>
-  <Camera3D position={vec3(10, 10, 10)} lookAt={vec3(0, 0, 0)} active />
-  <Camera3D position={vec3(0, 10, 0)} lookAt={vec3(0, 0, 0)} />
-  <Point3D coords={vec3(0, 0, 0)} />
-</Scene3DView>
-```
-
-If no `Camera3D` child is provided at all, `Scene3DView` creates a default camera internally.
-
-### Reactive Camera Properties
-
-Camera properties can also be atoms, just like any other item:
-
-```tsx
-const camPos = scene.atom(vec3(10, 10, 10));
-
-<Camera3D position={camPos} lookAt={vec3(0, 0, 0)} />
-```
-
-For the full list of camera properties, see [Camera](/docs/objects/camera).
-
-## Refs and Imperative Access
-
-Use the `ref` prop to get the underlying item instance for imperative operations:
-
-```tsx
-import { useRef } from "react";
-import type { Point3D as Point3DType } from "uzay";
-
-function App() {
-  const pointRef = useRef<Point3DType>(null);
-
-  return (
-    <>
-      <Scene3DView scene={scene}>
-        <Camera3D position={vec3(5, 5, 5)} lookAt={vec3(0, 0, 0)} />
-        <Point3D ref={pointRef} coords={vec3(1, 2, 3)} color="red" />
-      </Scene3DView>
-      <button onClick={() => {
-        const pt = pointRef.current;
-        if (pt) {
-          console.log("Position:", pt.coords.get());
-          pt.color.set("blue");
-        }
-      }}>
-        Log Position
-      </button>
-    </>
-  );
-}
-```
-
-The ref gives you the same object you'd get from `scene.create()`, so all atom fields and methods (`.on()`, `.off()`, etc.) are available.
-
-### `useScene()` Hook
-
-Use `useScene()` to access the `Scene3D` instance from any child of `Scene3DView`. This is useful for features that don't have React component equivalents yet:
-
-```tsx
-import { useScene } from "uzay/react";
-
-function MyComponent() {
-  const scene = useScene();
-
-  // Full access to the imperative API
-  // e.g., creating items dynamically, subscribing to atoms, etc.
-  useEffect(() => {
-    const item = scene.create("sphere3d", { center: vec3(0, 0, 0), radius: 1 });
-    return () => scene.remove(item);
-  }, [scene]);
-
-  return null;
-}
-```
+Each component accepts the same options as `scene.create()` for that object type, plus `onDrag`, `onClick`, `onHover` event handler props and a `ref` prop.
 
 <Callout type="info">
-  The React wrapper covers the most common use cases, but the imperative core is where most development
-  effort goes. If you find something the wrapper doesn't support, `useScene()` gives you full access
-  to the underlying `Scene3D` and its API.
+  For scenes with reactive dependencies between items, derived atoms, or UI controls, the scene builder pattern with `useAtomState` / `useAtomValue` is recommended. JSX components work best for simple, standalone scenes.
 </Callout>
 
 ## Complete Example
 
-Here's a more complete example with reactive atoms, event handling, and UI controls:
+A sphere-line intersection demo with draggable points and UI controls:
 
 ```tsx
-import { useState } from "react";
-import { Scene3D, vec3 } from "uzay";
-import {
-  Scene3DView,
-  Camera3D,
-  Point3D,
-  Line3D,
-  Axes3D,
-  Grid3D,
-  Overlay3D,
-} from "uzay/react";
+import { useMemo } from "react";
+import { Scene3D, vec3, Vec3 } from "uzay";
+import { Scene3DView, useAtomState } from "uzay/react";
 
-const scene = new Scene3D();
-const pos = scene.atom(vec3(1, 2, 0));
-const label = scene.atom((get) => {
-  const p = get(pos);
-  return `(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`;
-});
+function createSphereLineScene() {
+  const scene = new Scene3D();
 
-function App() {
-  const [lineColor, setLineColor] = useState("dodgerblue");
+  const rayOrigin = scene.atom(vec3(-6, 3, 2));
+  const rayDirPoint = scene.atom(vec3(4, 1, -1));
+  const sphereCenter = scene.atom(vec3(0, 0, 0));
+  const sphereRadius = scene.atom(2.5);
+  const sphereOpacity = scene.atom(0.3);
+
+  const rayDir = scene.atom((get) =>
+    Vec3.normalized(Vec3.subtract(get(rayDirPoint), get(rayOrigin)))
+  );
+
+  const intersection = scene.atom((get) => {
+    const origin = get(rayOrigin);
+    const dir = get(rayDir);
+    const center = get(sphereCenter);
+    const r = get(sphereRadius);
+
+    const oc = Vec3.subtract(origin, center);
+    const a = Vec3.dot(dir, dir);
+    const b = 2 * Vec3.dot(oc, dir);
+    const c = Vec3.dot(oc, oc) - r * r;
+    const disc = b * b - 4 * a * c;
+
+    if (disc < 0) return { hit: false as const, points: [] as Vec3[] };
+
+    const sqrtD = Math.sqrt(disc);
+    const t1 = (-b - sqrtD) / (2 * a);
+    const t2 = (-b + sqrtD) / (2 * a);
+    const points = Math.abs(t1 - t2) < 0.001
+      ? [Vec3.add(origin, Vec3.scaled(dir, t1))]
+      : [Vec3.add(origin, Vec3.scaled(dir, t1)), Vec3.add(origin, Vec3.scaled(dir, t2))];
+
+    return { hit: true as const, points };
+  });
+
+  // Scene items
+  scene.create("camera3d", { position: vec3(10, 8, 10), lookAt: vec3(0, 0, 0), fov: 55 });
+  scene.create("axes3d", { x: [-8, 8], y: [-8, 8], z: [-8, 8], thickness: 0.7 });
+  scene.create("grid3d", { plane: "xz", range1: [-8, 8], range2: [-8, 8], color: "#333" });
+
+  scene.create("sphere3d", {
+    center: sphereCenter, radius: sphereRadius,
+    color: "#4dabf7", opacity: sphereOpacity, pointerEvents: "none",
+  });
+
+  scene.create("line3d", {
+    start: scene.atom((get) => Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), -5))),
+    end: scene.atom((get) => Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), 20))),
+    color: "#ff6b6b", pointerEvents: "none",
+  });
+
+  scene.create("point3d", { coords: rayOrigin, color: "#ff6b6b", radius: 2.5, draggable: "xyz" });
+  scene.create("point3d", { coords: rayDirPoint, color: "#ff8787", radius: 2, draggable: "xyz" });
+  scene.create("point3d", { coords: sphereCenter, color: "#4dabf7", radius: 2, draggable: "xyz" });
+
+  // Intersection points (radius=0 hides them when no hit)
+  const hasHit = scene.atom((get) => get(intersection).hit);
+  const hasTwoHits = scene.atom((get) => get(intersection).points.length === 2);
+
+  const hit1 = scene.atom((get) => get(intersection).points[0] ?? vec3(0, 0, 0));
+  const hit2 = scene.atom((get) => get(intersection).points[1] ?? vec3(0, 0, 0));
+
+  scene.create("point3d", {
+    coords: hit1, color: "#b95bfc",
+    radius: scene.atom((get) => (get(hasHit) ? 2.5 : 0)),
+  });
+  scene.create("point3d", {
+    coords: hit2, color: "#b95bfc",
+    radius: scene.atom((get) => (get(hasTwoHits) ? 2.5 : 0)),
+  });
+
+  return { scene, sphereRadius, sphereOpacity };
+}
+
+export default function SphereLineDemo() {
+  const { scene, sphereRadius, sphereOpacity } = useMemo(
+    () => createSphereLineScene(), []
+  );
+
+  const [radius, setRadius] = useAtomState(sphereRadius);
+  const [opacity, setOpacity] = useAtomState(sphereOpacity);
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
-      <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }}>
-        <Camera3D position={vec3(8, 6, 8)} lookAt={vec3(0, 0, 0)} />
+    <div style={{ position: "relative" }}>
+      <Scene3DView scene={scene} style={{ width: "100%", height: 500 }} />
 
-        <Point3D
-          coords={pos}
-          color="cyan"
-          radius={3}
-          draggable="xz"
-          onDrag={(e) => {
-            if (e.phase === "move") pos.set(e.worldPosition);
-          }}
-        />
-
-        <Line3D start={vec3(0, 0, 0)} end={pos} color={lineColor} />
-        <Overlay3D anchor={pos} content={label} format="text" />
-
-        <Axes3D x={[-5, 5]} y={[-5, 5]} z={[-5, 5]} />
-        <Grid3D plane="xz" />
-      </Scene3DView>
-
-      <button onClick={() => setLineColor(lineColor === "dodgerblue" ? "tomato" : "dodgerblue")}>
-        Toggle Line Color
-      </button>
+      <div style={{ position: "absolute", top: 12, left: 12 }}>
+        <label>
+          Radius: {radius.toFixed(1)}
+          <input type="range" min="0.3" max="6" step="0.1"
+            value={radius} onChange={(e) => setRadius(parseFloat(e.target.value))} />
+        </label>
+        <label>
+          Opacity: {opacity.toFixed(2)}
+          <input type="range" min="0.05" max="1" step="0.05"
+            value={opacity} onChange={(e) => setOpacity(parseFloat(e.target.value))} />
+        </label>
+      </div>
     </div>
   );
 }
 ```
+
+The scene builder encapsulates all the math and item creation. The React component only deals with mounting the scene and wiring up two sliders.
+
+## API Reference
+
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| `Scene3DView` | Mounts a scene into the DOM, manages View3D lifecycle |
+| `Camera3D` | Camera with auto-registration and switching |
+| `Point3D`, `Line3D`, `Vector3D`, `Sphere3D`, `Plane3D` | Item components (convenience) |
+| `Axes3D`, `Grid3D` | Scene furniture components (convenience) |
+| `Overlay3D`, `ParametricFunction3D` | More item components (convenience) |
+
+### Hooks
+
+| Hook | Signature | Description |
+|------|-----------|-------------|
+| `useAtomState(atom)` | `(atom) => [V, (v: V) => void]` | Two-way binding between a writable atom and React state |
+| `useAtomValue(atom)` | `(atom) => V` | Subscribe to any atom's value (read-only) |
+| `useScene()` | `() => Scene3D` | Access the scene from context (inside `Scene3DView` children) |
+| `useSceneAtom(value)` | `(value) => BoundAtom` | Create a scene atom via context (inside `Scene3DView` children) |

@@ -104,7 +104,7 @@ export default function Demo1() {
           content={centerLabelAtom}
           anchor="bottom"
           offset={{ x: 0, y: -8 }}
-          style="color: cyan; font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;"
+          style="color: cyan; font-size: 12px; background: rgba(0,0,0,0.0); padding: 2px 6px; border-radius: 3px;"
         />
 
         <Vector3D origin={centerAtom} vector={normalVecAtom} color="gold" thickness={1} />
