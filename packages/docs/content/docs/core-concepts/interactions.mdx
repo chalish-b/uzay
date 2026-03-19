@@ -1,13 +1,13 @@
 ---
 title: Interactions
-description: Drag, click, and hover events on scene objects
+description: Drag, click, and hover events on scene items
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
 ## Overview
 
-Uzay has a built-in interaction system that lets users drag, click, and hover over objects in the scene. Some objects (like points and vectors) come with default drag behavior, but you can also attach your own event handlers to any object.
+Uzay has a built-in interaction system that lets users drag, click, and hover over items in the scene. Some items (like points and vectors) come with default drag behavior, but you can also attach your own event handlers to any item.
 
 ## Built-in Dragging
 
@@ -23,7 +23,7 @@ const point = scene.create("point3d", {
 
 ### Drag Constraints
 
-The `draggable` property controls which axes an object can be dragged along:
+The `draggable` property controls which axes an item can be dragged along:
 
 ```typescript
 // Free movement in all directions (default)
@@ -47,7 +47,7 @@ Dragging requires a writable atom. If you pass a derived (read-only) atom for th
 
 ## Event Handlers
 
-You can listen for drag, click, and hover events on any object using `.on()`:
+You can listen for drag, click, and hover events on any item using `.on()`:
 
 <Callout type="warning">
 You can only have a single handler function attached to an event type. Adding a new handler to the same event type with `.on()` will override the previous handler.
@@ -107,9 +107,9 @@ sphere.on("hover", (event) => {
 ```
 
 Hover events have three phases:
-- **`"enter"`**: pointer enters the object
-- **`"move"`**: pointer moves while still over the object
-- **`"leave"`**: pointer leaves the object
+- **`"enter"`**: pointer enters the item
+- **`"move"`**: pointer moves while still over the item
+- **`"leave"`**: pointer leaves the item
 
 ### Removing Handlers
 
@@ -128,8 +128,8 @@ All events include these common fields:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `itemId` | `string` | ID of the object that received the event |
-| `itemKind` | `string` | Type of the object (e.g. `"point3d"`) |
+| `itemId` | `string` | ID of the item that received the event |
+| `itemKind` | `string` | Type of the item (e.g. `"point3d"`) |
 | `worldPosition` | `Vec3` | 3D position where the event occurred |
 | `screenPosition` | `Vec2` | Pixel coordinates on the canvas |
 | `ray` | `{ origin: Vec3, direction: Vec3 }` | Camera ray through the pointer |
@@ -144,10 +144,10 @@ Drag events additionally include:
 
 ## Pointer Events
 
-Every object has a `pointerEvents` property that controls whether it participates in the interaction system:
+Every item has a `pointerEvents` property that controls whether it participates in the interaction system:
 
 ```typescript
-// This grid won't block clicks on objects behind it
+// This grid won't block clicks on items behind it
 scene.create("grid3d", {
   pointerEvents: "none",
 });
@@ -155,11 +155,11 @@ scene.create("grid3d", {
 // This sphere will receive clicks and hovers
 scene.create("sphere3d", {
   center: vec3(0, 0, 0),
-  pointerEvents: "auto", // This is the default for most objects
+  pointerEvents: "auto", // This is the default for most items
 });
 ```
 
-- **`"auto"`**: the object can be clicked, hovered, and dragged (default)
-- **`"none"`**: the object is invisible to the pointer and events pass through it
+- **`"auto"`**: the item can be clicked, hovered, and dragged (default)
+- **`"none"`**: the item is invisible to the pointer and events pass through it
 
-This is useful for objects that you don't want intercepting mouse events meant for the objects behind them.
+This is useful for items that you don't want intercepting mouse events meant for the items behind them.

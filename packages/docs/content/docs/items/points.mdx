@@ -1,6 +1,6 @@
 ---
 title: Points
-description: 3D point objects
+description: 3D point items
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
@@ -97,7 +97,7 @@ Drag the gold point and the blue one moves to the opposite position.
 
 ## Updating Properties
 
-Access the atom fields on the returned object to update properties:
+Access the atom fields on the returned item to update properties:
 
 ```typescript
 const point = scene.create("point3d", {
@@ -154,9 +154,9 @@ You can also listen for drag, click, and hover events. See [Interactions](/docs/
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the point receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
 
-### Returned Object
+### Returned Item
 
-The `scene.create("point3d", options)` call returns a `Point3D` object with these atom fields:
+The `scene.create("point3d", options)` call returns a `Point3D` item with these atom fields:
 
 | Field | Type | Description |
 |-------|------|-------------|

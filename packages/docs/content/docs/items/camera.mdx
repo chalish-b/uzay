@@ -5,7 +5,7 @@ description: 3D viewpoint and projection
 
 ## What is Camera3D?
 
-`Camera3D` defines the viewpoint from which a scene is rendered. Unlike most 3D libraries where cameras are separate from scene objects, in Uzay cameras are items that live in the scene, which means they can be reactive too.
+`Camera3D` defines the viewpoint from which a scene is rendered. Unlike most 3D libraries where cameras are separate from scene items, in Uzay cameras are items that live in the scene, which means they can be reactive too.
 
 Every View requires a camera. Without one, you can't render the scene.
 
@@ -166,7 +166,7 @@ function animate() {
 animate();
 ```
 
-### Camera Following an Object
+### Camera Following an Item
 
 ```typescript
 const targetPos = scene.atom(vec3(0, 0, 0));
@@ -271,7 +271,7 @@ canOrbit.set(false);
 | `near` | `number` | `0.1` | Near clipping plane |
 | `far` | `number` | `1000` | Far clipping plane |
 
-### Returned Object
+### Returned Item
 
 | Field | Type | Description |
 |-------|------|-------------|

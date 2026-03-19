@@ -5,11 +5,11 @@ description: Reactive state primitives for dynamic visualizations
 
 ## What are Atoms?
 
-Atoms are reactive state containers, based on [Jotai](https://jotai.org/)'s implementation. They hold values that, when changed, automatically trigger updates to any objects that depend on them.
+Atoms are reactive state containers, based on [Jotai](https://jotai.org/)'s implementation. They hold values that, when changed, automatically trigger updates to any items that depend on them.
 
-The key insight is that any property of any scene object can be an atom. When that atom changes, Uzay automatically:
+The key insight is that any property of any scene item can be an atom. When that atom changes, Uzay automatically:
 
-1. Marks the affected objects as dirty
+1. Marks the affected items as dirty
 2. Schedules a re-render
 3. Updates only what changed
 
@@ -101,9 +101,9 @@ myAtom.set(newValue);
 
 This makes the API much cleaner when working with many atoms.
 
-## Using Atoms with Objects
+## Using Atoms with Items
 
-Any property of a scene object can be an atom. This is where reactivity happens:
+Any property of a scene item can be an atom. This is where reactivity happens:
 
 ```typescript
 const radius = scene.atom(2);
@@ -196,7 +196,7 @@ console.log(combined.get()); // { x: 10, y: 2, z: 3 }
 
 ## Atoms with Functions
 
-Some object properties expect functions, like `f` in parametric curves or surfaces. When a function's behavior depends on parameters, the best approach is to make those parameters atoms and derive the function from them:
+Some item properties expect functions, like `f` in parametric curves or surfaces. When a function's behavior depends on parameters, the best approach is to make those parameters atoms and derive the function from them:
 
 ```typescript
 const amplitude = scene.atom(1);

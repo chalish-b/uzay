@@ -1,0 +1,105 @@
+---
+title: Items
+description: 3D scene items. Points, lines, curves, and more
+---
+
+Items are the visual elements that make up your 3D scene. Uzay provides several types of items for different purposes.
+
+## Creating Items
+
+Use `scene.create(kind, options)` to add items to a scene:
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(1, 2, 3),
+  color: "red",
+  radius: 2,
+});
+```
+
+The first argument is the item type, and the second is an options object where you configure the item's properties.
+
+## Reactive Properties
+
+Every property can be either a plain value or an atom:
+
+```typescript
+scene.create("point3d", { radius: 2 });
+
+const r = scene.atom(2);
+scene.create("point3d", { radius: r });
+
+r.set(5);
+```
+
+You can also use derived atoms for computed properties:
+
+```typescript
+const t = scene.atom(0);
+
+scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const time = get(t);
+    return vec3(Math.cos(time), Math.sin(time), 0);
+  }),
+});
+```
+
+## Available Items
+
+| Item | Description | Common Use Cases |
+|------|-------------|------------------|
+| [Point3D](/docs/items/points) | A sphere at a 3D position | Markers, vertices, handles |
+| [Line3D](/docs/items/lines) | A line segment between two points | Connections, edges |
+| [Vector3D](/docs/items/vectors) | An arrow with origin and direction | Forces, velocities, normals |
+| [ParametricFunction3D](/docs/items/parametric) | A curve defined by a parametric equation | Helixes, spirals, paths |
+| [Surface3D](/docs/items/surfaces) | A surface defined by a height function | Terrain, potential fields, function plots |
+| [Sphere3D](/docs/items/spheres) | A sphere with center and radius | Volumes, regions, atoms |
+| [Plane3D](/docs/items/planes) | A rectangular surface with normal vector | Surfaces, walls, cross-sections |
+| [Overlay3D](/docs/items/overlays) | A 2D label anchored to a 3D position | Labels, equations, annotations |
+| [Axes3D](/docs/items/axes) | Coordinate axes | Reference, orientation |
+| [Grid3D](/docs/items/grid) | A grid on a plane | Reference planes, floors |
+| [Camera3D](/docs/items/camera) | A viewpoint into the scene | Required for rendering |
+
+## Removing Items
+
+Remove items from the scene with `scene.remove()`:
+
+```typescript
+const point = scene.create("point3d", { coords: vec3(1, 1, 1) });
+
+// Later
+scene.remove(point);
+```
+
+## Tags
+
+All items support a `tags` property for categorization:
+
+```typescript
+const p1 = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  tags: ["3d", "2d"],
+});
+
+const p2 = scene.create("point3d", {
+  coords: vec3(1, 0, 0),
+  tags: ["3d"],
+});
+```
+
+Tags are currently unused. In the future, it'll be used for grouping items, and different views and cameras will be able to filter items by tag.
+
+<Cards>
+  <Card title="Points" href="/docs/items/points" />
+  <Card title="Lines" href="/docs/items/lines" />
+  <Card title="Vectors" href="/docs/items/vectors" />
+  <Card title="Parametric Curves" href="/docs/items/parametric" />
+  <Card title="Surfaces" href="/docs/items/surfaces" />
+  <Card title="Spheres" href="/docs/items/spheres" />
+  <Card title="Planes" href="/docs/items/planes" />
+  <Card title="Overlays" href="/docs/items/overlays" />
+  <Card title="Axes" href="/docs/items/axes" />
+  <Card title="Grid" href="/docs/items/grid" />
+  <Card title="Camera" href="/docs/items/camera" />
+</Cards>

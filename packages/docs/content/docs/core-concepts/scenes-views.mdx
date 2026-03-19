@@ -5,9 +5,9 @@ description: Creating scenes and rendering them to the DOM
 
 ## What is a Scene?
 
-A **Scene** is the container that holds all your 3D objects. Think of it as a stage where you place your mathematical visualizations. The scene manages:
+A **Scene** is the container that holds all your 3D items. Think of it as a stage where you place your mathematical visualizations. The scene manages:
 
-- **Items**: All 3D objects (points, lines, curves, axes, grids, cameras)
+- **Items**: All 3D items (points, lines, curves, axes, grids, cameras)
 - **State**: Reactive atoms that drive dynamic updates
 - **Invalidation**: Tracking what needs to re-render
 
@@ -19,9 +19,9 @@ import { Scene3D } from "uzay";
 const scene = new Scene3D();
 ```
 
-## Creating Objects
+## Creating Items
 
-Use `scene.create()` to add objects to the scene. The first argument is the object type, and the second is an options object:
+Use `scene.create()` to add items to the scene. The first argument is the item type, and the second is an options object:
 
 ```typescript
 // Create a point
@@ -46,11 +46,11 @@ const axes = scene.create("axes3d", {
 });
 ```
 
-The `create()` method returns the created object, which you can use to access its reactive properties later.
+The `create()` method returns the created item, which you can use to access its reactive properties later.
 
-## Removing Objects
+## Removing Items
 
-Remove objects from the scene with `scene.remove()`:
+Remove items from the scene with `scene.remove()`:
 
 ```typescript
 const point = scene.create("point3d", { coords: vec3(1, 1, 1) });
@@ -143,8 +143,8 @@ Views come with built-in orbit controls:
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `create` | `create(kind, options)` | Create a new object in the scene |
-| `remove` | `remove(item)` | Remove an object from the scene |
+| `create` | `create(kind, options)` | Create a new item in the scene |
+| `remove` | `remove(item)` | Remove an item from the scene |
 | `atom` | `atom(value)` or `atom((get) => value)` | Create a reactive atom |
 
 ### View3D

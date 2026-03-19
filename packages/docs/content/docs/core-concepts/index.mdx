@@ -9,7 +9,7 @@ Uzay is built around three core concepts that work together to create reactive 3
 
 ### Scene
 
-A **Scene** is a container that holds all your 3D objects (points, lines, curves, etc.) and manages their state. You create objects using `scene.create()` and they automatically become part of the scene.
+A **Scene** is a container that holds all your 3D items (points, lines, curves, etc.) and manages their state. You create items using `scene.create()` and they automatically become part of the scene.
 
 ```typescript
 const scene = new Scene3D();
@@ -30,7 +30,7 @@ A scene can have multiple different views, each with different cameras and rende
 
 ### Atoms
 
-**Atoms** are reactive state containers. Any property of any object can be an atom, and when that atom's value changes, the scene automatically updates. This is the key to creating dynamic, interactive visualizations.
+**Atoms** are reactive state containers. Any property of any item can be an atom, and when that atom's value changes, the scene automatically updates. This is the key to creating dynamic, interactive visualizations.
 
 ```typescript
 const radius = scene.atom(2);
