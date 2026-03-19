@@ -34,6 +34,10 @@ type Write<Args extends unknown[], Result> = (
 type WithInitialValue<Value> = {
   init: Value;
 };
+type ValueModeAtom<Value> = WritableAtom<Value, [Value], void> & WithInitialValue<Value>;
+export type SceneAtomOptions = {
+  mode: "value";
+};
 const BOUND_ATOM_SYMBOL = Symbol("uzay.boundAtom");
 
 // Wrapper that binds a Jotai atom to a specific store
@@ -46,6 +50,58 @@ export type BoundAtom<A extends AnyAtom> = A & {
     : {});
 
 export function createSceneAtom(store: Store) {
+  function bindAtom<A extends AnyAtom>(atom: A): BoundAtom<A> {
+    // Bind store helpers once so callers can interact with scene atoms without
+    // repeating the scene's get/set/sub ceremony.
+    const bound = atom as BoundAtom<A>;
+
+    (bound as any)[BOUND_ATOM_SYMBOL] = true;
+    (bound as any).get = () => store.get(atom as any);
+
+    // Only writable atoms receive .set so the runtime API matches the exposed type.
+    if (typeof (atom as any).write === "function") {
+      (bound as any).set = (...setArgs: any[]) => store.set(atom as any, ...setArgs);
+    }
+
+    (bound as any).sub = (listener: () => void) =>
+      store.sub(atom as any, listener);
+
+    return bound;
+  }
+
+  function isSceneAtomOptions(value: unknown): value is SceneAtomOptions {
+    return (
+      value !== null &&
+      typeof value === "object" &&
+      (value as SceneAtomOptions).mode === "value"
+    );
+  }
+
+  function createValueModeAtom<Value>(
+    initialValue: Value
+  ): BoundAtom<ValueModeAtom<Value>> {
+    // Plain values can use Jotai's primitive atom directly.
+    if (typeof initialValue !== "function") {
+      return bindAtom(
+        jotaiAtom(initialValue) as ValueModeAtom<Value>
+      );
+    }
+
+    // Function values must be boxed so Jotai does not mistake them for atom logic.
+    const boxedAtom = jotaiAtom<{ value: Value }>({
+      value: initialValue as Value,
+    });
+    const valueAtom = jotaiAtom(
+      (get) => get(boxedAtom).value,
+      (_get, set, nextValue: Value) => {
+        set(boxedAtom, { value: nextValue as Value });
+      }
+    ) as ValueModeAtom<Value>;
+
+    valueAtom.init = initialValue as Value;
+    return bindAtom(valueAtom);
+  }
+
   // Overloads mirroring Jotai's atom, but returning SceneAtom<...>
 
   function sceneAtom<Value, Args extends unknown[], Result>(
@@ -60,6 +116,11 @@ export function createSceneAtom(store: Store) {
     write: Write<Args, Result>
   ): BoundAtom<WritableAtom<Value, Args, Result> & WithInitialValue<Value>>;
 
+  function sceneAtom<Value>(
+    initialValue: Value,
+    options: SceneAtomOptions
+  ): BoundAtom<ValueModeAtom<Value>>;
+
   function sceneAtom<Value>(): BoundAtom<
     PrimitiveAtom<Value | undefined> & WithInitialValue<Value | undefined>
   >;
@@ -70,23 +131,17 @@ export function createSceneAtom(store: Store) {
 
   // Single implementation
   function sceneAtom(...args: any[]): any {
-    // This is the real jotai atom
-    // @ts-expect-error
-    const a = jotaiAtom(...(args as any));
-
-    // Treat it as a BoundAtom and attach helpers
-    const bound = a as BoundAtom<typeof a>;
-
-    (bound as any)[BOUND_ATOM_SYMBOL] = true;
-    (bound as any).get = () => store.get(a as any);
-    // Expose .set only for writable atoms so runtime behavior matches the type-level API.
-    if (typeof (a as any).write === "function") {
-      (bound as any).set = (...setArgs: any[]) => store.set(a as any, ...setArgs);
+    // Value mode keeps the public API explicit while routing function values
+    // through a boxed writable atom under the hood.
+    if (args.length === 2 && isSceneAtomOptions(args[1])) {
+      return createValueModeAtom(args[0]);
     }
-    (bound as any).sub = (listener: () => void) =>
-      store.sub(a as any, listener);
 
-    return bound;
+    // Fall back to Jotai's normal atom overloads for derived atoms and other
+    // standard writable atom forms.
+    // @ts-expect-error
+    const atom = jotaiAtom(...(args as any));
+    return bindAtom(atom);
   }
 
   return sceneAtom;

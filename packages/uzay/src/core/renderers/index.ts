@@ -91,6 +91,12 @@ export type ThreeSceneTypes = {
     edgeMaterial?: THREE.LineBasicMaterial;
     edgeLines?: THREE.LineSegments;
   };
+  surface3d: {
+    kind: "surface3d";
+    geometry: THREE.BufferGeometry;
+    material: THREE.MeshPhongMaterial;
+    mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhongMaterial>;
+  };
 };
 
 export type ThreeSceneObject<K extends ItemKind = ItemKind> =
@@ -114,6 +120,7 @@ import { sphere3dRenderer } from "./sphere3d";
 import { vector3dRenderer } from "./vector3d";
 import { overlay3dRenderer } from "./overlay3d";
 import { plane3dRenderer } from "./plane3d";
+import { surface3dRenderer } from "./surface3d";
 
 // Registry mapping item kinds to their renderers
 export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
@@ -127,6 +134,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   vector3d: vector3dRenderer,
   overlay3d: overlay3dRenderer,
   plane3d: plane3dRenderer,
+  surface3d: surface3dRenderer,
 };
 
 // Helper function to get a typed renderer for a specific kind

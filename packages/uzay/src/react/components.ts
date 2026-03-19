@@ -9,3 +9,4 @@ export const Sphere3D = createItemComponent("sphere3d");
 export const Vector3D = createItemComponent("vector3d");
 export const Overlay3D = createItemComponent("overlay3d");
 export const Plane3D = createItemComponent("plane3d");
+export const Surface3D = createItemComponent("surface3d");

@@ -17,6 +17,7 @@ export type { ParametricFunction3D } from "./core/items/parametric-function3d"
 export type { Vector3D } from "./core/items/vector3d"
 export type { Overlay3D } from "./core/items/overlay3d"
 export type { Plane3D } from "./core/items/plane3d"
+export type { Surface3D } from "./core/items/surface3d"
 
 // Atom types
 export type { BoundAtom, SceneAtom, AtomLikeInput } from "./core/atom-wrapper"

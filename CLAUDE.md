@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 Reactive 3D mathematical visualization library built with TypeScript, React, Three.js, and Jotai. All item properties are Jotai atoms, enabling automatic re-rendering when state changes.
@@ -39,19 +35,10 @@ Bun workspaces with three packages:
 
 Each item type has two files:
 
-- `items/<kind>.ts` — Data model (fields, options, snapshot generation)
+- `items/<kind>.ts` — Data model
 - `renderers/<kind>.ts` — Three.js rendering (create/update/dispose lifecycle)
 
 Renderers never access items directly; they receive immutable **snapshots** (`ItemSnapshot<K>`). The renderer contract is `create()`, `update()`, `dispose()`.
-
-Current item types: `point3d`, `line3d`, `parametricfunction3d`, `sphere3d`, `axes3d`, `grid3d`, `camera3d` (camera is data-only, no renderer file).
-
-### Adding a New Item Type
-
-1. Create `items/<kind>.ts` with fields, options, and class extending `BaseItem`
-2. Create `renderers/<kind>.ts` implementing the renderer contract
-3. Register in `common-types/item-registry.ts` (add to `ItemKind` union, `ItemFieldsMap`, `itemFactory`, and `ItemInstance` conditional type)
-4. Register renderer in `renderers/index.ts`
 
 ### Key Patterns
 
@@ -60,11 +47,7 @@ Current item types: `point3d`, `line3d`, `parametricfunction3d`, `sphere3d`, `ax
 - **Drag constraints**: Points support axis/plane-constrained dragging (x/y/z/xy/xz/yz/xyz/none) via ray-plane and ray-axis intersection math.
 - **Event system**: Items support `on('drag'|'click'|'hover', handler)` with typed event objects including ray info.
 
-## TypeScript
-
-Strict mode with `noUnusedLocals` and `noUnusedParameters` enabled. React Compiler (babel-plugin-react-compiler) is active in the playground via Vite.
-
 ## Other notes
 
-- After implementing a feature, if it's testable in a demo, edit demo1.tsx (sandbox demo in `packages/playground/src/demos/`) to create a test scenario for it, to see whether all features work.
+- After implementing a feature, if it's testable in a demo, edit demo1.tsx (sandbox demo in `packages/playground/src/demos/`) to create a test scenario for it, to see whether all features work. You can tear down the existing demo1.tsx, make it a demo where we can test all the different features and edge cases of a newly implemented feature.
 - After finishing a documentation or write up, do another pass to replace all instances of em dashes with something more natural (commas, colons, or just restructure the sentence to flow better). No em dashes.

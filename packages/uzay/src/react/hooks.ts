@@ -8,9 +8,10 @@ export function useAtomValue<V>(atom: BoundAtom<Atom<V>>): V {
   const [value, setValue] = useState<V>(() => atom.get() as V);
 
   useEffect(() => {
-    // Sync in case the atom changed between render and effect
-    setValue(atom.get() as V);
-    return atom.sub(() => setValue(atom.get() as V));
+    // Wrap assignments so function-valued atoms are stored as plain values
+    // instead of being treated as React state updater callbacks.
+    setValue(() => atom.get() as V);
+    return atom.sub(() => setValue(() => atom.get() as V));
   }, [atom]);
 
   return value;

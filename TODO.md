@@ -61,3 +61,5 @@
   - Being able to click on an object, and directly changing its properties and atoms on the interface
 
   ## Bugs
+
+- Explicitly typed atoms (`scene.atom<T>()`) don't get autocomplete. The type checking still works, but for things like string types, it would be nice if it provided autocomplete.

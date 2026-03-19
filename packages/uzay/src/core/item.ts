@@ -219,10 +219,10 @@ function atomizeFieldValue<Value>(
     return value as BoundAtom<Atom<Value>>;
   }
 
-  // Function-valued fields need explicit "treat as value" handling so they do
-  // not get confused with Jotai's derived-atom function signature.
-  if (mode === "value" && typeof value === "function") {
-    return scene.atom(() => value) as BoundAtom<Atom<Value>>;
+  // Value-mode fields should share the exact same atomization rules as the
+  // public scene.atom API, including writable function-valued atoms.
+  if (mode === "value") {
+    return scene.atom(value, { mode: "value" }) as BoundAtom<Atom<Value>>;
   }
 
   return scene.atom(value) as BoundAtom<Atom<Value>>;

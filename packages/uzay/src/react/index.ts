@@ -12,4 +12,5 @@ export {
   Vector3D,
   Overlay3D,
   Plane3D,
+  Surface3D,
 } from "./components";
