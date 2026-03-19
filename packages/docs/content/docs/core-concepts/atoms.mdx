@@ -196,51 +196,57 @@ console.log(combined.get()); // { x: 10, y: 2, z: 3 }
 
 ## Atoms with Functions
 
-When an object property expects a function (like `f` in parametric curves), you can make the function itself reactive:
+Some object properties expect functions, like `f` in parametric curves or surfaces. When a function's behavior depends on parameters, the best approach is to make those parameters atoms and derive the function from them:
 
 ```typescript
-const offset = scene.atom(0);
+const amplitude = scene.atom(1);
+const frequency = scene.atom(1);
 
-// The parametric function changes based on offset
 const f = scene.atom((get) => {
-  const x = get(offset);
-  return (t: number) => vec3(x + t, Math.sin(t), Math.cos(t));
+  const a = get(amplitude);
+  const freq = get(frequency);
+  return (x: number, z: number) => a * Math.sin(freq * Math.sqrt(x * x + z * z));
 });
 
-const curve = scene.create("parametricfunction3d", {
-  f: f,
-  tStart: 0,
-  tEnd: 10,
-});
+const surface = scene.create("surface3d", { f });
 
-// The entire curve shifts when offset changes
-offset.set(5);
+// The surface updates automatically when either parameter changes
+amplitude.set(2);
+frequency.set(0.5);
 ```
 
-<Callout type="warning" title="Important Note About Function Atoms">
-  When using functions as atoms, **you must get the value of all the dependencies outside of the function** you're returning:
+This way the function always stays in sync with its dependencies, and you control the parameters individually.
+
+<Callout type="warning" title="Read dependencies outside the returned function">
+  When deriving a function atom, **read all dependencies outside the function** you return:
 
   ```typescript
   const myAtom = scene.atom(0);
 
-  // BAD
+  // BAD: get() is called inside the returned function, not tracked as a dependency
   const f = scene.atom((get) => {
-    // Don't directly access the dependency inside the function
     return (t: number) => vec3(get(myAtom), Math.sin(t), Math.cos(t));
   });
 
-  // GOOD
+  // GOOD: get() is called in the derivation, value is captured by the closure
   const f = scene.atom((get) => {
-    // Get the value first
     const x = get(myAtom); // [!code highlight]
-
-    // Then use that value in the function
     return (t: number) => vec3(x, Math.sin(t), Math.cos(t)); // [!code word:x]
   });
   ```
-
-  This still keeps the reactivity, meaning the function will update when the dependency atom changes. It's just a small quirk with how atoms work.
 </Callout>
+
+### Primitive Function Atoms
+
+Since passing a function to `scene.atom()` always creates a derived atom (the function is treated as the computation, not the value), you need to use `{ mode: "value" }` if you want to store a function as a plain value:
+
+```typescript
+const f = scene.atom((x: number, z: number) => x + z, { mode: "value" });
+
+f.set((x, z) => Math.sin(x) * Math.cos(z)); // works
+```
+
+This is rarely needed. In most cases, if a function needs to change, it's because its parameters are changing, and a derived atom handles that more cleanly.
 
 ## Automatic Atomization
 
@@ -274,6 +280,7 @@ It's just that if you're going to use the atom in multiple places (like dependen
 | `scene.atom(value)` | `<T>(value: T) => BoundAtom<PrimitiveAtom<T>>` | Create a primitive atom |
 | `scene.atom(readFn)` | `<T>((get) => T) => BoundAtom<Atom<T>>` | Create a derived atom |
 | `scene.atom(readFn, writeFn)` | `<T>((get) => T, (set) => void) => BoundAtom<WritableAtom<T>>` | Create a writable atom |
+| `scene.atom(fn, { mode: "value" })` | `<T>(fn: T) => BoundAtom<PrimitiveAtom<T>>` | Create a primitive atom that stores a function as its value |
 
 ### Atom Methods
 

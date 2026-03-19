@@ -1,0 +1,217 @@
+---
+title: Surfaces
+description: 3D surfaces defined by a function of two variables
+---
+
+## What is a Surface?
+
+A surface maps two input coordinates to a height value, creating a 3D mesh:
+
+$$
+y = f(x, z)
+$$
+
+The function is evaluated over a rectangular grid in the $xz$-plane. Each grid point becomes a vertex at $(x, f(x, z), z)$, and neighboring vertices are connected into triangles to form a smooth surface. Note that Y is the vertical axis (following Three.js conventions), so the function returns the "up" component.
+
+Surfaces are useful for visualizing functions of two variables, terrain, potential fields, probability distributions, and more.
+
+## Basic Usage
+
+```typescript
+const surface = scene.create("surface3d", {
+  f: (x, z) => Math.sin(Math.sqrt(x * x + z * z)),
+  xRange: [-5, 5],
+  zRange: [-5, 5],
+  color: "dodgerblue",
+});
+```
+
+This draws the classic "ripple" surface where the height is determined by the distance from the origin.
+
+## Domain and Sampling
+
+### Setting the Domain
+
+The `xRange` and `zRange` properties control the rectangular region where the function is evaluated:
+
+```typescript
+scene.create("surface3d", {
+  f: (x, z) => x * x - z * z,
+  xRange: [-3, 3],
+  zRange: [-3, 3],
+});
+```
+
+### Sampling Resolution
+
+The `samples` property controls how many points are computed along each axis. A value of 64 means a 64x64 grid (4,096 vertices):
+
+```typescript
+// Low resolution: visible facets
+scene.create("surface3d", {
+  f: (x, z) => Math.sin(x) * Math.cos(z),
+  samples: 16,
+});
+
+// High resolution: smooth surface
+scene.create("surface3d", {
+  f: (x, z) => Math.sin(x) * Math.cos(z),
+  samples: 128,
+});
+```
+
+Higher sample counts look smoother but use more memory. For most functions, 64 (the default) is a good balance.
+
+## Styling
+
+```typescript
+scene.create("surface3d", {
+  f: (x, z) => Math.exp(-(x * x + z * z) / 4),
+  color: "hotpink",
+  opacity: 0.7,
+});
+```
+
+## Reactive Surfaces
+
+### Reactive Parameters
+
+Make the function respond to changing parameters using derived atoms:
+
+```typescript
+const amplitude = scene.atom(1);
+const frequency = scene.atom(1);
+
+scene.create("surface3d", {
+  f: scene.atom((get) => {
+    const a = get(amplitude);
+    const freq = get(frequency);
+    return (x: number, z: number) => a * Math.sin(freq * Math.sqrt(x * x + z * z));
+  }),
+  xRange: [-5, 5],
+  zRange: [-5, 5],
+});
+
+// Changing these atoms updates the surface automatically
+amplitude.set(2);
+frequency.set(0.5);
+```
+
+The function updates automatically whenever `amplitude` or `frequency` changes.
+
+### Reactive Domain
+
+Animate or control the visible region:
+
+```typescript
+const spread = scene.atom(3);
+
+scene.create("surface3d", {
+  f: (x, z) => Math.sin(x) * Math.cos(z),
+  xRange: scene.atom((get) => [-get(spread), get(spread)] as [number, number]),
+  zRange: scene.atom((get) => [-get(spread), get(spread)] as [number, number]),
+});
+```
+
+### Switching Between Functions
+
+Use a derived atom that selects from a set of functions based on some state:
+
+```typescript
+const mode = scene.atom<"waves" | "saddle" | "gaussian">("waves");
+
+const surfaceFunc = scene.atom((get) => {
+  const m = get(mode);
+  if (m === "waves") return (x: number, z: number) => Math.sin(x) * Math.cos(z);
+  if (m === "saddle") return (x: number, z: number) => (x * x - z * z) / 5;
+  return (x: number, z: number) => 2 * Math.exp(-(x * x + z * z) / 4);
+});
+
+scene.create("surface3d", { f: surfaceFunc });
+
+// Switch to a different surface shape
+mode.set("gaussian");
+```
+
+## Common Surfaces
+
+### Saddle Point
+
+```typescript
+scene.create("surface3d", {
+  f: (x, z) => (x * x - z * z) / 5,
+  color: "#ff6b6b",
+});
+```
+
+### Gaussian
+
+```typescript
+scene.create("surface3d", {
+  f: (x, z) => 2 * Math.exp(-(x * x + z * z) / 4),
+  color: "#4dabf7",
+});
+```
+
+### Standing Waves
+
+```typescript
+scene.create("surface3d", {
+  f: (x, z) => Math.sin(x) * Math.cos(z),
+  color: "#69db7c",
+});
+```
+
+## Updating Properties
+
+All fields on the returned object are atoms:
+
+```typescript
+const surface = scene.create("surface3d", {
+  f: (x, z) => Math.sin(x) * Math.cos(z),
+  color: "white",
+  opacity: 1,
+  samples: 64,
+});
+
+surface.color.set("crimson");
+surface.opacity.set(0.5);
+surface.wireframe.set(true);
+surface.samples.set(128);
+surface.xRange.set([-10, 10]);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(x: number, z: number) => number` | `() => 0` | Height function. Returns the Y (up) value for a given (x, z) position |
+| `xRange` | `[number, number]` | `[-5, 5]` | Domain bounds along the X axis |
+| `zRange` | `[number, number]` | `[-5, 5]` | Domain bounds along the Z axis |
+| `samples` | `number` | `64` | Grid resolution per axis (64 means 64x64 vertices) |
+| `color` | `string` | `"white"` | CSS color string |
+| `opacity` | `number` | `1` | Opacity from 0 (transparent) to 1 (opaque) |
+| `wireframe` | `boolean` | `false` | Whether to render as wireframe |
+| `visible` | `boolean` | `true` | Whether the surface is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the surface receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `f` | `BoundAtom<(x: number, z: number) => number>` | Function atom |
+| `xRange` | `BoundAtom<[number, number]>` | X domain atom |
+| `zRange` | `BoundAtom<[number, number]>` | Z domain atom |
+| `samples` | `BoundAtom<number>` | Sample count atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
+| `wireframe` | `BoundAtom<boolean>` | Wireframe atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |
