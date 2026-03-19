@@ -127,6 +127,43 @@ function createSurfaceScene() {
   scene.create("axes3d", { x: [-6, 6], y: [-6, 6], z: [-6, 6], thickness: 0.7 });
   scene.create("grid3d", { plane: "xz", range1: [-6, 6], range2: [-6, 6], color: "#333" });
 
+  // Cross-section cutting plane along the x direction
+  const cutX = scene.atom(0);
+  const showCut = scene.atom(true);
+  const planeOpacity = scene.atom(0.15);
+
+  scene.create("plane3d", {
+    point: scene.atom((get) => vec3(get(cutX), 0, 0)),
+    normal: vec3(1, 0, 0),
+    width: 12,
+    height: 12,
+    color: "#ff4444",
+    opacity: planeOpacity,
+    showEdges: true,
+    visible: showCut,
+  });
+
+  // Cross-section curve: for a fixed x, trace z -> f(x, z)
+  const crossSectionFunc = scene.atom((get) => {
+    const fn = get(surfaceFunc);
+    const x0 = get(cutX);
+    const zR = get(zRange);
+    return (t: number) => {
+      const z = zR[0] + t * (zR[1] - zR[0]);
+      return vec3(x0, fn(x0, z), z);
+    };
+  });
+
+  scene.create("parametricfunction3d", {
+    f: crossSectionFunc,
+    tStart: 0,
+    tEnd: 1,
+    samples: 128,
+    color: "#ff4444",
+    thickness: 3,
+    visible: showCut,
+  });
+
   return {
     scene,
     surface,
@@ -142,6 +179,9 @@ function createSurfaceScene() {
     opacity,
     wireframe,
     visible,
+    cutX,
+    showCut,
+    planeOpacity,
   };
 }
 
@@ -161,6 +201,9 @@ export default function Demo1() {
     opacity,
     wireframe,
     visible,
+    cutX,
+    showCut,
+    planeOpacity,
   } = useMemo(() => createSurfaceScene(), []);
 
   // Read the derived function atom directly so the panel can verify that the
@@ -178,6 +221,9 @@ export default function Demo1() {
   const [opacityVal, setOpacity] = useAtomState(opacity);
   const [wireframeVal, setWireframe] = useAtomState(wireframe);
   const [visibleVal, setVisible] = useAtomState(visible);
+  const [cutXVal, setCutX] = useAtomState(cutX);
+  const [showCutVal, setShowCut] = useAtomState(showCut);
+  const [planeOpacityVal, setPlaneOpacity] = useAtomState(planeOpacity);
 
   const labelStyle = { color: "white", fontSize: 13 } as const;
   const rowStyle = { display: "flex", alignItems: "center", gap: 8 } as const;
@@ -369,6 +415,51 @@ export default function Demo1() {
           <input type="checkbox" checked={visibleVal} onChange={(e) => setVisible(e.target.checked)} />{" "}
           Visible
         </label>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            padding: "8px 10px",
+            background: "rgba(255,68,68,0.1)",
+            borderRadius: 6,
+            borderLeft: "3px solid #ff4444",
+          }}
+        >
+          <label style={{ ...labelStyle, fontWeight: "bold" }}>
+            <input type="checkbox" checked={showCutVal} onChange={(e) => setShowCut(e.target.checked)} />{" "}
+            Cross Section Plane
+          </label>
+          <div style={rowStyle}>
+            <span style={{ ...labelStyle, minWidth: 90 }}>
+              X = {cutXVal.toFixed(2)}
+            </span>
+            <input
+              type="range"
+              min={-5}
+              max={5}
+              step={0.05}
+              value={cutXVal}
+              onChange={(e) => setCutX(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+          </div>
+          <div style={rowStyle}>
+            <span style={{ ...labelStyle, minWidth: 90 }}>
+              Opacity: {planeOpacityVal.toFixed(2)}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={planeOpacityVal}
+              onChange={(e) => setPlaneOpacity(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

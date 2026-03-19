@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../common-types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
+import { applyOpacityMaterialState } from "./material-transparency";
 
 function buildSurfaceBuffers(
   f: (x: number, z: number) => number,
@@ -60,10 +61,12 @@ export const surface3dRenderer: ItemRenderer<"surface3d"> = {
       specular: 0xaaaaaa,
       shininess: 5,
       side: THREE.DoubleSide,
-      transparent: true,
+      transparent: item.opacity < 1,
       opacity: item.opacity,
+      depthWrite: item.opacity >= 1,
       wireframe: item.wireframe,
     });
+    applyOpacityMaterialState(material, item.opacity);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
@@ -73,8 +76,7 @@ export const surface3dRenderer: ItemRenderer<"surface3d"> = {
 
   update(item: ItemSnapshot<"surface3d">, obj: ThreeSceneTypes["surface3d"]): void {
     obj.material.color.set(item.color);
-    obj.material.opacity = item.opacity;
-    obj.material.transparent = true;
+    applyOpacityMaterialState(obj.material, item.opacity);
     obj.material.wireframe = item.wireframe;
 
     const N = Math.max(Math.round(item.samples), 2);

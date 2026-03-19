@@ -3,6 +3,8 @@ title: Surfaces
 description: 3D surfaces defined by a function of two variables
 ---
 
+import { TransparencyWarning } from "@/components/transparency-warning";
+
 ## What is a Surface?
 
 A surface maps two input coordinates to a height value, creating a 3D mesh:
@@ -71,6 +73,8 @@ scene.create("surface3d", {
   opacity: 0.7,
 });
 ```
+
+<TransparencyWarning />
 
 ## Reactive Surfaces
 

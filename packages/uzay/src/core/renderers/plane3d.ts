@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../common-types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
+import { applyOpacityMaterialState } from "./material-transparency";
 
 const DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
@@ -33,7 +34,9 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
       shininess: 5,
       transparent: item.opacity < 1,
       opacity: item.opacity,
+      depthWrite: item.opacity >= 1,
     });
+    applyOpacityMaterialState(material, item.opacity);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.scale.set(item.width, item.height, 1);
     mesh.position.set(item.point.x, item.point.y, item.point.z);
@@ -65,8 +68,7 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
     obj: ThreeSceneTypes["plane3d"]
   ): void {
     obj.material.color.set(item.color);
-    obj.material.opacity = item.opacity;
-    obj.material.transparent = item.opacity < 1;
+    applyOpacityMaterialState(obj.material, item.opacity);
     obj.mesh.scale.set(item.width, item.height, 1);
     obj.mesh.position.set(item.point.x, item.point.y, item.point.z);
     orientToNormal(obj.mesh, item.normal);

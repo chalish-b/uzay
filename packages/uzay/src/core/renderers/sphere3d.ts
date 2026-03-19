@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../common-types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
+import { applyOpacityMaterialState } from "./material-transparency";
 
 export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
   create(
@@ -14,7 +15,9 @@ export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
       shininess: 5,
       transparent: item.opacity < 1,
       opacity: item.opacity,
+      depthWrite: item.opacity >= 1,
     });
+    applyOpacityMaterialState(material, item.opacity);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.scale.set(item.radius, item.radius, item.radius);
     mesh.position.set(item.center.x, item.center.y, item.center.z);
@@ -34,8 +37,7 @@ export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
     obj: ThreeSceneTypes["sphere3d"]
   ): void {
     obj.material.color.set(item.color);
-    obj.material.opacity = item.opacity;
-    obj.material.transparent = item.opacity < 1;
+    applyOpacityMaterialState(obj.material, item.opacity);
     obj.mesh.scale.set(item.radius, item.radius, item.radius);
     obj.mesh.position.set(item.center.x, item.center.y, item.center.z);
     obj.mesh.visible = item.visible;

@@ -3,6 +3,8 @@ title: Planes
 description: 3D plane surfaces
 ---
 
+import { TransparencyWarning } from "@/components/transparency-warning";
+
 ## What is a Plane3D?
 
 A `Plane3D` renders as a bounded rectangular surface in 3D space, defined by a center point and a normal vector. Planes are useful for:
@@ -48,6 +50,8 @@ scene.create("plane3d", {
   opacity: 0.3, // Semi-transparent
 });
 ```
+
+<TransparencyWarning />
 
 ### Size
 
