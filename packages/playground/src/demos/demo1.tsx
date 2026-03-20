@@ -101,7 +101,6 @@ function createSurfaceScene() {
     });
   });
   const samples = scene.atom(64);
-  const xRange = scene.atom<[number, number]>([-5, 5]);
   const zRange = scene.atom<[number, number]>([-5, 5]);
   const color = scene.atom("#4488ff");
   const opacity = scene.atom(0.85);
@@ -113,6 +112,18 @@ function createSurfaceScene() {
     lookAt: vec3(0, 0, 0),
   });
 
+
+  scene.create("axes3d", { x: [-6, 6], y: [-6, 6], z: [-6, 6], thickness: 0.7 });
+  scene.create("grid3d", { plane: "xz", range1: [-6, 6], range2: [-6, 6], color: "#333" });
+
+  // Cross-section cutting plane along the x direction
+  const cutX = scene.atom(0);
+  const showCut = scene.atom(true);
+  const planeOpacity = scene.atom(0.15);
+  const xRange = scene.atom<[number, number]>((get) => {
+    return [-5, get(showCut) ? get(cutX) : 5] as [number, number]
+    });
+
   const surface = scene.create("surface3d", {
     f: surfaceFunc,
     xRange,
@@ -123,14 +134,6 @@ function createSurfaceScene() {
     wireframe,
     visible,
   });
-
-  scene.create("axes3d", { x: [-6, 6], y: [-6, 6], z: [-6, 6], thickness: 0.7 });
-  scene.create("grid3d", { plane: "xz", range1: [-6, 6], range2: [-6, 6], color: "#333" });
-
-  // Cross-section cutting plane along the x direction
-  const cutX = scene.atom(0);
-  const showCut = scene.atom(true);
-  const planeOpacity = scene.atom(0.15);
 
   scene.create("plane3d", {
     point: scene.atom((get) => vec3(get(cutX), 0, 0)),
@@ -160,7 +163,7 @@ function createSurfaceScene() {
     tEnd: 1,
     samples: 128,
     color: "#ff4444",
-    thickness: 3,
+    thickness: 1,
     visible: showCut,
   });
 
@@ -215,7 +218,7 @@ export default function Demo1() {
   const [offsetVal, setOffset] = useAtomState(offset);
   const [skewVal, setSkew] = useAtomState(skew);
   const [samplesVal, setSamplesVal] = useAtomState(samples);
-  const [xRangeVal, setXRange] = useAtomState(xRange);
+  const xRangeVal = useAtomValue(xRange);
   const [zRangeVal, setZRange] = useAtomState(zRange);
   const [colorVal, setColor] = useAtomState(color);
   const [opacityVal, setOpacity] = useAtomState(opacity);
@@ -360,20 +363,6 @@ export default function Demo1() {
             value={samplesVal}
             onChange={(e) => setSamplesVal(Number(e.target.value))}
             style={{ flex: 1 }}
-          />
-        </div>
-
-        <div style={rowStyle}>
-          <span style={{ ...labelStyle, minWidth: 70 }}>X range</span>
-          <input
-            type="number" value={xRangeVal[0]}
-            onChange={(e) => setXRange([Number(e.target.value), xRangeVal[1]])}
-            style={{ width: 50, fontSize: 13 }}
-          />
-          <input
-            type="number" value={xRangeVal[1]}
-            onChange={(e) => setXRange([xRangeVal[0], Number(e.target.value)])}
-            style={{ width: 50, fontSize: 13 }}
           />
         </div>
 
