@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 export function applyOpacityMaterialState(
-  material: THREE.MeshPhongMaterial,
+  material: THREE.Material,
   opacity: number
 ) {
   const isTransparent = opacity < 1;

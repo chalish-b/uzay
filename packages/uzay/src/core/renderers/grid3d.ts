@@ -5,6 +5,7 @@ import { vec3, type Vec3 } from "../common-types/vec3";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { applyOpacityMaterialState } from "./material-transparency";
 
 export const grid3dRenderer: ItemRenderer<"grid3d"> = {
   create(
@@ -76,6 +77,7 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
       linewidth: item.thickness,
       fog: true,
     });
+    applyOpacityMaterialState(material, item.opacity);
 
     // TODO: Make sure you call this based on the container element's size,
     // and on each update / viewport change.
@@ -100,6 +102,7 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
     // Update material properties
     obj.material.color.set(item.color);
     obj.material.linewidth = item.thickness;
+    applyOpacityMaterialState(obj.material, item.opacity);
 
     // Recalculate positions
     const range1 =

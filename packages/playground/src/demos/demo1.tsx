@@ -11,7 +11,7 @@ function createScene() {
   });
 
   scene.create("axes3d", { x: [-5, 5], y: [-5, 5], z: [-5, 5], thickness: 0.7 });
-  scene.create("grid3d", { plane: "xz", range1: [-5, 5], range2: [-5, 5], color: "#333" });
+  scene.create("grid3d", { plane: "xz", range1: [-5, 5], range2: [-5, 5], color: "white", opacity: 0.1, thickness: 2.5 });
 
   // A helix curve
   const curveFunc = (t: number) => vec3(
