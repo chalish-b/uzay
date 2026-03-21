@@ -188,3 +188,23 @@ export type AtomLikeInput<V> = V | BoundAtom<Atom<V>>;
 export type AtomLikeOptions<T extends object> = {
   [K in keyof T]?: AtomLikeInput<T[K]>;
 };
+
+// Resolve an AtomLikeInput to a BoundAtom. If the value is already a BoundAtom,
+// return it as-is. Otherwise, wrap it in a new primitive atom via scene.atom().
+// This is the minimal utility constructions need to read user inputs inside
+// derived atoms (via `get()`).
+//
+// Use mode: "value" for function-valued fields so Jotai doesn't misinterpret
+// them as derived atom read functions. This mirrors the atomize: "value" option
+// in item field definitions.
+export function ensureAtom<V>(
+  sceneAtom: SceneAtomFunction,
+  value: AtomLikeInput<V>,
+  mode?: "value"
+): BoundAtom<Atom<V>> {
+  if (isBoundAtom(value)) return value as BoundAtom<Atom<V>>;
+  if (mode === "value") {
+    return sceneAtom(value, { mode: "value" }) as BoundAtom<Atom<V>>;
+  }
+  return sceneAtom(value) as BoundAtom<Atom<V>>;
+}
