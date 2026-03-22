@@ -32,4 +32,4 @@ export type { DragEvent, ClickEvent, HoverEvent, DragHandler, ClickHandler, Hove
 export type { OverlayFormat, OverlayAnchor } from "./core/common-types/overlay"
 
 // Constructions
-export { tangentLine } from "./constructions"
+export { tangentLine, curvePoint } from "./constructions"
