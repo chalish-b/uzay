@@ -56,15 +56,17 @@ export const vector3dDefinition = defineItem({
   }),
   // Dragging edits the vector tip, so a read-only direction atom should not
   // advertise interactivity even if the vector is still rendered reactively.
+  // "custom" mode always shows the cursor since the user handles drag logic.
   getCursorState({ item }) {
     const draggable = item.draggable.get();
     if (draggable === "none") return null;
+    if (draggable === "custom") return "grab";
     if (!isWritableBoundAtom(item.vector)) return null;
     return "grab";
   },
   handleDrag({ item, state }, event: DragEvent<"vector3d">) {
     const draggable = item.draggable.get();
-    if (draggable === "none") return;
+    if (draggable === "none" || draggable === "custom") return;
 
     if (!isWritableBoundAtom(item.vector)) {
       if (!state.warnedReadOnly) {

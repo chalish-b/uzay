@@ -576,6 +576,15 @@ export class View3D {
     return new THREE.Vector3().copy(axisOrigin).addScaledVector(axisDir, t);
   }
 
+  // Update the raycaster from a pointer event so getCurrentRay() returns
+  // the ray for the current mouse position.
+  private updateRaycaster(event: PointerEvent): void {
+    const rect = this.threeRenderer.domElement.getBoundingClientRect();
+    this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.pointer, this.threeCamera);
+  }
+
   // Extract the current raycaster ray as plain Vec3 values
   private getCurrentRay(): { origin: Vec3; direction: Vec3 } {
     const r = this.raycaster.ray;
@@ -664,14 +673,21 @@ export class View3D {
         return;
       }
 
-      const worldPos = this.screenToWorld(
-        event,
-        this.dragState.startWorldPosition,
-        this.dragState.constraint
-      );
+      // "custom" mode skips the engine's screen-to-world projection entirely.
+      // The handler is expected to use event.ray for its own projection logic.
+      const isCustom = this.dragState.constraint === "custom";
+      if (isCustom) this.updateRaycaster(event);
+      const ray = this.getCurrentRay();
+      const worldPos = isCustom
+        ? this.dragState.lastWorldPosition
+        : this.screenToWorld(
+            event,
+            this.dragState.startWorldPosition,
+            this.dragState.constraint
+          );
 
       const delta = Vec3.subtract(worldPos, this.dragState.lastWorldPosition);
-      this.dragState.lastWorldPosition = worldPos;
+      if (!isCustom) this.dragState.lastWorldPosition = worldPos;
 
       this.dispatchEvent("drag", {
         type: "drag",
@@ -682,7 +698,7 @@ export class View3D {
         worldPosition: worldPos,
         startWorldPosition: this.dragState.startWorldPosition,
         delta,
-        ray: this.getCurrentRay(),
+        ray,
       });
       return;
     }
@@ -746,11 +762,15 @@ export class View3D {
     if (this.dragState) {
       const item = this.scene.items.get(this.dragState.itemId);
       if (item) {
-        const worldPos = this.screenToWorld(
-          event,
-          this.dragState.startWorldPosition,
-          this.dragState.constraint
-        );
+        const isCustom = this.dragState.constraint === "custom";
+        if (isCustom) this.updateRaycaster(event);
+        const worldPos = isCustom
+          ? this.dragState.startWorldPosition
+          : this.screenToWorld(
+              event,
+              this.dragState.startWorldPosition,
+              this.dragState.constraint
+            );
         this.dispatchEvent("drag", {
           type: "drag",
           phase: "end",

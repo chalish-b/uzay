@@ -185,6 +185,89 @@ const point = scene.create("point3d", {
 });
 ```
 
+### Draggable Point on a Curve
+
+You can constrain a point so it's only draggable along a curve. The idea: use a `"custom"` drag mode with a handler that projects the camera ray onto the curve to find the nearest parameter `t`, then update a `t` atom that drives the point's position.
+
+```typescript
+const f = (t: number) => vec3(
+  3 * Math.cos(t),
+  t * 0.3,
+  3 * Math.sin(t),
+);
+
+const curve = scene.create("parametricfunction3d", {
+  f,
+  tStart: -10,
+  tEnd: 10,
+  samples: 200,
+  color: "dodgerblue",
+});
+
+// t is the source of truth for the point's position
+const tAtom = scene.atom(0);
+
+const point = scene.create("point3d", {
+  coords: scene.atom((get) => f(get(tAtom))),
+  color: "gold",
+  radius: 3,
+  draggable: "custom",
+});
+
+point.on("drag", (event) => {
+  if (event.phase === "start") return;
+
+  // Find the t where the curve is closest to the camera ray.
+  // Starting from the current t and iterating with Newton's method
+  // converges quickly since we have a good initial guess each frame.
+  const nearest = findNearestTOnCurve(
+    f, event.ray, tAtom.get(), -10, 10
+  );
+  tAtom.set(nearest);
+});
+```
+
+The projection function finds the parameter `t` that minimizes the distance between the curve and the camera ray. Using the ray (instead of a projected 3D point) makes dragging feel responsive from any camera angle.
+
+```typescript
+function findNearestTOnCurve(
+  f: (t: number) => Vec3,
+  ray: { origin: Vec3; direction: Vec3 },
+  currentT: number,
+  tStart: number,
+  tEnd: number,
+): number {
+  const d = Vec3.normalized(ray.direction);
+  let t = currentT;
+
+  for (let i = 0; i < 8; i++) {
+    const v = Vec3.subtract(f(t), ray.origin);
+
+    // Component of v perpendicular to the ray
+    const proj = Vec3.dot(v, d);
+    const perp = Vec3.subtract(v, Vec3.scaled(d, proj));
+
+    // Numerical derivative f'(t)
+    const EPS = 1e-5;
+    const deriv = Vec3.scaled(
+      Vec3.subtract(f(t + EPS), f(t - EPS)),
+      1 / (2 * EPS),
+    );
+
+    // Newton step: move t to reduce the perpendicular distance
+    const g = Vec3.dot(deriv, perp);
+    const derivDotD = Vec3.dot(deriv, d);
+    const gPrime = Vec3.dot(deriv, deriv) - derivDotD * derivDotD;
+
+    if (Math.abs(gPrime) < 1e-12) break;
+
+    t = Math.max(tStart, Math.min(tEnd, t - g / gPrime));
+  }
+
+  return t;
+}
+```
+
 ---
 
 ## API Reference

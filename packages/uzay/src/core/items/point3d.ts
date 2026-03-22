@@ -49,17 +49,20 @@ export const point3dDefinition = defineItem({
     dragOffset: vec3(0, 0, 0),
   }),
   // Show a grab cursor only when the point can actually write drag updates.
+  // "custom" mode always shows the cursor since the user handles drag logic.
   getCursorState({ item }) {
     const draggable = item.draggable.get();
     if (draggable === "none") return null;
+    if (draggable === "custom") return "grab";
     if (!isWritableBoundAtom(item.coords)) return null;
     return "grab";
   },
   // Dragging only affects writable coordinate atoms. Derived coords can still
   // drive the point visually, but they should not pretend to be draggable.
+  // "custom" mode is a no-op: the user must provide their own handler via .on("drag").
   handleDrag({ item, state }, event: DragEvent<"point3d">) {
     const draggable = item.draggable.get();
-    if (draggable === "none") return;
+    if (draggable === "none" || draggable === "custom") return;
 
     if (!isWritableBoundAtom(item.coords)) {
       if (!state.warnedReadOnly) {

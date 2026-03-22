@@ -39,11 +39,39 @@ scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "y" });
 scene.create("point3d", { coords: vec3(0, 0, 0), draggable: "none" });
 ```
 
-Available constraints: `"x"`, `"y"`, `"z"`, `"xy"`, `"xz"`, `"yz"`, `"xyz"`, `"none"`.
+Available constraints: `"x"`, `"y"`, `"z"`, `"xy"`, `"xz"`, `"yz"`, `"xyz"`, `"custom"`, `"none"`.
 
 <Callout type="warning">
-Dragging requires a writable atom. If you pass a derived (read-only) atom for the position, dragging is automatically disabled even if `draggable` is set.
+Dragging requires a writable atom. If you pass a derived (read-only) atom for the position, dragging is automatically disabled even if `draggable` is set. The exception is `"custom"` mode, which skips the default drag behavior entirely.
 </Callout>
+
+### Custom Drag Behavior
+
+Setting `draggable` to `"custom"` tells the engine that you'll handle all drag logic yourself. The engine will still show the grab cursor and fire drag events, but it won't compute a projected world position or update the item's position. You provide your own logic via `.on("drag")`.
+
+This is useful when the built-in axis and plane constraints don't fit your use case, for example snapping to a grid, constraining to a curved surface, or implementing entirely custom movement rules.
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  color: "gold",
+  draggable: "custom",
+});
+
+// Snap to integer grid positions on the xz-plane
+point.on("drag", (event) => {
+  if (event.phase === "start") return;
+
+  const pos = event.worldPosition;
+  point.coords.set(vec3(
+    Math.round(pos.x),
+    0,
+    Math.round(pos.z),
+  ));
+});
+```
+
+In `"custom"` mode, `event.worldPosition` and `event.delta` are not updated by the engine (since there's no projection to compute them from). Use `event.ray` if you need to project the pointer into 3D space yourself. The ray contains the camera position (`origin`) and the direction through the pointer (`direction`), and it updates every frame as the user drags.
 
 ## Event Handlers
 
