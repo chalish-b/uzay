@@ -55,6 +55,17 @@ export type ThreeSceneTypes = {
       material: THREE.MeshBasicMaterial;
       mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
     };
+    ticks: {
+      geometry: THREE.CylinderGeometry;
+      x: THREE.InstancedMesh | null;
+      y: THREE.InstancedMesh | null;
+      z: THREE.InstancedMesh | null;
+    };
+    arrows: {
+      x: THREE.Mesh<THREE.ConeGeometry, THREE.MeshBasicMaterial> | null;
+      y: THREE.Mesh<THREE.ConeGeometry, THREE.MeshBasicMaterial> | null;
+      z: THREE.Mesh<THREE.ConeGeometry, THREE.MeshBasicMaterial> | null;
+    };
   };
   grid3d: {
     kind: "grid3d";
@@ -105,7 +116,7 @@ export type ThreeSceneObject<K extends ItemKind = ItemKind> =
 // Renderer contract
 export type ItemRenderer<K extends ItemKind> = {
   create(item: ItemSnapshot<K>, threeScene: THREE.Scene): ThreeSceneTypes[K];
-  update(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K]): void;
+  update(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K], threeScene: THREE.Scene): void;
   dispose?(obj: ThreeSceneTypes[K], threeScene: THREE.Scene): void;
 };
 

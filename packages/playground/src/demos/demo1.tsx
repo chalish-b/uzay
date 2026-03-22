@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { Scene3D, vec3, Vec3, curvePoint } from "uzay";
-import { Scene3DView, useAtomValue } from "uzay/react";
+import { useMemo, useState } from "react";
+import { Scene3D, vec3 } from "uzay";
+import { Scene3DView, useAtomState } from "uzay/react";
 
 function createScene() {
   const scene = new Scene3D();
@@ -10,48 +10,38 @@ function createScene() {
     lookAt: vec3(0, 0, 0),
   });
 
-  scene.create("axes3d", { x: [-5, 5], y: [-5, 5], z: [-5, 5], thickness: 0.7 });
-  scene.create("grid3d", { plane: "xz", range1: [-5, 5], range2: [-5, 5], color: "white", opacity: 0.1, thickness: 2.5 });
-
-  // A trefoil knot: a curve with lots of curvature changes and self-crossings
-  const trefoilFunc = (t: number) => vec3(
-    Math.sin(t) + 2 * Math.sin(2 * t),
-    Math.cos(t) - 2 * Math.cos(2 * t),
-    -Math.sin(3 * t),
-  );
-
-  const fun = scene.create("parametricfunction3d", {
-    f: trefoilFunc,
-    tStart: 0,
-    tEnd: 2 * Math.PI,
-    samples: 300,
-    color: "#4488ff",
+  const axes = scene.create("axes3d", {
+    x: [-5, 5],
+    y: [-5, 5],
+    z: [-5, 5],
+    thickness: 0.5,
+    tickmarks: true,
+    arrows: true,
   });
 
-  const cp = curvePoint(scene, {
-    f: trefoilFunc,
-    tStart: 0,
-    tEnd: 2 * Math.PI,
-    initialT: 0,
-    color: "#ff6644",
-  });
-  cp.point.radius.set(4);
-
-  scene.create("overlay3d", {
-    position: cp.point.coords,
-    content: scene.atom((get) => `t = ${get(cp.t).toFixed(2)}`),
-    anchor: "bottom",
+  scene.create("grid3d", {
+    plane: "xz",
+    range1: [-5, 5],
+    range2: [-5, 5],
+    color: "white",
+    opacity: 0.1,
+    thickness: 2.5,
   });
 
-  return { scene, atomT: cp.t };
+  return { scene, axes };
 }
 
 export default function Demo1() {
-  const { scene, atomT } = useMemo(() => createScene(), []);
+  const { scene, axes } = useMemo(() => createScene(), []);
 
-  const t = useAtomValue(atomT);
+  const [tickmarks, setTickmarks] = useAtomState(axes.tickmarks);
+  const [arrows, setArrows] = useAtomState(axes.arrows);
+  const [xAxis, setXAxis] = useAtomState(axes.x);
+  const [yAxis, setYAxis] = useAtomState(axes.y);
+  const [zAxis, setZAxis] = useAtomState(axes.z);
 
   const labelStyle = { color: "white", fontSize: 13 } as const;
+  const checkboxStyle = { marginRight: 6 } as const;
 
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#141414", position: "relative" }}>
@@ -68,15 +58,62 @@ export default function Demo1() {
           background: "rgba(0,0,0,0.7)",
           padding: "12px 16px",
           borderRadius: 8,
-          minWidth: 240,
+          minWidth: 200,
         }}
       >
         <span style={{ ...labelStyle, fontWeight: "bold", fontSize: 15 }}>
-          Curve Point
+          Axes Controls
         </span>
-        <span style={{ ...labelStyle, fontFamily: "monospace" }}>
-          t = {t.toFixed(2)} (drag the point along the curve)
-        </span>
+
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={tickmarks}
+            onChange={(e) => setTickmarks(e.target.checked)}
+            style={checkboxStyle}
+          />
+          Tick marks
+        </label>
+
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={arrows}
+            onChange={(e) => setArrows(e.target.checked)}
+            style={checkboxStyle}
+          />
+          Arrows
+        </label>
+
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={xAxis !== false}
+            onChange={(e) => setXAxis(e.target.checked ? [-5, 5] : false)}
+            style={checkboxStyle}
+          />
+          X axis
+        </label>
+
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={yAxis !== false}
+            onChange={(e) => setYAxis(e.target.checked ? [-5, 5] : false)}
+            style={checkboxStyle}
+          />
+          Y axis
+        </label>
+
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={zAxis !== false}
+            onChange={(e) => setZAxis(e.target.checked ? [-5, 5] : false)}
+            style={checkboxStyle}
+          />
+          Z axis
+        </label>
       </div>
     </div>
   );

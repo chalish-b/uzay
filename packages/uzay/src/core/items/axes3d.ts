@@ -20,6 +20,9 @@ export type Axes3DFields = {
   thickness: number;
   visible: boolean;
   pointerEvents: PointerEvents;
+  tickmarks: boolean;
+  tickStep: number;
+  arrows: boolean;
 };
 export type Axes3DOptions = AtomLikeOptions<Axes3DFields>;
 
@@ -34,6 +37,9 @@ export const axes3dDefinition = defineItem({
     thickness: field(1),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
+    tickmarks: field(false),
+    tickStep: field(1),
+    arrows: field(true),
   },
 });
 

@@ -78,6 +78,36 @@ scene.create("axes3d", {
 });
 ```
 
+## Decorations
+
+### Arrows
+
+By default, axes display arrow cones at their positive ends to indicate direction. You can toggle this:
+
+```typescript
+scene.create("axes3d", {
+  x: [-5, 5],
+  y: [-5, 5],
+  z: [-5, 5],
+  arrows: false, // Hide arrow tips
+});
+```
+
+### Tick Marks
+
+Enable tick marks to show unit intervals along each axis:
+
+```typescript
+scene.create("axes3d", {
+  x: [-5, 5],
+  y: [-5, 5],
+  z: [-5, 5],
+  tickmarks: true,
+});
+```
+
+Tick marks and arrows follow per-axis visibility. If an axis is disabled (set to `false`), its tick marks and arrow are also hidden.
+
 ## Common Patterns
 
 ### Standard 3D Axes
@@ -146,6 +176,8 @@ scale.set(10);
 | `color` | `string` | `"white"` | Axis color |
 | `thickness` | `number` | `1` | Line width |
 | `visible` | `boolean` | `true` | Whether the axes are shown |
+| `arrows` | `boolean` | `true` | Show arrow cones at positive ends |
+| `tickmarks` | `boolean` | `false` | Show tick marks at unit intervals |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the axes receive pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
 
@@ -168,6 +200,8 @@ scale.set(10);
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `arrows` | `BoundAtom<boolean>` | Arrows atom |
+| `tickmarks` | `BoundAtom<boolean>` | Tick marks atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |
 

@@ -234,7 +234,7 @@ export class View3D {
     // Ensure the kind matches
     if (obj.kind !== item.kind) return;
     const renderer = getRenderer(item.kind);
-    renderer.update(item, obj);
+    renderer.update(item, obj, this.threeScene);
   }
 
   removeItem(id: ItemId) {

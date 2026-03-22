@@ -3,17 +3,240 @@ import type { ItemSnapshot } from "../common-types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { lineThicknessScaleDown } from "./index";
 
+const TICK_HEIGHT = 0.01; // thin disc along the axis
+const TICK_RADIUS_MULTIPLIER = 2.5; // tick radius relative to axis tube radius
+const ARROW_LENGTH_MULTIPLIER = 8; // arrow cone height relative to axis radius
+const ARROW_WIDTH_MULTIPLIER = 4; // arrow cone base radius relative to axis radius
+
+type AxisKey = "x" | "y" | "z";
+
+function getRange(
+  value: boolean | [number, number]
+): readonly [number, number] {
+  return typeof value !== "boolean" ? value : ([-100, 100] as const);
+}
+
+/** Generate integer tick positions within a range, skipping 0 */
+function getTickPositions(
+  range: readonly [number, number],
+  step: number
+): number[] {
+  const positions: number[] = [];
+  const start = Math.ceil(range[0] / step) * step;
+  for (let v = start; v <= range[1]; v += step) {
+    if (Math.abs(v) < 1e-9) continue; // skip origin
+    positions.push(v);
+  }
+  return positions;
+}
+
+/**
+ * Create an InstancedMesh of small cylinders for tick marks along one axis.
+ * Ticks are perpendicular to the axis direction.
+ *
+ * Perpendicular directions:
+ *   X axis -> ticks along Y
+ *   Y axis -> ticks along X
+ *   Z axis -> ticks along Y
+ */
+function createTicksForAxis(
+  axis: AxisKey,
+  range: readonly [number, number],
+  step: number,
+  thickness: number,
+  color: string,
+  threeScene: THREE.Scene
+): THREE.InstancedMesh | null {
+  const positions = getTickPositions(range, step);
+  if (positions.length === 0) return null;
+
+  // Tick radius scales with axis thickness so ticks stay proportional
+  const axisRadius = thickness / lineThicknessScaleDown;
+  const tickRadius = axisRadius * TICK_RADIUS_MULTIPLIER;
+
+  // CylinderGeometry is aligned along Y by default.
+  // We create a disc (large radius, tiny height) and rotate it so
+  // the disc's height axis is aligned with the axis direction,
+  // making it visible as a ring from any viewing angle.
+  const geometry = new THREE.CylinderGeometry(
+    tickRadius,
+    tickRadius,
+    TICK_HEIGHT,
+    12
+  );
+  const material = new THREE.MeshBasicMaterial({ color });
+  const mesh = new THREE.InstancedMesh(geometry, material, positions.length);
+
+  const matrix = new THREE.Matrix4();
+  const rotation = new THREE.Quaternion();
+
+  if (axis === "x") {
+    // Rotate 90 degrees around Z so cylinder height runs along X
+    rotation.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+    for (let i = 0; i < positions.length; i++) {
+      matrix.compose(
+        new THREE.Vector3(positions[i], 0, 0),
+        rotation,
+        new THREE.Vector3(1, 1, 1)
+      );
+      mesh.setMatrixAt(i, matrix);
+    }
+  } else if (axis === "y") {
+    // Default cylinder orientation is along Y, no rotation needed
+    for (let i = 0; i < positions.length; i++) {
+      matrix.makeTranslation(0, positions[i], 0);
+      mesh.setMatrixAt(i, matrix);
+    }
+  } else {
+    // Rotate 90 degrees around X so cylinder height runs along Z
+    rotation.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+    for (let i = 0; i < positions.length; i++) {
+      matrix.compose(
+        new THREE.Vector3(0, 0, positions[i]),
+        rotation,
+        new THREE.Vector3(1, 1, 1)
+      );
+      mesh.setMatrixAt(i, matrix);
+    }
+  }
+
+  mesh.instanceMatrix.needsUpdate = true;
+  threeScene.add(mesh);
+  return mesh;
+}
+
+function disposeTickMesh(
+  mesh: THREE.InstancedMesh | null,
+  threeScene: THREE.Scene
+) {
+  if (!mesh) return;
+  threeScene.remove(mesh);
+  mesh.geometry.dispose();
+  (mesh.material as THREE.MeshBasicMaterial).dispose();
+  mesh.dispose();
+}
+
+function rebuildTicks(
+  item: ItemSnapshot<"axes3d">,
+  obj: ThreeSceneTypes["axes3d"],
+  threeScene: THREE.Scene
+) {
+  // Dispose old ticks
+  disposeTickMesh(obj.ticks.x, threeScene);
+  disposeTickMesh(obj.ticks.y, threeScene);
+  disposeTickMesh(obj.ticks.z, threeScene);
+  obj.ticks.geometry.dispose();
+
+  const axisRadius = item.thickness / lineThicknessScaleDown;
+  const tickRadius = axisRadius * TICK_RADIUS_MULTIPLIER;
+  obj.ticks.geometry = new THREE.CylinderGeometry(
+    tickRadius,
+    tickRadius,
+    TICK_HEIGHT,
+    12
+  );
+
+  const showTicks = item.tickmarks && item.visible;
+
+  const axes: AxisKey[] = ["x", "y", "z"];
+  for (const axis of axes) {
+    if (showTicks && item[axis] !== false) {
+      const range = getRange(item[axis]);
+      obj.ticks[axis] = createTicksForAxis(
+        axis,
+        range,
+        item.tickStep,
+        item.thickness,
+        item.color as string,
+        threeScene
+      );
+    } else {
+      obj.ticks[axis] = null;
+    }
+  }
+}
+
+type ArrowMesh = THREE.Mesh<THREE.ConeGeometry, THREE.MeshBasicMaterial>;
+
+const ARROW_ROTATIONS: Record<AxisKey, THREE.Quaternion> = {
+  // ConeGeometry points along +Y by default
+  x: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI / 2),
+  y: new THREE.Quaternion(), // already along +Y
+  z: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2),
+};
+
+function createArrowForAxis(
+  axis: AxisKey,
+  range: readonly [number, number],
+  thickness: number,
+  color: string,
+  threeScene: THREE.Scene
+): ArrowMesh {
+  const axisRadius = thickness / lineThicknessScaleDown;
+  const coneHeight = axisRadius * ARROW_LENGTH_MULTIPLIER;
+  const coneRadius = axisRadius * ARROW_WIDTH_MULTIPLIER;
+
+  const geometry = new THREE.ConeGeometry(coneRadius, coneHeight, 12);
+  const material = new THREE.MeshBasicMaterial({ color });
+  const mesh = new THREE.Mesh(geometry, material) as ArrowMesh;
+
+  // Position at positive end, offset by half cone height so the base sits at the end
+  const pos = range[1] + coneHeight / 2;
+  if (axis === "x") mesh.position.set(pos, 0, 0);
+  else if (axis === "y") mesh.position.set(0, pos, 0);
+  else mesh.position.set(0, 0, pos);
+
+  mesh.quaternion.copy(ARROW_ROTATIONS[axis]);
+  threeScene.add(mesh);
+  return mesh;
+}
+
+function disposeArrowMesh(
+  mesh: ArrowMesh | null,
+  threeScene: THREE.Scene
+) {
+  if (!mesh) return;
+  threeScene.remove(mesh);
+  mesh.geometry.dispose();
+  mesh.material.dispose();
+}
+
+function rebuildArrows(
+  item: ItemSnapshot<"axes3d">,
+  obj: ThreeSceneTypes["axes3d"],
+  threeScene: THREE.Scene
+) {
+  disposeArrowMesh(obj.arrows.x, threeScene);
+  disposeArrowMesh(obj.arrows.y, threeScene);
+  disposeArrowMesh(obj.arrows.z, threeScene);
+
+  const showArrows = item.arrows && item.visible;
+  const axes: AxisKey[] = ["x", "y", "z"];
+  for (const axis of axes) {
+    if (showArrows && item[axis] !== false) {
+      const range = getRange(item[axis]);
+      obj.arrows[axis] = createArrowForAxis(
+        axis,
+        range,
+        item.thickness,
+        item.color as string,
+        threeScene
+      );
+    } else {
+      obj.arrows[axis] = null;
+    }
+  }
+}
+
 export const axes3dRenderer: ItemRenderer<"axes3d"> = {
   create(
     item: ItemSnapshot<"axes3d">,
     threeScene: THREE.Scene
   ): ThreeSceneTypes["axes3d"] {
-    const xRange =
-      typeof item.x !== "boolean" ? item.x : ([-100, 100] as const);
-    const yRange =
-      typeof item.y !== "boolean" ? item.y : ([-100, 100] as const);
-    const zRange =
-      typeof item.z !== "boolean" ? item.z : ([-100, 100] as const);
+    const xRange = getRange(item.x);
+    const yRange = getRange(item.y);
+    const zRange = getRange(item.z);
+
     const xCurve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(xRange[0], 0, 0),
       new THREE.Vector3(xRange[1], 0, 0),
@@ -54,13 +277,33 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     threeScene.add(yMesh);
     threeScene.add(zMesh);
 
-    // If the axes are "false", just hide the meshes
-    // TODO: This is inefficient. It would just be better to not construct the axis
-    // in the first place if it's disabled. But it's fine for now.
     xMesh.visible = item.visible && item.x !== false;
     yMesh.visible = item.visible && item.y !== false;
     zMesh.visible = item.visible && item.z !== false;
-    return {
+
+    // Create tick marks
+    const axisRadius = item.thickness / lineThicknessScaleDown;
+    const tickRadius = axisRadius * TICK_RADIUS_MULTIPLIER;
+    const tickGeometry = new THREE.CylinderGeometry(
+      tickRadius,
+      tickRadius,
+      TICK_HEIGHT,
+      12
+    );
+    const ticks: ThreeSceneTypes["axes3d"]["ticks"] = {
+      geometry: tickGeometry,
+      x: null,
+      y: null,
+      z: null,
+    };
+
+    const arrows: ThreeSceneTypes["axes3d"]["arrows"] = {
+      x: null,
+      y: null,
+      z: null,
+    };
+
+    const result: ThreeSceneTypes["axes3d"] = {
       kind: "axes3d",
       x: {
         curve: xCurve,
@@ -80,10 +323,45 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
         material: zMaterial,
         mesh: zMesh,
       },
+      ticks,
+      arrows,
     };
+
+    const allAxes: AxisKey[] = ["x", "y", "z"];
+    for (const axis of allAxes) {
+      if (item[axis] === false) continue;
+      const range = getRange(item[axis]);
+
+      if (item.tickmarks && item.visible) {
+        result.ticks[axis] = createTicksForAxis(
+          axis,
+          range,
+          item.tickStep,
+          item.thickness,
+          item.color as string,
+          threeScene
+        );
+      }
+
+      if (item.arrows && item.visible) {
+        result.arrows[axis] = createArrowForAxis(
+          axis,
+          range,
+          item.thickness,
+          item.color as string,
+          threeScene
+        );
+      }
+    }
+
+    return result;
   },
 
-  update(item: ItemSnapshot<"axes3d">, obj: ThreeSceneTypes["axes3d"]): void {
+  update(
+    item: ItemSnapshot<"axes3d">,
+    obj: ThreeSceneTypes["axes3d"],
+    threeScene: THREE.Scene
+  ): void {
     // Update material colors
     obj.x.material.color.set(item.color);
     obj.y.material.color.set(item.color);
@@ -95,12 +373,9 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     obj.z.mesh.visible = item.visible && item.z !== false;
 
     // Recalculate ranges
-    const xRange =
-      typeof item.x !== "boolean" ? item.x : ([-100, 100] as const);
-    const yRange =
-      typeof item.y !== "boolean" ? item.y : ([-100, 100] as const);
-    const zRange =
-      typeof item.z !== "boolean" ? item.z : ([-100, 100] as const);
+    const xRange = getRange(item.x);
+    const yRange = getRange(item.y);
+    const zRange = getRange(item.z);
 
     // Update X axis
     const xCurve = new THREE.CatmullRomCurve3([
@@ -149,6 +424,10 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     obj.z.geometry = zGeometry;
     obj.z.mesh.geometry = zGeometry;
     oldZGeometry.dispose();
+
+    // Rebuild tick marks and arrows
+    rebuildTicks(item, obj, threeScene);
+    rebuildArrows(item, obj, threeScene);
   },
 
   dispose(obj: ThreeSceneTypes["axes3d"], threeScene: THREE.Scene): void {
@@ -161,5 +440,16 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     obj.y.material.dispose();
     obj.z.geometry.dispose();
     obj.z.material.dispose();
+
+    // Dispose tick marks
+    disposeTickMesh(obj.ticks.x, threeScene);
+    disposeTickMesh(obj.ticks.y, threeScene);
+    disposeTickMesh(obj.ticks.z, threeScene);
+    obj.ticks.geometry.dispose();
+
+    // Dispose arrows
+    disposeArrowMesh(obj.arrows.x, threeScene);
+    disposeArrowMesh(obj.arrows.y, threeScene);
+    disposeArrowMesh(obj.arrows.z, threeScene);
   },
 };
