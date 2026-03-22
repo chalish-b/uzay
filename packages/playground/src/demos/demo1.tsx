@@ -20,13 +20,12 @@ function createScene() {
     -Math.sin(3 * t),
   );
 
-  scene.create("parametricfunction3d", {
+  const fun = scene.create("parametricfunction3d", {
     f: trefoilFunc,
     tStart: 0,
     tEnd: 2 * Math.PI,
     samples: 300,
     color: "#4488ff",
-    thickness: 1.5,
   });
 
   const cp = curvePoint(scene, {

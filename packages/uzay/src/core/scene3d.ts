@@ -44,9 +44,9 @@ export class Scene3D {
     this.atom = createSceneAtom(this.store);
   }
 
-  create<K extends ItemKind, Opts extends ItemOptions<K>>(
+  create<K extends ItemKind, const Opts extends object>(
     kind: K,
-    options: Opts
+    options: ItemOptions<K> & Opts
   ): ItemInstance<K, Opts> {
     const definition = itemDefinitions[kind] as (typeof itemDefinitions)[K];
     const item = createRuntimeItem(

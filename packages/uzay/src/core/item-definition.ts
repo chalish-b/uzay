@@ -1,5 +1,5 @@
 import type { Atom, PrimitiveAtom } from "jotai";
-import type { BoundAtom, AtomLikeOptions } from "./atom-wrapper";
+import type { BoundAtom } from "./atom-wrapper";
 import type { BaseItem } from "./item";
 import type {
   ClickEvent,
@@ -48,22 +48,30 @@ type DefinitionState<Definition> = Definition extends ItemDefinition<any, any, i
   ? State
   : never;
 
-type OptOrDefault<Opts, K extends PropertyKey, DefaultValue> = K extends keyof Opts
-  ? Opts[K]
-  : DefaultValue;
+type BoundAtomPart<Value, Input> = Extract<Input, BoundAtom<Atom<Value>>>;
+type PlainInputPart<Value, Input> = Exclude<Input, BoundAtom<Atom<Value>>>;
 
-type ResolveField<Value, Input> = Input extends BoundAtom<infer A>
-  ? BoundAtom<A & Atom<Value>>
-  : BoundAtom<PrimitiveAtom<Value>>;
+type ResolveField<Value, Input> =
+  ([BoundAtomPart<Value, Input>] extends [never]
+    ? never
+    : BoundAtomPart<Value, Input>) |
+  ([PlainInputPart<Value, Input>] extends [never]
+    ? never
+    : BoundAtom<PrimitiveAtom<Value>>);
+
+type ResolveFieldFromOptions<
+  Fields extends object,
+  Opts extends object,
+  K extends keyof Fields
+> = K extends keyof Opts
+  ? ResolveField<Fields[K], Opts[K]>
+  : BoundAtom<PrimitiveAtom<Fields[K]>>;
 
 export type ItemHandleFields<
   Fields extends object,
-  Opts extends AtomLikeOptions<Fields>
+  Opts extends object
 > = {
-  [K in keyof Fields]: ResolveField<
-    Fields[K],
-    OptOrDefault<Opts, K, Fields[K]>
-  >;
+  [K in keyof Fields]: ResolveFieldFromOptions<Fields, Opts, K>;
 };
 
 export type RuntimeFields<Fields extends object> = {
@@ -73,12 +81,12 @@ export type RuntimeFields<Fields extends object> = {
 export type ItemHandle<
   Kind extends string,
   Fields extends object,
-  Opts extends AtomLikeOptions<Fields>
+  Opts extends object
 > = BaseItem<Fields, Kind> & ItemHandleFields<Fields, Opts>;
 
 export type ItemHandleFromDefinition<
   Definition extends ItemDefinition<any, any, any>,
-  Opts extends AtomLikeOptions<DefinitionFields<Definition>>
+  Opts extends object
 > = ItemHandle<
   DefinitionKind<Definition>,
   DefinitionFields<Definition>,

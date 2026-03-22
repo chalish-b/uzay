@@ -71,7 +71,7 @@ export type ItemSnapshot<K extends ItemKind = ItemKind> = K extends ItemKind
 
 export type ItemInstance<
   K extends ItemKind,
-  Opts extends ItemOptions<K>
+  Opts extends object
 > = ItemHandleFromDefinition<(typeof itemDefinitions)[K], Opts>;
 
 export type ItemInstanceOf<K extends ItemKind = ItemKind> = K extends ItemKind

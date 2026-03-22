@@ -1,5 +1,9 @@
 import type { Atom } from "jotai";
-import { isBoundAtom, type BoundAtom } from "./atom-wrapper";
+import {
+  isBoundAtom,
+  type AtomLikeOptions,
+  type BoundAtom,
+} from "./atom-wrapper";
 import type { AtomizeMode } from "./item-definition";
 import type {
   AnyItemDefinition,
@@ -230,13 +234,11 @@ function atomizeFieldValue<Value>(
 
 export function createRuntimeItem<
   Definition extends AnyItemDefinition,
-  Opts extends {
-    [K in keyof DefinitionFields<Definition>]?: DefinitionFields<Definition>[K] | BoundAtom<Atom<DefinitionFields<Definition>[K]>>;
-  },
+  const Opts extends object,
 >(
   scene: Scene3D,
   definition: Definition,
-  options: Opts
+  options: AtomLikeOptions<DefinitionFields<Definition>> & Opts
 ): ItemHandleFromDefinition<
   Definition,
   Opts
