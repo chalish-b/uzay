@@ -37,14 +37,13 @@
 - Infinite grid and axes
 - Filled in shaped / functions
 - Add the `visible` property to all items
-- Opacity option for stuff
-  - We can't directly pass an rgba color to the color property, so we need a separate field
 - Better looking visuals
   - Better materials with shaders and stuff
   - Custom shader support
   - Options like glow, bloom etc.
   - More granular customization, like a function plot having a color gradient for the curve (not just a single color)
     - For simplicity, we can start off by making `color` also able to be a function of `t` and somehow handle this idk
+    - Or have a separate thing like `colorMap` which is a function that takes point coordinates (in world coords) as the argument and returns a color. Idk if three.js supports per-vertex coloring or we need a custom shader though.
 - Helper functions to encapsulate some complex logic
   - For vanilla library these are functions that can take the scene object, and some options, and set up some complex scenarios.
   - Basically just helper functions that you can technically do yourself, but provided for common use cases.

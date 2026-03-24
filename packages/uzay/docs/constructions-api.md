@@ -102,6 +102,35 @@ This mirrors how item definitions mark function-valued fields with `atomize: "va
 
 The rule of thumb: if you'd need more than ~8-10 options to cover everything, you're exposing too much. Keep the options object small, let item handles be the escape hatch for fine-tuning.
 
+### Plain values vs. `AtomLikeInput`
+
+Most options should be `AtomLikeInput<T>` so the user can pass either a plain value or an atom. But some options should only accept a plain value. The deciding factor is **who owns the state**.
+
+If the construction only reads a value, it should be `AtomLikeInput<T>`. The user might want it reactive. `ensureAtom` normalizes it, and the construction reads it through `get()` in derived atoms.
+
+If the construction needs to write to a value (e.g. updating a parameter during drag, toggling an internal flag), the construction must own the atom. Accept a plain initial value for the option, create a writable atom internally, and return it in the handle. The user gets full read/write access to the returned atom.
+
+Don't accept `AtomLikeInput<T>` for state the construction writes to. If the user passes a derived atom, writing fails. If they pass a writable atom, you'd need a runtime check, and the type system gets messy. More importantly, it conflates two roles: the option is no longer just an input, it's shared mutable state with unclear ownership.
+
+```ts
+type CurvePointOptions = {
+  f: AtomLikeInput<ParametricFunc>;   // read-only input, accepts atom
+  tStart?: AtomLikeInput<number>;     // read-only input, accepts atom
+  tEnd?: AtomLikeInput<number>;       // read-only input, accepts atom
+  initialT?: number;                  // construction writes to t, so plain value
+  color?: AtomLikeInput<Color>;       // read-only input, accepts atom
+};
+
+// The construction creates and owns the t atom, returns it for external access
+function curvePoint(scene, options) {
+  const tAtom = scene.atom(options.initialT ?? 0);
+  // ...
+  return { point, t: tAtom, dispose };
+}
+```
+
+This is similar to React's controlled vs. uncontrolled pattern. `AtomLikeInput` fields are like controlled props: the user owns the value and the construction follows. Plain initial values are like `defaultValue`: the user sets the starting state, the construction takes ownership from there.
+
 ### Fields not exposed as options
 
 Anything the construction doesn't expose as an option gets an internal default. The user can still change it after creation through the returned item handles (e.g. `tangent.point.radius.set(5)`). Since the scene isn't rendered until a View is created, users can freely tweak item fields before anything shows up on screen.
@@ -132,9 +161,9 @@ A construction returns a handle with:
 
 There are two kinds of atoms in a construction:
 
-**User-passed atoms** (from options) go through `ensureAtom`, which erases writability at the type level. The construction can only read them. This is intentional: the construction is a consumer of its inputs, not an owner. The user controls these atoms from outside.
+**User-passed atoms** (from `AtomLikeInput` options) go through `ensureAtom`, which erases writability at the type level. The construction can only read them. This is intentional: the construction is a consumer of its inputs, not an owner. The user controls these atoms from outside. The construction never writes back to them.
 
-**Construction-owned atoms** are created internally with `scene.atom()`. These can be either derived (read-only) or writable. If the construction returns a writable atom, the user can call `.set()` on it to control the construction's behavior from outside. The reactive graph propagates the change through the construction's derived atoms, updating items automatically.
+**Construction-owned atoms** are created internally with `scene.atom()`. These are the atoms for state that the construction manages itself, including state initialized from plain-value options (see "Plain values vs. `AtomLikeInput`" above). They can be either derived (read-only) or writable. If the construction returns a writable atom, the user can call `.set()` on it to control the construction's behavior from outside. The reactive graph propagates the change through the construction's derived atoms, updating items automatically.
 
 ```ts
 function someConstruction(scene, options) {
@@ -165,7 +194,8 @@ function someConstruction(scene, options) {
 | Aspect | Convention | Rationale |
 |---|---|---|
 | Function shape | `construction(scene, options)` | Standalone for tree-shaking, third-party parity |
-| Options fields | `AtomLikeInput<T>` per field | Plain values or atoms, required/optional set explicitly |
+| Read-only options | `AtomLikeInput<T>` per field | Plain values or atoms; construction only reads, never writes back |
+| Owned-state options | Plain initial value (e.g. `initialT?: number`) | Construction writes to this state; own the atom, return it in the handle |
 | Function-valued fields | `ensureAtom(scene.atom, value, "value")` | Prevents Jotai from misinterpreting functions as derived atoms |
 | Required vs optional | Math inputs required, style optional with defaults | Users always have a specific function/point/direction |
 | Style granularity | One `color` for the whole construction, not per-sub-item | Keep options small, use item handles for fine-tuning |

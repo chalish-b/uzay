@@ -91,7 +91,6 @@ function createSphereLineScene() {
     plane: "xz",
     range1: [-8, 8],
     range2: [-8, 8],
-    color: "#333",
     thickness: 2,
   });
 

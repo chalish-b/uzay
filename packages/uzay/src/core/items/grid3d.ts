@@ -39,7 +39,7 @@ export const grid3dDefinition = defineItem({
     offset: field(0),
     gap: field(1),
     color: field<Color>("white"),
-    opacity: field(1),
+    opacity: field(0.3),
     thickness: field(2),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
