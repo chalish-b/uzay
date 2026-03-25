@@ -3,21 +3,6 @@ import { Scene3D, View3D, vec3 } from "uzay";
 import type { BoundAtom } from "uzay";
 import type { PrimitiveAtom } from "jotai";
 
-/** DEMO MADE BY CLAUDE OPUS 4.5 */
-
-/**
- * 3D Lissajous Curve Laboratory
- *
- * An interactive exploration of 3D Lissajous figures.
- * Lissajous curves are defined by:
- *   x(t) = A·sin(a·t + δx)
- *   y(t) = B·sin(b·t + δy)
- *   z(t) = C·sin(c·t + δz)
- *
- * When a, b, c are integers, the curves form beautiful closed patterns.
- * The ratios between frequencies determine the shape.
- */
-
 const TAU = Math.PI * 2;
 const SCALE = 5;
 

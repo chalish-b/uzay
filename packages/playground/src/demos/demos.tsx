@@ -1,31 +1,14 @@
 import { useState } from "react";
 import Demo1 from "./demo1";
-import Demo2 from "./demo2";
-import Demo3 from "./demo3";
-import Demo4 from "./demo4";
 import Demo5 from "./demo5";
 import Demo6 from "./demo6";
-import Demo7 from "./demo7";
 import Demo8 from "./demo8";
-import Demo9 from "./demo9";
 import Demo11 from "./demo11";
 
 const demos = {
   demo1: {
     title: "Sandbox",
     component: <Demo1 />,
-  },
-  demo2: {
-    title: "Lorenz Attractor",
-    component: <Demo2 />,
-  },
-  demo3: {
-    title: "Harmonic Orrery",
-    component: <Demo3 />,
-  },
-  demo4: {
-    title: "Double Pendulum",
-    component: <Demo4 />,
   },
   demo5: {
     title: "Lissajous Lab",
@@ -35,17 +18,9 @@ const demos = {
     title: "Bezier Workshop",
     component: <Demo6 />,
   },
-  demo7: {
-    title: "Superformula",
-    component: <Demo7 />,
-  },
   demo8: {
     title: "Triangle Centers",
     component: <Demo8 />,
-  },
-  demo9: {
-    title: "Gravity Sculptor",
-    component: <Demo9 />,
   },
   demo11: {
     title: "Sphere-Line Intersection",

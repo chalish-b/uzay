@@ -5,8 +5,8 @@ export default function HomePage() {
     <div className="flex flex-col justify-center flex-1 max-w-2xl mx-auto px-6 py-16">
       <h1 className="text-3xl font-bold mb-4">Uzay</h1>
       <p className="text-fd-muted-foreground mb-6 text-lg">
-        A reactive 3D mathematical visualization library for TypeScript and
-        React, built on Three.js and Jotai.
+        A reactive 3D mathematical visualization library for TypeScript,
+        built on Three.js and Jotai.
       </p>
 
       <div className="flex flex-col gap-4 mb-8 text-[15px]">
@@ -16,8 +16,9 @@ export default function HomePage() {
           reactive atom, so the scene updates automatically when values change.
         </p>
         <p>
-          It can be used standalone with the imperative API or declaratively
-          inside React components.
+          The core API is plain TypeScript with no framework dependency, so
+          it works with any UI layer. A lightweight React wrapper is included
+          for mounting scenes and connecting UI controls.
         </p>
       </div>
 
