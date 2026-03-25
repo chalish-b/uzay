@@ -1,0 +1,5 @@
+{
+  "title": "Constructions",
+  "icon": "Blocks",
+  "pages": ["curve-point", "tangent-line", "surface-point", "surface-normal"]
+}

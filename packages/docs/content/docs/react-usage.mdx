@@ -162,9 +162,28 @@ function createSphereLineScene() {
 
 This gives you clean separation. Internal atoms and items are encapsulated. The return type is the public interface. The UI only subscribes to what it needs, only re-renders when those specific values change.
 
-## Reusable Constructions
+## Using Constructions
 
-Since scenes are built with plain function calls, reusable "components" are just functions that take a scene and add items to it:
+[Constructions](/docs/constructions) work naturally inside scene builders. Both built-in constructions and your own follow the same pattern: a function that takes a scene, creates items, and returns a handle.
+
+```tsx
+import { surfacePoint, surfaceNormal } from "uzay";
+
+function createMyScene() {
+  const scene = new Scene3D();
+  scene.create("camera3d", { position: vec3(8, 6, 8), lookAt: vec3(0, 0, 0) });
+
+  const f = (x: number, z: number) => Math.sin(x) * Math.cos(z);
+  scene.create("surface3d", { f, xRange: [-5, 5], zRange: [-5, 5], color: "steelblue" });
+
+  const sp = surfacePoint(scene, { f, initialXZ: vec2(1, 1), color: "gold" });
+  surfaceNormal(scene, { f, xz: sp.xz, color: "tomato" });
+
+  return { scene, xz: sp.xz };
+}
+```
+
+You can also write your own constructions. They're just functions, so they work identically whether called from a React builder or vanilla JS:
 
 ```tsx
 function createTriangle(
@@ -197,18 +216,14 @@ function createTriangle(
 
   return { a, b, c };
 }
-```
 
-Use it in any scene:
-
-```tsx
+// Use it in a scene builder
 function createMyScene() {
   const scene = new Scene3D();
 
   scene.create("camera3d", { position: vec3(0, 0, 12), lookAt: vec3(0, 0, 0) });
   scene.create("grid3d", { plane: "xy", range1: [-8, 8], range2: [-8, 8] });
 
-  // Two triangles in the same scene
   createTriangle(scene, [vec3(-4, -2, 0), vec3(-1, -2, 0), vec3(-2.5, 1, 0)]);
   createTriangle(scene, [vec3(1, -2, 0), vec3(4, -2, 0), vec3(2.5, 1, 0)], {
     color: "dodgerblue",
@@ -218,7 +233,7 @@ function createMyScene() {
 }
 ```
 
-These construction functions work identically in vanilla JS. React just provides the mounting.
+See [Writing your own](/docs/constructions#writing-your-own) for more on the conventions.
 
 ## Camera Management
 

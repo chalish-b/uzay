@@ -1,0 +1,143 @@
+---
+title: Tangent Line
+description: Tangent line at a point on a parametric curve
+---
+
+## What is a Tangent Line?
+
+A `tangentLine` draws the tangent to a [parametric curve](/docs/items/parametric) at a given parameter value $t$. It creates a point on the curve and a line segment aligned with the derivative direction. Useful for:
+
+- Visualizing the derivative of a curve
+- Showing instantaneous direction of motion
+- Combining with [curvePoint](/docs/constructions/curve-point) for interactive tangent exploration
+
+The tangent direction is computed numerically, so you don't need to provide a derivative function.
+
+## Basic Usage
+
+```typescript
+import { tangentLine } from "uzay";
+
+const f = (t: number) => vec3(Math.cos(t), Math.sin(t), t * 0.3);
+
+scene.create("parametricfunction3d", {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 4,
+  samples: 200,
+  color: "dodgerblue",
+});
+
+const tl = tangentLine(scene, {
+  f,
+  t: 1.0,
+  color: "yellow",
+  length: 2,
+});
+```
+
+This draws a yellow tangent line of length 2 at $t = 1$ on the helix, centered on the curve point.
+
+## Reactive Parameter
+
+Pass an atom for `t` to make the tangent update dynamically:
+
+```typescript
+const tAtom = scene.atom(0);
+
+const tl = tangentLine(scene, {
+  f,
+  t: tAtom,
+  color: "yellow",
+});
+
+// Move the tangent along the curve
+tAtom.set(Math.PI);
+```
+
+## Examples
+
+### Interactive Tangent with Curve Point
+
+The most common pattern: combine with `curvePoint` so dragging the point moves the tangent:
+
+```typescript
+const f = (t: number) => vec3(Math.cos(t), Math.sin(t), t * 0.3);
+
+const { t } = curvePoint(scene, {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 4,
+  initialT: 1.0,
+  color: "gold",
+});
+
+const tl = tangentLine(scene, {
+  f,
+  t: t,
+  color: "tomato",
+  length: 3,
+  showPoint: false,
+});
+```
+
+### Reading the Tangent Direction
+
+The returned `tangent` atom gives you the raw derivative vector (not normalized), which you can use for further computation:
+
+```typescript
+const tl = tangentLine(scene, { f, t: tAtom });
+
+// Subscribe to the tangent direction
+tl.tangent.sub((dir) => {
+  console.log("speed:", Vec3.length(dir));
+});
+```
+
+### Hiding the Point
+
+If you're providing your own point (e.g. from `curvePoint`), you can hide the one created by the tangent line:
+
+```typescript
+const tl = tangentLine(scene, {
+  f,
+  t: t,
+  showPoint: false,
+});
+```
+
+## Customizing
+
+The returned items are regular `Point3D` and `Line3D`:
+
+```typescript
+const tl = tangentLine(scene, { f, t: 0.5 });
+
+tl.point.radius.set(4);
+tl.line.thickness.set(2);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(t: number) => Vec3` | (required) | The parametric function defining the curve |
+| `t` | `number` | (required) | Parameter value where the tangent is computed |
+| `length` | `number` | `2` | Total length of the tangent line segment |
+| `color` | `string` | `"yellow"` | CSS color string |
+| `showPoint` | `boolean` | `true` | Whether to show the point on the curve |
+
+All options accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `point` | `Point3D` | The point item on the curve |
+| `line` | `Line3D` | The tangent line segment |
+| `tangent` | `BoundAtom<Vec3>` | The tangent vector (derivative) at the current $t$ |
+| `dispose` | `() => void` | Removes all items from the scene |

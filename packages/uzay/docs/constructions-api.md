@@ -189,6 +189,32 @@ function someConstruction(scene, options) {
 
 ---
 
+## Known tension: writability through constructions
+
+`ensureAtom` erases writability at the type level. This means constructions can only read from their inputs, never write back. This is intentional (see "Plain values vs. `AtomLikeInput`" above), but it creates friction when a construction creates an internal derived atom that the user wants to make interactive.
+
+### The problem
+
+Consider a hypothetical `dropLine(scene, { coords })` construction that creates a ground projection point. Internally it derives `groundAtom` (read-only) from `coords`. If the user wants the ground dot to be draggable (writing back to the source coords), they're stuck:
+
+1. The ground dot has a read-only coords atom, so the engine disables dragging.
+2. The caller can't swap the atom on the item after creation (`.set()` changes the value, not the atom).
+3. Even if the caller has writable access to the source (e.g. `sp.xz`), they can't wire the ground dot's drag to it because the dot's coords are read-only.
+
+The fundamental issue: constructions fix the reactive topology at creation time. You can fine-tune cosmetic properties after the fact (colors, sizes), but not the reactive wiring (which atoms drive which items, and whether writes propagate).
+
+### Possible solutions (none implemented yet)
+
+**Runtime writability check (preferred direction):** The construction makes internal derived atoms writable, with the write function attempting to write back to the source atom. At runtime, if the source is writable, drag works. If not, drag is disabled or throws a clear error. This matches how the engine already handles writability (points with derived coords just aren't draggable). The type-safety gap is narrow: the caller knows whether they passed a writable atom, so the behavior is predictable.
+
+**Callback (`onWrite`):** The construction accepts an optional callback for write-through. Works, but leaky: the caller has to understand the construction's internal structure to wire things correctly, which defeats the purpose of the abstraction.
+
+**Preserve writability through `ensureAtom`:** Tempting but too complex. Every construction's internal derived atoms would need to decide whether to propagate writes, and the type signatures get complicated.
+
+For now, when a user needs custom write-through behavior, the recommendation is to wire things manually using primitives rather than fighting the construction's read-only topology. If the same pattern recurs across multiple constructions, that's a signal to revisit this decision.
+
+---
+
 ## Summary of conventions
 
 | Aspect | Convention | Rationale |

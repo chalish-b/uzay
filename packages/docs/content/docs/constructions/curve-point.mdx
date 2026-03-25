@@ -1,0 +1,142 @@
+---
+title: Curve Point
+description: Draggable point constrained to a parametric curve
+---
+
+## What is a Curve Point?
+
+A `curvePoint` creates a point that is constrained to move along a [parametric curve](/docs/items/parametric). The user can drag the point and it will slide along the curve, snapping to the nearest position. Useful for:
+
+- Exploring how a function behaves at different parameter values
+- Driving other constructions (like a [tangent line](/docs/constructions/tangent-line)) reactively
+- Building interactive visualizations where a parameter $t$ needs to be adjustable
+
+## Basic Usage
+
+```typescript
+import { curvePoint } from "uzay";
+
+const f = (t: number) => vec3(Math.cos(t), Math.sin(t), t * 0.3);
+
+const curve = scene.create("parametricfunction3d", {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 4,
+  samples: 200,
+  color: "dodgerblue",
+});
+
+const p = curvePoint(scene, {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 4,
+  initialT: 1.0,
+  color: "gold",
+});
+```
+
+The point appears on the curve at $t = 1$ and can be dragged along it.
+
+## Reading and Setting the Parameter
+
+The returned `t` atom is writable. You can read the current value, set it externally, or subscribe to changes:
+
+```typescript
+const p = curvePoint(scene, { f, initialT: 0 });
+
+// Read
+console.log(p.t.get());
+
+// Set externally (e.g. from a slider)
+p.t.set(Math.PI);
+
+// Subscribe to changes
+p.t.sub((value) => console.log("t is now", value));
+```
+
+## Examples
+
+### With a Tangent Line
+
+Combine `curvePoint` with `tangentLine` so the tangent follows the dragged point:
+
+```typescript
+const f = (t: number) => vec3(Math.cos(t), Math.sin(t), t * 0.3);
+
+const p = curvePoint(scene, {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 4,
+  initialT: 1.0,
+});
+
+const tl = tangentLine(scene, {
+  f,
+  t: p.t,
+  color: "tomato",
+  showPoint: false,
+});
+```
+
+Drag the point along the helix and the tangent line updates in real time.
+
+### Coordinate Readout
+
+Show the current position using an overlay:
+
+```typescript
+const p = curvePoint(scene, { f, initialT: 0, color: "gold" });
+
+scene.create("overlay3d", {
+  position: p.point.coords,
+  content: scene.atom((get) => {
+    const { x, y, z } = get(p.point.coords);
+    return `(${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
+```
+
+## Customizing the Point
+
+The returned `point` is a regular `Point3D`, so you can adjust any of its properties:
+
+```typescript
+const { point } = curvePoint(scene, { f, initialT: 0 });
+
+point.radius.set(4);
+point.color.set("lime");
+```
+
+## Cleanup
+
+Call `dispose()` to remove the point from the scene:
+
+```typescript
+p.dispose();
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(t: number) => Vec3` | (required) | The parametric function defining the curve |
+| `tStart` | `number` | `0` | Start of the parameter range |
+| `tEnd` | `number` | `1` | End of the parameter range |
+| `initialT` | `number` | `0` | Initial value of the $t$ parameter |
+| `color` | `string` | `"white"` | CSS color string |
+
+All options except `initialT` accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `point` | `Point3D` | The point item on the curve |
+| `t` | `BoundAtom<number>` | Writable atom for the current parameter value |
+| `dispose` | `() => void` | Removes all items from the scene |

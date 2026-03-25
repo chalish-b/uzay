@@ -1,6 +1,49 @@
 import { useMemo } from "react";
-import { Scene3D, vec2, vec3, surfacePoint, surfaceNormal } from "uzay";
+import { Scene3D, vec2, vec3, surfacePoint, surfaceNormal, ensureAtom } from "uzay";
+import type { AtomLikeInput } from "uzay";
+import type { Scene3D as Scene3DType } from "uzay";
+import type { Vec3 } from "uzay";
+import type { Color } from "uzay/src/core/common-types/colors";
 import { Scene3DView, useAtomValue } from "uzay/react";
+
+// Custom user-written construction: drops a vertical line from a point to the xz plane
+function dropLine(
+  scene: Scene3DType,
+  options: {
+    coords: AtomLikeInput<Vec3>;
+    color?: AtomLikeInput<Color>;
+  },
+) {
+  const coordsAtom = ensureAtom(scene.atom, options.coords);
+  const colorAtom = ensureAtom(scene.atom, options.color ?? "gray");
+
+  const groundAtom = scene.atom((get) => {
+    const { x, z } = get(coordsAtom);
+    return vec3(x, 0, z);
+  });
+
+  const line = scene.create("line3d", {
+    start: coordsAtom,
+    end: groundAtom,
+    color: colorAtom,
+  });
+
+  const dot = scene.create("point3d", {
+    coords: groundAtom,
+    color: colorAtom,
+    radius: 2,
+    draggable: "none",
+  });
+
+  return {
+    line,
+    dot,
+    dispose: () => {
+      scene.remove(line);
+      scene.remove(dot);
+    },
+  };
+}
 
 function createScene() {
   const scene = new Scene3D();
@@ -48,10 +91,32 @@ function createScene() {
   });
   sp.point.radius.set(4);
 
-  const sn = surfaceNormal(scene, { f, xz: sp.xz, color: "tomato" });
+  surfaceNormal(scene, { f, xz: sp.xz, color: "tomato" });
 
-  // Static normal at a fixed point, no dragging, no atoms
-  surfaceNormal(scene, { f, xz: vec2(-2, 1), color: "limegreen" });
+  // Writable derived atom: reads the xz projection, writes back to sp.xz on drag
+  const groundCoords = scene.atom(
+    (get) => {
+      const { x, z } = get(sp.point.coords);
+      return vec3(x, 0, z);
+    },
+    (_get, set, newValue: Vec3) => {
+      set(sp.xz, vec2(newValue.x, newValue.z));
+    },
+  );
+
+  // Drop line using the writable ground coords
+  scene.create("line3d", {
+    start: sp.point.coords,
+    end: groundCoords,
+    color: "gray",
+  });
+
+  scene.create("point3d", {
+    coords: groundCoords,
+    color: "gray",
+    radius: 2,
+    draggable: "xz",
+  });
 
   return { scene, sp };
 }

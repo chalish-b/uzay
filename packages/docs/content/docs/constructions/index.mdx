@@ -1,0 +1,155 @@
+---
+title: Constructions
+description: Composable higher-level objects built from primitives
+---
+
+Constructions are reusable functions that compose [items](/docs/items) into higher-level mathematical objects. A tangent line, for example, is just a point and a line wired together with derived atoms. The engine doesn't know what a "tangent line" is; it only sees the underlying items.
+
+## Why constructions?
+
+The engine provides low-level primitives: points, lines, vectors, parametric curves, surfaces, and so on. These are powerful, but common patterns like "a point constrained to a curve" or "a normal vector on a surface" require several items and some math to wire up.
+
+Constructions package that wiring into reusable functions. They use the exact same public API that you have access to: `scene.create()`, `scene.atom()`, and derived atoms. There's no special internal machinery. A construction you write and one that ships with the library have identical power.
+
+## Using a construction
+
+Every construction follows the same pattern:
+
+```typescript
+const result = someConstruction(scene, {
+  // Options: plain values or atoms
+  f: myFunc,
+  t: tAtom,
+  color: "yellow",
+});
+```
+
+The first argument is always the scene. The second is an options object. The return value is a **handle** containing the items that were created, any useful atoms, and a `dispose()` function.
+
+### Options: values or atoms
+
+Most options work the same way as [item options](/docs/items): you can pass a plain value or an atom, and the construction handles either one. Pass plain values for things that won't change, pass atoms for things that should update dynamically.
+
+```typescript
+// Static color
+tangentLine(scene, { f, t: 0.5, color: "yellow" });
+
+// Reactive parameter
+const tAtom = scene.atom(0.5);
+tangentLine(scene, { f, t: tAtom, color: "yellow" });
+```
+
+Some options only accept plain values. These are options for state that the construction manages internally, like `initialT` in `curvePoint` or `initialXZ` in `surfacePoint`. The construction creates its own writable atom from this initial value and returns it in the handle. You can't pass an atom for these because the construction needs to own and write to that state (for example, updating `t` during drag).
+
+### The returned handle
+
+A construction returns a handle with:
+
+1. **Every item it created**, by name. You can tweak their properties, attach event handlers, or use them in further constructions.
+2. **Atoms** that are useful for reading or controlling the construction's state.
+3. **`dispose()`** to remove all items from the scene.
+
+```typescript
+const tangent = tangentLine(scene, { f, t: tAtom });
+
+// Access items to fine-tune properties
+tangent.point.radius.set(4);
+tangent.line.thickness.set(2);
+
+// Read computed values
+tangent.tangent.sub((dir) => console.log("tangent direction:", dir));
+
+// Clean up
+tangent.dispose();
+```
+
+### Owned state
+
+The writable atoms that a construction creates internally are returned in the handle. For example, `curvePoint` owns a `t` atom that it updates during drag, and you get full access to it:
+
+```typescript
+// You can destructure to only get what you need
+const { t } = curvePoint(scene, {
+  f: myFunc,
+  initialT: 0.5,
+});
+
+t.get();       // Read the current value
+t.set(0.8);   // Set it externally
+```
+
+## Composing constructions
+
+Constructions compose naturally because they expose their items and atoms. You can wire the output of one construction into another:
+
+```typescript
+const sp = surfacePoint(scene, {
+  f: (x, z) => Math.sin(x) * Math.cos(z),
+  initialXZ: vec2(1, 1),
+});
+
+// Feed the surface point's xz atom into a surface normal
+const sn = surfaceNormal(scene, {
+  f: (x, z) => Math.sin(x) * Math.cos(z),
+  xz: sp.xz,
+  color: "tomato",
+});
+```
+
+Drag the point and the normal vector follows automatically.
+
+## Writing your own
+
+Since constructions use only public APIs, you can write your own. Here's a minimal example of a "drop line" that draws a vertical line from a point down to the xz-plane:
+
+```typescript
+function dropLine(scene, options) {
+  const coordsAtom = ensureAtom(scene.atom, options.coords);
+  const colorAtom = ensureAtom(scene.atom, options.color ?? "gray");
+
+  const groundAtom = scene.atom((get) => {
+    const { x, z } = get(coordsAtom);
+    return vec3(x, 0, z);
+  });
+
+  const line = scene.create("line3d", {
+    start: coordsAtom,
+    end: groundAtom,
+    color: colorAtom,
+  });
+
+  const dot = scene.create("point3d", {
+    coords: groundAtom,
+    color: colorAtom,
+    radius: 2,
+    draggable: "none",
+  });
+
+  return {
+    line,
+    dot,
+    dispose: () => {
+      scene.remove(line);
+      scene.remove(dot);
+    },
+  };
+}
+```
+
+The conventions described on this page (options as `AtomLikeInput`, returning a handle with items and `dispose()`) are what the library's built-in constructions follow. Your own constructions can follow the same pattern, or do something entirely different. There are no rules enforced by the engine.
+
+## Available Constructions
+
+| Construction | Description |
+|---|---|
+| [curvePoint](/docs/constructions/curve-point) | Draggable point constrained to a parametric curve |
+| [tangentLine](/docs/constructions/tangent-line) | Tangent line at a point on a parametric curve |
+| [surfacePoint](/docs/constructions/surface-point) | Draggable point constrained to a surface |
+| [surfaceNormal](/docs/constructions/surface-normal) | Normal vector at a point on a surface |
+
+<Cards>
+  <Card title="Curve Point" href="/docs/constructions/curve-point" />
+  <Card title="Tangent Line" href="/docs/constructions/tangent-line" />
+  <Card title="Surface Point" href="/docs/constructions/surface-point" />
+  <Card title="Surface Normal" href="/docs/constructions/surface-normal" />
+</Cards>

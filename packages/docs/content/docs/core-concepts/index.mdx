@@ -1,49 +1,80 @@
 ---
 title: Core Concepts
-description: Understanding Scenes, Views, and Atoms
+description: Understanding Scenes, Atoms, Items, and Constructions
 ---
 
-Uzay is built around three core concepts that work together to create reactive 3D visualizations.
+Here's a quick overview of how Uzay is structured before diving into the details.
 
-## The Three Pillars
+## Scene
 
-### Scene
-
-A **Scene** is a container that holds all your 3D items (points, lines, curves, etc.) and manages their state. You create items using `scene.create()` and they automatically become part of the scene.
+A **Scene** holds all your 3D objects and manages their state. You create a scene, add items to it, and connect it to a **View** that handles rendering to a canvas element.
 
 ```typescript
 const scene = new Scene3D();
 const point = scene.create("point3d", { coords: vec3(1, 2, 3) });
 ```
 
-The elements in the scene are all in world coordinates. The scene knows nothing about the view or the rendering logic, it only holds the state.
+The scene only holds state. The view handles rendering with Three.js, and automatically re-renders when anything changes. A single scene can have multiple views with different cameras.
 
-### View
+[Learn more about Scenes & Views](/docs/core-concepts/scenes-views)
 
-A **View** connects a Scene to a DOM element and handles rendering. It uses Three.js under the hood to render the scene with WebGL. When anything in the scene changes, the view automatically re-renders.
+## Atoms
 
-```typescript
-const view = new View3D(scene, camera.id, containerElement);
-```
-
-A scene can have multiple different views, each with different cameras and rendering to different canvas elements.
-
-### Atoms
-
-**Atoms** are reactive state containers. Any property of any item can be an atom, and when that atom's value changes, the scene automatically updates. This is the key to creating dynamic, interactive visualizations.
+**Atoms** are reactive state containers. Any property on any item can be an atom, and when that atom's value changes, the visualization updates automatically.
 
 ```typescript
 const radius = scene.atom(2);
-const point = scene.create("point3d", { radius: radius });
+const point = scene.create("point3d", { radius });
 
-// Later: changing the atom updates the visualization
+// The point updates automatically
 radius.set(5);
 ```
 
-## Learn More
+You can also create derived atoms that compute values from other atoms:
+
+```typescript
+const t = scene.atom(0);
+const position = scene.atom((get) => {
+  const angle = get(t);
+  return vec3(Math.cos(angle), Math.sin(angle), 0);
+});
+```
+
+[Learn more about Atoms](/docs/core-concepts/atoms)
+
+## Items
+
+**Items** are the visual elements in a scene: points, lines, vectors, parametric curves, surfaces, overlays, and more. Every item property is an atom, so items are reactive by default.
+
+```typescript
+const line = scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: point.coords,
+  color: "dodgerblue",
+});
+```
+
+[Browse all items](/docs/items)
+
+## Constructions
+
+**Constructions** are reusable functions that compose items into higher-level mathematical objects. A tangent line, a draggable point on a curve, a surface normal: these are all constructions built from the same primitives you have access to.
+
+```typescript
+const p = curvePoint(scene, { f: myFunc, initialT: 0.5 });
+const tl = tangentLine(scene, { f: myFunc, t: p.t });
+```
+
+[Browse all constructions](/docs/constructions)
+
+## Interactions
+
+Points and vectors are draggable out of the box. You can also listen for drag, click, and hover events on any item.
+
+[Learn more about Interactions](/docs/core-concepts/interactions)
 
 <Cards>
   <Card title="Scenes & Views" href="/docs/core-concepts/scenes-views" description="Creating and rendering scenes" />
   <Card title="Atoms" href="/docs/core-concepts/atoms" description="Reactive state management" />
+  <Card title="Interactions" href="/docs/core-concepts/interactions" description="Drag, click, and hover events" />
 </Cards>
-

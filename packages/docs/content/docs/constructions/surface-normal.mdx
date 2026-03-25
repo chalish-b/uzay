@@ -1,0 +1,159 @@
+---
+title: Surface Normal
+description: Normal vector at a point on a surface
+---
+
+## What is a Surface Normal?
+
+A `surfaceNormal` draws the normal vector to a [surface](/docs/items/surfaces) at a given $(x, z)$ coordinate. It computes the cross product of the surface's partial derivatives numerically, so you don't need to provide a gradient. Useful for:
+
+- Visualizing surface orientation
+- Flux and divergence illustrations
+- Combining with [surfacePoint](/docs/constructions/surface-point) for interactive exploration
+
+## Basic Usage
+
+```typescript
+import { surfaceNormal } from "uzay";
+
+const f = (x: number, z: number) => Math.sin(x) * Math.cos(z);
+
+scene.create("surface3d", {
+  f,
+  xRange: [-5, 5],
+  zRange: [-5, 5],
+  color: "steelblue",
+  opacity: 0.8,
+});
+
+const sn = surfaceNormal(scene, {
+  f,
+  xz: vec2(1, 1),
+  color: "tomato",
+});
+```
+
+This draws a unit normal vector at the point $(1, f(1, 1), 1)$ on the surface.
+
+## Reactive Position
+
+Pass an atom for `xz` to make the normal update as the position changes:
+
+```typescript
+const xzAtom = scene.atom(vec2(0, 0));
+
+const sn = surfaceNormal(scene, {
+  f,
+  xz: xzAtom,
+  color: "tomato",
+});
+
+// Move the normal
+xzAtom.set(vec2(2, -1));
+```
+
+## Examples
+
+### With a Surface Point
+
+The most common pattern: combine with `surfacePoint` so dragging the point moves the normal:
+
+```typescript
+const f = (x: number, z: number) => Math.sin(x) * Math.cos(z);
+
+const sp = surfacePoint(scene, {
+  f,
+  initialXZ: vec2(1, 1),
+  color: "gold",
+});
+
+const sn = surfaceNormal(scene, {
+  f,
+  xz: sp.xz,
+  color: "tomato",
+});
+
+sp.point.radius.set(4);
+```
+
+### Scaled Normal
+
+Use the `scale` option to control the length of the normal vector:
+
+```typescript
+const sn = surfaceNormal(scene, {
+  f,
+  xz: vec2(1, 1),
+  color: "tomato",
+  scale: 2,
+});
+```
+
+The normal direction is always the unit normal; `scale` just multiplies the displayed vector length.
+
+### Multiple Static Normals
+
+Show normals at a grid of points to visualize the surface orientation:
+
+```typescript
+const f = (x: number, z: number) => Math.sin(x) * Math.cos(z);
+
+for (let x = -4; x <= 4; x += 2) {
+  for (let z = -4; z <= 4; z += 2) {
+    surfaceNormal(scene, {
+      f,
+      xz: vec2(x, z),
+      color: "tomato",
+      scale: 0.5,
+    });
+  }
+}
+```
+
+### Reading the Normal Direction
+
+The returned `normal` atom gives you the unit normal vector, which you can use for further computation:
+
+```typescript
+const sn = surfaceNormal(scene, { f, xz: sp.xz });
+
+// Derive from the normal
+const dotWithUp = scene.atom((get) => {
+  const n = get(sn.normal);
+  return n.y; // dot product with (0, 1, 0)
+});
+```
+
+## Customizing the Vector
+
+The returned `vector` is a regular `Vector3D`:
+
+```typescript
+const sn = surfaceNormal(scene, { f, xz: vec2(0, 0) });
+
+sn.vector.thickness.set(2);
+sn.vector.headLength.set(0.3);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(x: number, z: number) => number` | (required) | The surface height function |
+| `xz` | `Vec2` | (required) | Position in the $(x, z)$ parameter space |
+| `color` | `string` | `"white"` | CSS color string |
+| `scale` | `number` | `1` | Length multiplier for the displayed vector |
+
+All options accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `vector` | `Vector3D` | The normal vector item |
+| `normal` | `BoundAtom<Vec3>` | The unit normal direction (read-only) |
+| `dispose` | `() => void` | Removes all items from the scene |

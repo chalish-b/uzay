@@ -19,8 +19,9 @@ export type { Overlay3D } from "./core/items/overlay3d"
 export type { Plane3D } from "./core/items/plane3d"
 export type { Surface3D } from "./core/items/surface3d"
 
-// Atom types
+// Atom types and utilities
 export type { BoundAtom, SceneAtom, AtomLikeInput } from "./core/atom-wrapper"
+export { ensureAtom } from "./core/atom-wrapper"
 
 // Item types
 export type { ItemKind, ItemId, ItemOptions, ItemInstance, ItemSnapshot } from "./core/common-types/item-registry"

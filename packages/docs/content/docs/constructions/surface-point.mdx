@@ -1,0 +1,140 @@
+---
+title: Surface Point
+description: Draggable point constrained to a surface
+---
+
+## What is a Surface Point?
+
+A `surfacePoint` creates a point that is constrained to move along a [surface](/docs/items/surfaces). The user can drag the point and it will stay on the surface, tracking the mouse from any camera angle. Useful for:
+
+- Exploring a surface interactively
+- Driving other constructions (like a [surface normal](/docs/constructions/surface-normal)) reactively
+- Building visualizations where a position on a surface needs to be adjustable
+
+## Basic Usage
+
+```typescript
+import { surfacePoint } from "uzay";
+
+const f = (x: number, z: number) => Math.sin(x) * Math.cos(z);
+
+scene.create("surface3d", {
+  f,
+  xRange: [-5, 5],
+  zRange: [-5, 5],
+  color: "steelblue",
+  opacity: 0.8,
+});
+
+const sp = surfacePoint(scene, {
+  f,
+  xRange: [-5, 5],
+  zRange: [-5, 5],
+  initialXZ: vec2(1, 1),
+  color: "yellow",
+});
+```
+
+The point appears on the surface at $(x, z) = (1, 1)$ and can be dragged across it.
+
+## The xz Atom
+
+The position on the surface is represented as a `Vec2` in the $(x, z)$ parameter space. The returned `xz` atom is writable:
+
+```typescript
+const sp = surfacePoint(scene, { f, initialXZ: vec2(0, 0) });
+
+// Read
+const pos = sp.xz.get(); // { x: 0, y: 0 } (Vec2 where y maps to the z axis)
+
+// Set externally
+sp.xz.set(vec2(2, -1));
+
+// Subscribe
+sp.xz.sub((xz) => console.log("position:", xz.x, xz.y));
+```
+
+Note that `Vec2` uses `x` and `y` fields, so `xz.x` is the surface's x coordinate and `xz.y` is the surface's z coordinate.
+
+## Examples
+
+### With a Surface Normal
+
+Combine with `surfaceNormal` to show the normal vector at the dragged point:
+
+```typescript
+const f = (x: number, z: number) => Math.sin(x) * Math.cos(z);
+
+const sp = surfacePoint(scene, {
+  f,
+  xRange: [-5, 5],
+  zRange: [-5, 5],
+  initialXZ: vec2(1, 1),
+  color: "yellow",
+});
+
+const sn = surfaceNormal(scene, {
+  f,
+  xz: sp.xz,
+  color: "tomato",
+});
+```
+
+Drag the point and the normal vector follows.
+
+### Coordinate Readout
+
+```typescript
+const sp = surfacePoint(scene, { f, initialXZ: vec2(0, 0) });
+
+scene.create("overlay3d", {
+  position: sp.point.coords,
+  content: scene.atom((get) => {
+    const { x, y, z } = get(sp.point.coords);
+    return `(${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
+```
+
+## How Dragging Works
+
+The drag solver finds the $(x, z)$ on the surface where the 3D point $(x, f(x,z), z)$ is closest to the camera ray. This is a 2D optimization using Gauss-Newton iteration, similar to how [curvePoint](/docs/constructions/curve-point) works but with two parameters instead of one.
+
+Because it uses the camera ray rather than projecting onto a fixed plane, dragging feels natural regardless of the surface orientation or camera angle.
+
+## Customizing the Point
+
+The returned `point` is a regular `Point3D`:
+
+```typescript
+const sp = surfacePoint(scene, { f, initialXZ: vec2(0, 0) });
+
+sp.point.radius.set(4);
+sp.point.color.set("gold");
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(x: number, z: number) => number` | (required) | The surface height function |
+| `xRange` | `[number, number]` | `[-5, 5]` | Bounds for the x parameter during dragging |
+| `zRange` | `[number, number]` | `[-5, 5]` | Bounds for the z parameter during dragging |
+| `initialXZ` | `Vec2` | `vec2(0, 0)` | Initial position in the $(x, z)$ parameter space |
+| `color` | `string` | `"white"` | CSS color string |
+
+All options except `initialXZ` accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `point` | `Point3D` | The point item on the surface |
+| `xz` | `BoundAtom<Vec2>` | Writable atom for the current $(x, z)$ position |
+| `dispose` | `() => void` | Removes all items from the scene |
