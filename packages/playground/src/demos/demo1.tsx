@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { Scene3D, vec3 } from "uzay";
-import { Scene3DView, useAtomState } from "uzay/react";
+import { useMemo } from "react";
+import { Scene3D, vec2, vec3, Vec3, surfacePoint } from "uzay";
+import { Scene3DView, useAtomValue } from "uzay/react";
 
 function createScene() {
   const scene = new Scene3D();
@@ -10,7 +10,7 @@ function createScene() {
     lookAt: vec3(0, 0, 0),
   });
 
-  const axes = scene.create("axes3d", {
+  scene.create("axes3d", {
     x: [-5, 5],
     y: [-5, 5],
     z: [-5, 5],
@@ -28,20 +28,53 @@ function createScene() {
     thickness: 2.5,
   });
 
-  return { scene, axes };
+  const f = (x: number, z: number) => Math.sin(x) * Math.cos(z) + 2;
+
+  scene.create("surface3d", {
+    f,
+    xRange: [-5, 5],
+    zRange: [-5, 5],
+    color: "steelblue",
+    opacity: 1,
+    samples: 64,
+  });
+
+  const sp = surfacePoint(scene, {
+    f,
+    xRange: [-5, 5],
+    zRange: [-5, 5],
+    initialXZ: vec2(1, 1),
+    color: "tomato",
+  });
+  sp.point.radius.set(1);
+
+  sp.point.radius.set(4);
+
+  const EPSILON = 1e-5;
+  const normalAtom = scene.atom((get) => {
+    const xz = get(sp.xz);
+    const x = xz.x;
+    const z = xz.y;
+    const dfdx = (f(x + EPSILON, z) - f(x - EPSILON, z)) / (2 * EPSILON);
+    const dfdz = (f(x, z + EPSILON) - f(x, z - EPSILON)) / (2 * EPSILON);
+    // normal = cross(dP/dx, dP/dz) where dP/dx = (1, dfdx, 0), dP/dz = (0, dfdz, 1)
+    return Vec3.normalized(vec3(-dfdx, 1, -dfdz));
+  });
+
+  scene.create("vector3d", {
+    origin: sp.point.coords,
+    vector: normalAtom,
+    color: "tomato",
+    thickness: 1,
+  });
+
+  return { scene, sp };
 }
 
 export default function Demo1() {
-  const { scene, axes } = useMemo(() => createScene(), []);
-
-  const [tickmarks, setTickmarks] = useAtomState(axes.tickmarks);
-  const [arrows, setArrows] = useAtomState(axes.arrows);
-  const [xAxis, setXAxis] = useAtomState(axes.x);
-  const [yAxis, setYAxis] = useAtomState(axes.y);
-  const [zAxis, setZAxis] = useAtomState(axes.z);
-
-  const labelStyle = { color: "white", fontSize: 13 } as const;
-  const checkboxStyle = { marginRight: 6 } as const;
+  const { scene, sp } = useMemo(() => createScene(), []);
+  const xz = useAtomValue(sp.xz);
+  const coords = useAtomValue(sp.point.coords);
 
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#141414", position: "relative" }}>
@@ -52,68 +85,16 @@ export default function Demo1() {
           position: "absolute",
           top: 12,
           left: 12,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
           background: "rgba(0,0,0,0.7)",
           padding: "12px 16px",
           borderRadius: 8,
-          minWidth: 200,
+          color: "white",
+          fontSize: 13,
+          fontFamily: "monospace",
         }}
       >
-        <span style={{ ...labelStyle, fontWeight: "bold", fontSize: 15 }}>
-          Axes Controls
-        </span>
-
-        <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={tickmarks}
-            onChange={(e) => setTickmarks(e.target.checked)}
-            style={checkboxStyle}
-          />
-          Tick marks
-        </label>
-
-        <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={arrows}
-            onChange={(e) => setArrows(e.target.checked)}
-            style={checkboxStyle}
-          />
-          Arrows
-        </label>
-
-        <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={xAxis !== false}
-            onChange={(e) => setXAxis(e.target.checked ? [-5, 5] : false)}
-            style={checkboxStyle}
-          />
-          X axis
-        </label>
-
-        <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={yAxis !== false}
-            onChange={(e) => setYAxis(e.target.checked ? [-5, 5] : false)}
-            style={checkboxStyle}
-          />
-          Y axis
-        </label>
-
-        <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={zAxis !== false}
-            onChange={(e) => setZAxis(e.target.checked ? [-5, 5] : false)}
-            style={checkboxStyle}
-          />
-          Z axis
-        </label>
+        <div>xz: ({xz.x.toFixed(2)}, {xz.y.toFixed(2)})</div>
+        <div>pos: ({coords.x.toFixed(2)}, {coords.y.toFixed(2)}, {coords.z.toFixed(2)})</div>
       </div>
     </div>
   );
