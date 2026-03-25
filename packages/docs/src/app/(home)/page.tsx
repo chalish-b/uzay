@@ -28,7 +28,7 @@ export default function HomePage() {
 
           <div className="mb-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/docs/getting-started"
+              href="/docs/"
               className="inline-flex h-11 items-center justify-center rounded-lg bg-fd-primary px-5 text-sm font-medium text-white dark:text-fd-primary-foreground transition-opacity hover:opacity-90"
             >
               Get Started
