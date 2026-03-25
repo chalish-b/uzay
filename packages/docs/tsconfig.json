@@ -23,6 +23,12 @@
       "@/*": [
         "./src/*"
       ],
+      "uzay": [
+        "../uzay/src/index.ts"
+      ],
+      "uzay/react": [
+        "../uzay/src/react/index.ts"
+      ],
       "fumadocs-mdx:collections/*": [
         ".source/*"
       ]

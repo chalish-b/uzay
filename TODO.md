@@ -1,5 +1,7 @@
 ## Features
 
+- Reusable themes. Can be attached to the view object, dark and light variants etc.
+  - Or instead of the library managing dark and light, the theme itself can be reactive and the user can update it however they want.
 - Add a dedicated examples section in documentation
   - Show more patterns like:
     - How to constrain points to be on a sphere, on a plane etc.
@@ -61,5 +63,6 @@
 
   ## Bugs
 
+- Even if we define a camera, the react wrapper uses its own internal camera. I think we should just get rid of this camera stuff altogether. Just allow the React wrapper to stay as `Scene3DView`, that's it.
 - Explicitly typed atoms (`scene.atom<T>()`) don't get autocomplete. The type checking still works, but for things like string types, it would be nice if it provided autocomplete.
 - This whole thing with Vec3 type and Vec3 namespace is bad. We need to import Vec3 namespace as Vec3Utils just for this and causes confusions.
