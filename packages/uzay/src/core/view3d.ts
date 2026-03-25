@@ -99,6 +99,9 @@ export class View3D {
     // Position absolute so canvas doesn't affect container layout during resize
     this.threeRenderer.domElement.style.position = "absolute";
     this.threeRenderer.domElement.style.inset = "0";
+    this.threeRenderer.domElement.style.width = "100%";
+    this.threeRenderer.domElement.style.height = "100%";
+    this.threeRenderer.domElement.style.display = "block";
 
     // Warn if container already has a canvas (likely a cleanup issue)
     const existingCanvas = containerElem.querySelector("canvas");
