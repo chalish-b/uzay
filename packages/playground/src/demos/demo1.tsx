@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Scene3D, vec2, vec3, Vec3, surfacePoint } from "uzay";
+import { Scene3D, vec2, vec3, surfacePoint, surfaceNormal } from "uzay";
 import { Scene3DView, useAtomValue } from "uzay/react";
 
 function createScene() {
@@ -46,27 +46,12 @@ function createScene() {
     initialXZ: vec2(1, 1),
     color: "tomato",
   });
-  sp.point.radius.set(1);
-
   sp.point.radius.set(4);
 
-  const EPSILON = 1e-5;
-  const normalAtom = scene.atom((get) => {
-    const xz = get(sp.xz);
-    const x = xz.x;
-    const z = xz.y;
-    const dfdx = (f(x + EPSILON, z) - f(x - EPSILON, z)) / (2 * EPSILON);
-    const dfdz = (f(x, z + EPSILON) - f(x, z - EPSILON)) / (2 * EPSILON);
-    // normal = cross(dP/dx, dP/dz) where dP/dx = (1, dfdx, 0), dP/dz = (0, dfdz, 1)
-    return Vec3.normalized(vec3(-dfdx, 1, -dfdz));
-  });
+  const sn = surfaceNormal(scene, { f, xz: sp.xz, color: "tomato" });
 
-  scene.create("vector3d", {
-    origin: sp.point.coords,
-    vector: normalAtom,
-    color: "tomato",
-    thickness: 1,
-  });
+  // Static normal at a fixed point, no dragging, no atoms
+  surfaceNormal(scene, { f, xz: vec2(-2, 1), color: "limegreen" });
 
   return { scene, sp };
 }
