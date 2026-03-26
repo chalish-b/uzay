@@ -3,7 +3,7 @@ import HomeSurfaceDemo from "@/components/home-surface-demo";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-1 items-center">
+    <div className="relative flex flex-1 items-center">
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[minmax(0,1fr)_minmax(440px,560px)] lg:items-center">
         <div className="mx-auto max-w-2xl lg:mx-0">
           <h1 className="mb-4 text-3xl font-bold sm:text-4xl">Uzay</h1>
@@ -44,6 +44,17 @@ export default function HomePage() {
           <HomeSurfaceDemo />
         </div>
       </div>
+      <p className="absolute bottom-6 left-0 right-0 text-center text-sm text-fd-muted-foreground">
+        Made by{" "}
+        <a
+          href="https://github.com/chalish-b"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-fd-foreground transition-colors"
+        >
+          chalish b.
+        </a>
+      </p>
     </div>
   );
 }

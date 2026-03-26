@@ -119,7 +119,6 @@ function createScene() {
     t: point.t,
     color: WHITE,
     length: 6,
-    showPoint: false,
   });
 
   // Convert the 3D tangent into the 2D cross-section slope.
