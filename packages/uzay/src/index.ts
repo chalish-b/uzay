@@ -28,6 +28,7 @@ export type { Grid2D } from "./core/2d/items/grid2d"
 export type { Axes2D } from "./core/2d/items/axes2d"
 export type { Line2D } from "./core/2d/items/line2d"
 export type { Vector2D } from "./core/2d/items/vector2d"
+export type { ParametricFunction2D } from "./core/2d/items/parametric-function2d"
 
 // Atom types and utilities
 export type { BoundAtom, SceneAtom, AtomLikeInput } from "./core/shared/atom-wrapper"

@@ -7,12 +7,14 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
 
-// World-unit base sizes for ticks and arrows. Scaled by item.thickness so a
-// thicker axis gets proportionally bigger ornamentation.
-const BASE_TICK_HALF_LENGTH = 0.06;
-const BASE_ARROW_LENGTH = 0.22;
-const BASE_ARROW_HALF_WIDTH = 0.08;
+// Pixel-space sizes for ornaments. Multiplied by item.thickness so the same
+// dial that controls line width also scales ticks and arrowheads
+// proportionally.
+const BASE_TICK_HALF_LENGTH_PX = 6;
+const BASE_ARROW_LENGTH_PX = 14;
+const BASE_ARROW_HALF_WIDTH_PX = 5;
 const INFINITE_RANGE: readonly [number, number] = [-100, 100];
 
 type AxisKey = "x" | "y";
@@ -48,22 +50,21 @@ function buildTickPositions(
   return positions;
 }
 
+// Tick geometry uses unit perpendicular extent (±1). The mesh's scale on the
+// perpendicular axis is then set in onBeforeRender so each tick has a fixed
+// pixel length regardless of zoom.
 function buildTickGeometry(
   axis: AxisKey,
   range: readonly [number, number],
-  step: number,
-  thickness: number
+  step: number
 ): LineSegmentsGeometry {
-  const half = BASE_TICK_HALF_LENGTH * thickness;
   const ticks = buildTickPositions(range, step);
   const positions: number[] = [];
   for (const t of ticks) {
     if (axis === "x") {
-      // Ticks on x axis run vertically (along y).
-      positions.push(t, -half, Z_DEFAULT, t, half, Z_DEFAULT);
+      positions.push(t, -1, Z_DEFAULT, t, 1, Z_DEFAULT);
     } else {
-      // Ticks on y axis run horizontally (along x).
-      positions.push(-half, t, Z_DEFAULT, half, t, Z_DEFAULT);
+      positions.push(-1, t, Z_DEFAULT, 1, t, Z_DEFAULT);
     }
   }
   const geom = new LineSegmentsGeometry();
@@ -71,38 +72,17 @@ function buildTickGeometry(
   return geom;
 }
 
-// Arrow base sits AT the axis endpoint and the tip extends BEYOND it. This
-// keeps any tickmark drawn at the endpoint from overlapping the tip of the
-// arrowhead, matching the layout used by axes3d.
-function buildArrowGeometry(
-  axis: AxisKey,
-  range: readonly [number, number],
-  thickness: number
-): THREE.BufferGeometry {
-  const length = BASE_ARROW_LENGTH * thickness;
-  const halfWidth = BASE_ARROW_HALF_WIDTH * thickness;
-  const basePos = range[1];
-  const tipPos = range[1] + length;
-
-  let v0: [number, number], v1: [number, number], v2: [number, number];
-  if (axis === "x") {
-    v0 = [tipPos, 0];
-    v1 = [basePos, halfWidth];
-    v2 = [basePos, -halfWidth];
-  } else {
-    v0 = [0, tipPos];
-    v1 = [halfWidth, basePos];
-    v2 = [-halfWidth, basePos];
-  }
-
+// Unit arrow pointing along its axis. Base sits at origin, tip extends one
+// unit forward. Mesh position places the BASE at the axis endpoint, so the
+// scaled tip lands `arrowLengthPx` pixels beyond the line — keeping ticks at
+// integer positions clear of the tip and matching axes3d's conventions.
+function buildUnitArrowGeometry(axis: AxisKey): THREE.BufferGeometry {
+  const positions =
+    axis === "x"
+      ? [1, 0, Z_DEFAULT, 0, 0.5, Z_DEFAULT, 0, -0.5, Z_DEFAULT]
+      : [0, 1, Z_DEFAULT, 0.5, 0, Z_DEFAULT, -0.5, 0, Z_DEFAULT];
   const geom = new THREE.BufferGeometry();
-  geom.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      [v0[0], v0[1], Z_DEFAULT, v1[0], v1[1], Z_DEFAULT, v2[0], v2[1], Z_DEFAULT],
-      3
-    )
-  );
+  geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geom.setIndex([0, 1, 2]);
   return geom;
 }
@@ -127,7 +107,7 @@ function createAxis(
 
   let ticks: ThreeSceneTypes["axes2d"]["x"]["ticks"] = null;
   if (item.tickmarks && enabled) {
-    const tickGeometry = buildTickGeometry(axis, range, item.tickStep, item.thickness);
+    const tickGeometry = buildTickGeometry(axis, range, item.tickStep);
     const tickMaterial = new LineMaterial({
       color: item.color,
       linewidth: item.thickness,
@@ -135,17 +115,28 @@ function createAxis(
     const tickMesh = new LineSegments2(tickGeometry, tickMaterial);
     tickMesh.visible = item.visible;
     tickMesh.userData.itemId = item.id;
+    tickMesh.userData.axis = axis;
+    tickMesh.userData.thickness = item.thickness;
+    chainOnBeforeRender(tickMesh, onTickBeforeRender);
     threeScene.add(tickMesh);
     ticks = { geometry: tickGeometry, material: tickMaterial, mesh: tickMesh };
   }
 
   let arrow: ThreeSceneTypes["axes2d"]["x"]["arrow"] = null;
   if (item.arrows && enabled) {
-    const arrowGeometry = buildArrowGeometry(axis, range, item.thickness);
+    const arrowGeometry = buildUnitArrowGeometry(axis);
     const arrowMaterial = new THREE.MeshBasicMaterial({ color: item.color });
     const arrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
+    if (axis === "x") {
+      arrowMesh.position.set(range[1], 0, Z_DEFAULT);
+    } else {
+      arrowMesh.position.set(0, range[1], Z_DEFAULT);
+    }
     arrowMesh.visible = item.visible;
     arrowMesh.userData.itemId = item.id;
+    arrowMesh.userData.axis = axis;
+    arrowMesh.userData.thickness = item.thickness;
+    chainOnBeforeRender(arrowMesh, onArrowBeforeRender);
     threeScene.add(arrowMesh);
     arrow = { geometry: arrowGeometry, material: arrowMaterial, mesh: arrowMesh };
   }
@@ -207,3 +198,39 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
     disposeAxis(obj.y, threeScene);
   },
 };
+
+function onTickBeforeRender(
+  this: THREE.Object3D,
+  renderer: THREE.WebGLRenderer,
+  camera: THREE.Camera
+) {
+  if (!(camera as THREE.OrthographicCamera).isOrthographicCamera) return;
+  const wpp = getWorldPerPixel(renderer, camera as THREE.OrthographicCamera);
+  const half = (this.userData.thickness as number) * BASE_TICK_HALF_LENGTH_PX * wpp;
+  if (this.userData.axis === "x") {
+    this.scale.set(1, half, 1);
+  } else {
+    this.scale.set(half, 1, 1);
+  }
+}
+
+function onArrowBeforeRender(
+  this: THREE.Object3D,
+  renderer: THREE.WebGLRenderer,
+  camera: THREE.Camera
+) {
+  if (!(camera as THREE.OrthographicCamera).isOrthographicCamera) return;
+  const wpp = getWorldPerPixel(renderer, camera as THREE.OrthographicCamera);
+  const thickness = this.userData.thickness as number;
+  const lengthWorld = thickness * BASE_ARROW_LENGTH_PX * wpp;
+  const halfWidthWorld = thickness * BASE_ARROW_HALF_WIDTH_PX * wpp;
+  if (this.userData.axis === "x") {
+    // Unit geometry: tip (1,0), base (0, ±0.5). Scale x extends tip forward,
+    // scale y stretches base width.
+    this.scale.set(lengthWorld, halfWidthWorld * 2, 1);
+  } else {
+    // Unit geometry: tip (0,1), base (±0.5, 0). Scale x stretches base width,
+    // scale y extends tip up.
+    this.scale.set(halfWidthWorld * 2, lengthWorld, 1);
+  }
+}

@@ -54,8 +54,6 @@ function createScene() {
     origin: vec2(0, 0),
     vector: vec2(2, 3),
     color: "steelblue",
-    headLength: 0.4,
-    headWidth: 0.25,
   });
 
   // Mirror vector via a derived atom: always reflects v across the origin.
@@ -68,8 +66,6 @@ function createScene() {
     vector: negV,
     color: "lime",
     draggable: "none",
-    headLength: 0.4,
-    headWidth: 0.25,
   });
 
   // Vector constrained to drag along x only.
@@ -78,11 +74,45 @@ function createScene() {
     vector: vec2(2.5, 0),
     color: "gold",
     draggable: "x",
-    headLength: 0.4,
-    headWidth: 0.25,
   });
 
-  return { scene, camera, a, b, v };
+  // Y-only draggable point that controls sine wave amplitude. Demonstrates
+  // a derived "function-valued" atom: the parametric function rebuilds
+  // automatically whenever the point's y coord changes.
+  const sineAmp = scene.create("point2d", {
+    coords: vec2(-7, 2),
+    color: "violet",
+    radius: 4,
+    draggable: "y",
+  });
+
+  const sineFn = scene.atom(
+    (get) => {
+      const amp = get(sineAmp.coords).y;
+      return (t: number) => vec2(t, amp * Math.sin(t));
+    },
+  );
+
+  scene.create("parametricfunction2d", {
+    f: sineFn,
+    tStart: -8,
+    tEnd: 8,
+    samples: 200,
+    color: "violet",
+    thickness: 3,
+  });
+
+  // Static unit circle as a parametric curve.
+  scene.create("parametricfunction2d", {
+    f: (t: number) => vec2(2.5 + Math.cos(t) * 1.2, 5 + Math.sin(t) * 1.2),
+    tStart: 0,
+    tEnd: Math.PI * 2,
+    samples: 64,
+    color: "cyan",
+    thickness: 3,
+  });
+
+  return { scene, camera, a, b, v, sineAmp };
 }
 
 function useAtom<T>(atom: { get: () => T; sub: (cb: () => void) => () => void }) {
@@ -95,7 +125,7 @@ function useAtom<T>(atom: { get: () => T; sub: (cb: () => void) => () => void })
 }
 
 export default function Demo2D() {
-  const { scene, camera, a, b, v } = useMemo(() => createScene(), []);
+  const { scene, camera, a, b, v, sineAmp } = useMemo(() => createScene(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -107,6 +137,7 @@ export default function Demo2D() {
   const aCoords = useAtom<Vec2>(a.coords);
   const bCoords = useAtom<Vec2>(b.coords);
   const vVec = useAtom<Vec2>(v.vector);
+  const ampCoords = useAtom<Vec2>(sineAmp.coords);
 
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#141414", position: "relative" }}>
@@ -131,12 +162,15 @@ export default function Demo2D() {
         <div>steelblue vec: drag tip (xy)</div>
         <div>lime vec: derived = -steelblue</div>
         <div>gold vec: x-axis drag only</div>
+        <div>violet point: drag (y-only) to set sine amplitude</div>
+        <div>cyan: static parametric circle</div>
         <div style={{ marginTop: 8, opacity: 0.7 }}>wheel: zoom · drag empty: pan</div>
         <div style={{ marginTop: 8 }}>
           a: ({aCoords.x.toFixed(2)}, {aCoords.y.toFixed(2)})
         </div>
         <div>b: ({bCoords.x.toFixed(2)}, {bCoords.y.toFixed(2)})</div>
         <div>v: ({vVec.x.toFixed(2)}, {vVec.y.toFixed(2)})</div>
+        <div>sine amp: {ampCoords.y.toFixed(2)}</div>
       </div>
     </div>
   );

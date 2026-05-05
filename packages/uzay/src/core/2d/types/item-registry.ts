@@ -4,6 +4,7 @@ import { grid2dDefinition } from "../items/grid2d";
 import { axes2dDefinition } from "../items/axes2d";
 import { line2dDefinition } from "../items/line2d";
 import { vector2dDefinition } from "../items/vector2d";
+import { parametricFunction2dDefinition } from "../items/parametric-function2d";
 import type { AtomLikeOptions } from "../../shared/atom-wrapper";
 import type {
   DefinitionFields,
@@ -20,6 +21,7 @@ export const itemDefinitions = {
   axes2d: axes2dDefinition,
   line2d: line2dDefinition,
   vector2d: vector2dDefinition,
+  parametricfunction2d: parametricFunction2dDefinition,
 } as const;
 
 export type ItemKind = keyof typeof itemDefinitions;

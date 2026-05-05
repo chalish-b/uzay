@@ -5,30 +5,23 @@ import { Z_DEFAULT } from "./index";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
 
-// Shaft and head are constructed in a local frame where the vector points
-// along +x. The group's z rotation aligns this frame with the world-space
-// direction.
+// Layout: shaft and head share a Group whose +x axis points along the vector
+// (group.rotation.z = atan2(vector.y, vector.x)). The shaft runs from the
+// origin to (length, 0). The head's tip sits at (length, 0) and its base
+// extends BACKWARD by `headLength` pixels — so the head's pointy end stays
+// at the vector's mathematical tip while the wide base scales in screen
+// pixels via onBeforeRender. The shaft passing through the head's base is
+// hidden by the filled triangle since the head sits at z=0.001.
 
-function buildShaftGeometry(shaftLen: number): LineGeometry {
-  const geom = new LineGeometry();
-  geom.setPositions([0, 0, 0, shaftLen, 0, 0]);
-  return geom;
-}
-
-function buildHeadGeometry(
-  length: number,
-  headLength: number,
-  headWidth: number
-): THREE.BufferGeometry {
-  const tip: [number, number] = [length, 0];
-  const baseLeft: [number, number] = [length - headLength, headWidth / 2];
-  const baseRight: [number, number] = [length - headLength, -headWidth / 2];
+// Unit head pointing along +x: tip at origin, base at (-1, ±0.5).
+function buildUnitHeadGeometry(): THREE.BufferGeometry {
   const geom = new THREE.BufferGeometry();
   geom.setAttribute(
     "position",
     new THREE.Float32BufferAttribute(
-      [tip[0], tip[1], 0, baseLeft[0], baseLeft[1], 0, baseRight[0], baseRight[1], 0],
+      [0, 0, 0.001, -1, 0.5, 0.001, -1, -0.5, 0.001],
       3
     )
   );
@@ -36,8 +29,15 @@ function buildHeadGeometry(
   return geom;
 }
 
+function buildShaftGeometry(length: number): LineGeometry {
+  const geom = new LineGeometry();
+  geom.setPositions([0, 0, 0, length, 0, 0]);
+  return geom;
+}
+
 function applyTransform(
   group: THREE.Group,
+  headMesh: THREE.Mesh,
   origin: { x: number; y: number },
   vector: { x: number; y: number }
 ) {
@@ -45,9 +45,12 @@ function applyTransform(
   const len = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
   if (len < 1e-9) {
     group.rotation.z = 0;
+    headMesh.visible = false;
     return;
   }
   group.rotation.z = Math.atan2(vector.y, vector.x);
+  headMesh.position.x = len;
+  headMesh.visible = true;
 }
 
 export const vector2dRenderer: ItemRenderer<"vector2d"> = {
@@ -56,29 +59,27 @@ export const vector2dRenderer: ItemRenderer<"vector2d"> = {
     threeScene: THREE.Scene
   ): ThreeSceneTypes["vector2d"] {
     const length = Math.sqrt(item.vector.x * item.vector.x + item.vector.y * item.vector.y);
-    const headLength = Math.min(item.headLength, length);
-    const shaftLen = Math.max(length - headLength, 0);
 
-    const shaftGeometry = buildShaftGeometry(shaftLen);
+    const shaftGeometry = buildShaftGeometry(length);
     const shaftMaterial = new LineMaterial({
       color: item.color,
       linewidth: item.thickness,
     });
     const shaftMesh = new Line2(shaftGeometry, shaftMaterial);
 
-    const headGeometry = buildHeadGeometry(length, headLength, item.headWidth);
+    const headGeometry = buildUnitHeadGeometry();
     const headMaterial = new THREE.MeshBasicMaterial({ color: item.color });
     const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+    headMesh.userData.itemId = item.id;
+    headMesh.userData.headLength = item.headLength;
+    headMesh.userData.headWidth = item.headWidth;
+    chainOnBeforeRender(headMesh, onHeadBeforeRender);
 
     const group = new THREE.Group();
     group.add(shaftMesh);
     group.add(headMesh);
 
-    // Hit-test against the head (the visually solid part). The shaft is a thin
-    // line; raycasting against Line2 needs threshold tuning we haven't done.
-    headMesh.userData.itemId = item.id;
-
-    applyTransform(group, item.origin, item.vector);
+    applyTransform(group, headMesh, item.origin, item.vector);
     group.visible = item.visible;
     threeScene.add(group);
 
@@ -101,21 +102,20 @@ export const vector2dRenderer: ItemRenderer<"vector2d"> = {
     obj.headMaterial.color.set(item.color);
     obj.group.visible = item.visible;
 
+    obj.headMesh.userData.headLength = item.headLength;
+    obj.headMesh.userData.headWidth = item.headWidth;
+
     const length = Math.sqrt(item.vector.x * item.vector.x + item.vector.y * item.vector.y);
-    const headLength = Math.min(item.headLength, length);
-    const shaftLen = Math.max(length - headLength, 0);
 
+    // Shaft length depends on the vector magnitude in world units, so we still
+    // rebuild geometry on snapshot change. Head is unit-sized and only
+    // repositions along the new tip — its scale is updated per-frame.
     obj.shaftGeometry.dispose();
-    obj.headGeometry.dispose();
-
-    const shaftGeometry = buildShaftGeometry(shaftLen);
-    const headGeometry = buildHeadGeometry(length, headLength, item.headWidth);
+    const shaftGeometry = buildShaftGeometry(length);
     obj.shaftMesh.geometry = shaftGeometry;
-    obj.headMesh.geometry = headGeometry;
     (obj as { shaftGeometry: LineGeometry }).shaftGeometry = shaftGeometry;
-    (obj as { headGeometry: THREE.BufferGeometry }).headGeometry = headGeometry;
 
-    applyTransform(obj.group, item.origin, item.vector);
+    applyTransform(obj.group, obj.headMesh, item.origin, item.vector);
   },
 
   dispose(obj: ThreeSceneTypes["vector2d"], threeScene: THREE.Scene): void {
@@ -126,3 +126,15 @@ export const vector2dRenderer: ItemRenderer<"vector2d"> = {
     obj.headMaterial.dispose();
   },
 };
+
+function onHeadBeforeRender(
+  this: THREE.Object3D,
+  renderer: THREE.WebGLRenderer,
+  camera: THREE.Camera
+) {
+  if (!(camera as THREE.OrthographicCamera).isOrthographicCamera) return;
+  const wpp = getWorldPerPixel(renderer, camera as THREE.OrthographicCamera);
+  const sx = (this.userData.headLength as number) * wpp;
+  const sy = (this.userData.headWidth as number) * wpp;
+  this.scale.set(sx, sy, 1);
+}

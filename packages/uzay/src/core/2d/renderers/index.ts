@@ -50,6 +50,12 @@ export type ThreeSceneTypes = {
     headMaterial: THREE.MeshBasicMaterial;
     headMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   };
+  parametricfunction2d: {
+    kind: "parametricfunction2d";
+    geometry: LineGeometry;
+    material: LineMaterial;
+    mesh: Line2;
+  };
 };
 
 // Per-axis bundle for axes2d: a line plus optional tick and arrow meshes.
@@ -85,6 +91,7 @@ import { grid2dRenderer } from "./grid2d";
 import { axes2dRenderer } from "./axes2d";
 import { line2dRenderer } from "./line2d";
 import { vector2dRenderer } from "./vector2d";
+import { parametricFunction2dRenderer } from "./parametric-function2d";
 
 export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   camera2d: camera2dRenderer,
@@ -93,6 +100,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   axes2d: axes2dRenderer,
   line2d: line2dRenderer,
   vector2d: vector2dRenderer,
+  parametricfunction2d: parametricFunction2dRenderer,
 };
 
 export function getRenderer<K extends ItemKind>(kind: K): ItemRenderer<K> {

@@ -45,8 +45,9 @@ export const vector2dDefinition = defineItem2D({
     draggable: field<PointDraggableDir2D>("xy"),
     color: field<Color>("white"),
     thickness: field(1),
-    headLength: field(0.25),
-    headWidth: field(0.15),
+    // Head dimensions in CSS pixels; rendered constant size across zoom.
+    headLength: field(14),
+    headWidth: field(10),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },

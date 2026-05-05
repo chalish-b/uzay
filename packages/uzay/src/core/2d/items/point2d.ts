@@ -40,7 +40,8 @@ export const point2dDefinition = defineItem2D({
     coords: field<Vec2>(() => vec2(0, 0)),
     draggable: field<PointDraggableDir2D>("xy"),
     color: field<Color>("white"),
-    radius: field(2),
+    // Radius in CSS pixels. Stays visually constant across zoom levels.
+    radius: field(6),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },
