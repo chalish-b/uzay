@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef } from "react";
-import type { ItemKind, ItemOptions, ItemInstanceOf } from "../core/common-types/item-registry";
-import type { DragHandler, ClickHandler, HoverHandler } from "../core/common-types/interaction-events";
+import type { ItemKind, ItemOptions, ItemInstanceOf } from "../core/3d/types/item-registry";
+import type { DragHandler, ClickHandler, HoverHandler } from "../core/3d/types/interaction-events";
 import { useScene } from "./context";
 import { isBoundAtom, shallowEqual } from "./utils";
 

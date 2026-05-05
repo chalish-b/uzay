@@ -1,8 +1,8 @@
 import { createContext, useContext, useMemo } from "react";
-import type { Scene3D } from "../core/scene3d";
-import type { ItemId } from "../core/common-types/item-registry";
+import type { Scene3D } from "../core/3d/scene3d";
+import type { ItemId } from "../core/3d/types/item-registry";
 import type { Atom, PrimitiveAtom, WritableAtom } from "jotai";
-import type { BoundAtom } from "../core/atom-wrapper";
+import type { BoundAtom } from "../core/shared/atom-wrapper";
 
 // Public context: provides the Scene3D instance to child components
 export const SceneContext = createContext<Scene3D | null>(null);

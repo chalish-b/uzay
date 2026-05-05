@@ -4,6 +4,7 @@ import Demo5 from "./demo5";
 import Demo6 from "./demo6";
 import Demo8 from "./demo8";
 import Demo11 from "./demo11";
+import Demo2D from "./demo2d";
 
 const demos = {
   demo1: {
@@ -25,6 +26,10 @@ const demos = {
   demo11: {
     title: "Sphere-Line Intersection",
     component: <Demo11 />,
+  },
+  demo2d: {
+    title: "2D Sandbox",
+    component: <Demo2D />,
   },
 };
 

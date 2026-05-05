@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Atom, WritableAtom } from "jotai";
-import type { BoundAtom } from "../core/atom-wrapper";
+import type { BoundAtom } from "../core/shared/atom-wrapper";
 
  // Subscribe to a BoundAtom's value in React.
  // Re-renders the component when the atom changes (from drags, other atoms, etc.).

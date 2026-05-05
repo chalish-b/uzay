@@ -1,4 +1,4 @@
-export { isBoundAtom } from "../core/atom-wrapper";
+export { isBoundAtom } from "../core/shared/atom-wrapper";
 
 // Shallow-equal for plain objects/arrays so that inline values like
 // `vec3(1,2,3)` or `[-8, 8]` don't reset atoms every render.

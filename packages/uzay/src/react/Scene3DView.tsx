@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Scene3D as Scene3DCore } from "../core/scene3d";
-import { View3D } from "../core/view3d";
-import type { ItemId, ItemInstanceOf } from "../core/common-types/item-registry";
+import { Scene3D as Scene3DCore } from "../core/3d/scene3d";
+import { View3D } from "../core/3d/view3d";
+import type { ItemId, ItemInstanceOf } from "../core/3d/types/item-registry";
 import { SceneContext, CameraRegistryContext, type CameraRegistry } from "./context";
 
 export type Scene3DViewProps = {

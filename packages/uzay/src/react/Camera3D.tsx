@@ -1,6 +1,6 @@
 import { memo, useContext, useEffect, useRef } from "react";
-import type { ItemOptions, ItemInstanceOf } from "../core/common-types/item-registry";
-import type { Scene3D } from "../core/scene3d";
+import type { ItemOptions, ItemInstanceOf } from "../core/3d/types/item-registry";
+import type { Scene3D } from "../core/3d/scene3d";
 import { useScene, CameraRegistryContext } from "./context";
 import { isBoundAtom, shallowEqual } from "./utils";
 
