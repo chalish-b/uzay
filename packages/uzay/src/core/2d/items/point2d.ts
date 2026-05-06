@@ -52,6 +52,9 @@ export const point2dDefinition = defineItem2D({
   getCursorState({ item }) {
     const draggable = item.draggable.get();
     if (draggable === "none") return null;
+    // "custom" mode always shows the cursor since the user handles drag logic
+    // via .on("drag") and may write to any atom they choose.
+    if (draggable === "custom") return "grab";
     if (!isWritableBoundAtom(item.coords)) return null;
     return "grab";
   },
@@ -60,6 +63,10 @@ export const point2dDefinition = defineItem2D({
   handleDrag({ item, state }, event: DragEvent<"point2d">) {
     const draggable = item.draggable.get();
     if (draggable === "none") return;
+    // "custom" mode is a no-op default: the user must provide their own handler
+    // via .on("drag"). The view still dispatches drag events, but we skip the
+    // built-in axis-constrained write so the user's handler is the sole writer.
+    if (draggable === "custom") return;
 
     if (!isWritableBoundAtom(item.coords)) {
       if (!state.warnedReadOnly) {

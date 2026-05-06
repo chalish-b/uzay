@@ -16,6 +16,7 @@ export function applyDragConstraint(
       return { x: current.x, y: target.y };
     case "xy":
       return target;
+    case "custom":
     case "none":
     default:
       return current;

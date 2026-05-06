@@ -67,7 +67,9 @@
 - Explicitly typed atoms (`scene.atom<T>()`) don't get autocomplete. The type checking still works, but for things like string types, it would be nice if it provided autocomplete.
 - This whole thing with Vec3 type and Vec3 namespace is bad. We need to import Vec3 namespace as Vec3Utils just for this and causes confusions.
 
-### 2D
-- The thickness of lines vs. point radius is bad. The lines have a constant thickness regardless of zoom, but points scale. This doesn't happen in 3D where everything scales.
-  - We need to decide on whether we want things to scale or stay constant. For 2D, staying constnat would probably the best
-- Hit testing lines in 2D is an issue
+## 2D
+
+- Dynamic grid
+- Hit testing lines in 2D might be an issue
+- Add some anti aliasing to the lines and functions
+- Zooming into a function plot makes the point look not on the function. We need an adaptive function sampling approach I guess.

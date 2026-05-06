@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Scene2D, View2D, vec2 } from "uzay";
+import { Scene2D, View2D, vec2, curvePoint2D } from "uzay";
 import type { Vec2 } from "uzay";
 
 function createScene() {
@@ -112,7 +112,30 @@ function createScene() {
     thickness: 3,
   });
 
-  return { scene, camera, a, b, v, sineAmp };
+  // Curve-stuck point via the curvePoint2D construction. The orange wavy
+  // curve is f(t) = (t, 0.6 * t * sin(t)); the orange point is constrained
+  // to it and slides to the nearest position when dragged.
+  const curveF = (t: number) => vec2(t, 0.6 * t * Math.sin(t));
+
+  scene.create("parametricfunction2d", {
+    f: curveF,
+    tStart: -6,
+    tEnd: 6,
+    samples: 240,
+    color: "orange",
+    thickness: 3,
+  });
+
+  const stuck = curvePoint2D(scene, {
+    f: curveF,
+    tStart: -6,
+    tEnd: 6,
+    initialT: 0.5,
+    color: "orange",
+  });
+  stuck.point.radius.set(5);
+
+  return { scene, camera, a, b, v, sineAmp, stuckT: stuck.t };
 }
 
 function useAtom<T>(atom: { get: () => T; sub: (cb: () => void) => () => void }) {
@@ -125,7 +148,7 @@ function useAtom<T>(atom: { get: () => T; sub: (cb: () => void) => () => void })
 }
 
 export default function Demo2D() {
-  const { scene, camera, a, b, v, sineAmp } = useMemo(() => createScene(), []);
+  const { scene, camera, a, b, v, sineAmp, stuckT } = useMemo(() => createScene(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -138,6 +161,7 @@ export default function Demo2D() {
   const bCoords = useAtom<Vec2>(b.coords);
   const vVec = useAtom<Vec2>(v.vector);
   const ampCoords = useAtom<Vec2>(sineAmp.coords);
+  const stuckTValue = useAtom<number>(stuckT);
 
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#141414", position: "relative" }}>
@@ -164,6 +188,7 @@ export default function Demo2D() {
         <div>gold vec: x-axis drag only</div>
         <div>violet point: drag (y-only) to set sine amplitude</div>
         <div>cyan: static parametric circle</div>
+        <div>orange point: stuck to curve (custom drag)</div>
         <div style={{ marginTop: 8, opacity: 0.7 }}>wheel: zoom · drag empty: pan</div>
         <div style={{ marginTop: 8 }}>
           a: ({aCoords.x.toFixed(2)}, {aCoords.y.toFixed(2)})
@@ -171,6 +196,7 @@ export default function Demo2D() {
         <div>b: ({bCoords.x.toFixed(2)}, {bCoords.y.toFixed(2)})</div>
         <div>v: ({vVec.x.toFixed(2)}, {vVec.y.toFixed(2)})</div>
         <div>sine amp: {ampCoords.y.toFixed(2)}</div>
+        <div>stuck t: {stuckTValue.toFixed(2)}</div>
       </div>
     </div>
   );

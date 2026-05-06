@@ -45,3 +45,4 @@ export type { OverlayFormat, OverlayAnchor } from "./core/shared/types/overlay"
 
 // Constructions
 export { tangentLine, curvePoint, surfacePoint, surfaceNormal } from "./core/3d/constructions"
+export { curvePoint2D } from "./core/2d/constructions"

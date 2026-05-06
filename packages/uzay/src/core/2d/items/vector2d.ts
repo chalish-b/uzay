@@ -60,12 +60,14 @@ export const vector2dDefinition = defineItem2D({
   getCursorState({ item }) {
     const draggable = item.draggable.get();
     if (draggable === "none") return null;
+    if (draggable === "custom") return "grab";
     if (!isWritableBoundAtom(item.vector)) return null;
     return "grab";
   },
   handleDrag({ item, state }, event: DragEvent<"vector2d">) {
     const draggable = item.draggable.get();
     if (draggable === "none") return;
+    if (draggable === "custom") return;
 
     if (!isWritableBoundAtom(item.vector)) {
       if (!state.warnedReadOnly) {
