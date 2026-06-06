@@ -80,7 +80,7 @@ function createSphereLineScene() {
   const hit2Radius = scene.atom((get) => (get(hasTwoHits) ? 2.5 : 0));
 
   // Build scene
-  scene.create("camera3d", {
+  const camera = scene.create("camera3d", {
     position: vec3(10, 8, 10),
     lookAt: vec3(0, 0, 0),
     fov: 55,
@@ -181,11 +181,11 @@ function createSphereLineScene() {
     style: `color: #ccc; ${labelStyle}`,
   });
 
-  return { scene, sphereRadius, sphereOpacity };
+  return { scene, camera, sphereRadius, sphereOpacity };
 }
 
 export default function Demo11() {
-  const { scene, sphereRadius, sphereOpacity } = useMemo(
+  const { scene, camera, sphereRadius, sphereOpacity } = useMemo(
     () => createSphereLineScene(),
     []
   );
@@ -205,7 +205,7 @@ export default function Demo11() {
         position: "relative",
       }}
     >
-      <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }} />
+      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
 
       <div
         style={{

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import katex from "katex";
 import { Scene3D, curvePoint, tangentLine, vec2, vec3 } from "uzay";
-import { Camera3D, Scene3DView, useAtomState } from "uzay/react";
+import { Scene3DView, useAtomState } from "uzay/react";
 
 const SURFACE_LATEX = katex.renderToString(
   String.raw`f(x, z) = \sin(x)\,e^{-z^2/20}`,
@@ -46,9 +46,9 @@ function createScene() {
     return (x: number) => vec3(x, surfaceHeight(x, z), z);
   });
 
-  scene.create("camera3d", {
-    position: vec3(8.5, 5.5, -8.5),
-    lookAt: vec3(0, 0.4, 0),
+  const camera = scene.create("camera3d", {
+    position: vec3(3, 4, 10),
+    lookAt: vec3(2, -1, 0),
     fov: 42,
   });
 
@@ -142,22 +142,21 @@ function createScene() {
 
   return {
     scene,
+    camera,
     sliceZ,
     pointT: point.t,
   };
 }
 
 export default function HomeSurfaceDemo() {
-  const { scene, sliceZ, pointT } = useMemo(() => createScene(), []);
+  const { scene, camera, sliceZ, pointT } = useMemo(() => createScene(), []);
   const [slice, setSlice] = useAtomState(sliceZ);
   const [tValue, setTValue] = useAtomState(pointT);
 
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-fd-border bg-fd-card">
       <div className="relative h-110 bg-[#0c0c0f]">
-        <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }}>
-          <Camera3D position={vec3(3, 4, 10)} lookAt={vec3(2, -1, 0)} active />
-        </Scene3DView>
+        <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
         <div
           className="pointer-events-none absolute left-3 top-3 rounded bg-neutral-900/[0.2] px-2 py-1 text-base text-slate-50 shadow-lg"
           dangerouslySetInnerHTML={{ __html: SURFACE_LATEX }}

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { Scene3D, ensureAtom, surfaceNormal, surfacePoint, vec2, vec3 } from "uzay";
 import type { AtomLikeInput, Scene3D as Scene3DType, Vec3 } from "uzay";
-import { Camera3D, Scene3DView, useAtomValue } from "uzay/react";
+import { Scene3DView, useAtomValue } from "uzay/react";
 
 // Custom user-written construction: drops a vertical line from a point to the xz plane
 function dropLine(
@@ -45,6 +45,11 @@ function dropLine(
 
 function createSurfaceScene() {
   const scene = new Scene3D();
+  const camera = scene.create("camera3d", {
+    position: vec3(7, 5, 7),
+    lookAt: vec3(0, 1.5, 0),
+    fov: 42,
+  });
 
   scene.create("axes3d", {
     x: [-5, 5],
@@ -112,11 +117,16 @@ function createSurfaceScene() {
     draggable: "xz",
   });
 
-  return { scene, sp };
+  return { scene, camera, sp };
 }
 
 function createCurveScene(phase: number) {
   const scene = new Scene3D();
+  const camera = scene.create("camera3d", {
+    position: vec3(5, 4, 6),
+    lookAt: vec3(0, 0, 0),
+    fov: 45,
+  });
 
   scene.create("axes3d", {
     x: [-4, 4],
@@ -156,11 +166,16 @@ function createCurveScene(phase: number) {
     opacity: 0.9,
   });
 
-  return scene;
+  return { scene, camera };
 }
 
 function createVectorScene() {
   const scene = new Scene3D();
+  const camera = scene.create("camera3d", {
+    position: vec3(4, 4, 5),
+    lookAt: vec3(0, 0, 0),
+    fov: 45,
+  });
 
   scene.create("axes3d", {
     x: [-3.5, 3.5],
@@ -197,7 +212,7 @@ function createVectorScene() {
     draggable: "xy",
   });
 
-  return { scene, vec };
+  return { scene, camera, vec };
 }
 
 function EmbeddedScene({
@@ -215,20 +230,13 @@ function EmbeddedScene({
 }
 
 function SurfaceEmbed() {
-  const { scene, sp } = useMemo(() => createSurfaceScene(), []);
+  const { scene, camera, sp } = useMemo(() => createSurfaceScene(), []);
   const xz = useAtomValue(sp.xz);
   const coords = useAtomValue(sp.point.coords);
 
   return (
     <EmbeddedScene height={360}>
-      <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }}>
-        <Camera3D
-          active
-          position={vec3(7, 5, 7)}
-          lookAt={vec3(0, 1.5, 0)}
-          fov={42}
-        />
-      </Scene3DView>
+      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
       <div className="embed-readout">
         <div>xz: ({xz.x.toFixed(2)}, {xz.y.toFixed(2)})</div>
         <div>pos: ({coords.x.toFixed(2)}, {coords.y.toFixed(2)}, {coords.z.toFixed(2)})</div>
@@ -238,36 +246,22 @@ function SurfaceEmbed() {
 }
 
 function CurveEmbed({ phase }: { phase: number }) {
-  const scene = useMemo(() => createCurveScene(phase), [phase]);
+  const { scene, camera } = useMemo(() => createCurveScene(phase), [phase]);
 
   return (
     <EmbeddedScene height={260}>
-      <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }}>
-        <Camera3D
-          active
-          position={vec3(5, 4, 6)}
-          lookAt={vec3(0, 0, 0)}
-          fov={45}
-        />
-      </Scene3DView>
+      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
     </EmbeddedScene>
   );
 }
 
 function VectorEmbed() {
-  const { scene, vec } = useMemo(() => createVectorScene(), []);
+  const { scene, camera, vec } = useMemo(() => createVectorScene(), []);
   const coords = useAtomValue(vec.vector);
 
   return (
     <EmbeddedScene height={300}>
-      <Scene3DView scene={scene} style={{ width: "100%", height: "100%" }}>
-        <Camera3D
-          active
-          position={vec3(4, 4, 5)}
-          lookAt={vec3(0, 0, 0)}
-          fov={45}
-        />
-      </Scene3DView>
+      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
       <div className="embed-readout">
         tip: ({coords.x.toFixed(2)}, {coords.y.toFixed(2)}, {coords.z.toFixed(2)})
       </div>
