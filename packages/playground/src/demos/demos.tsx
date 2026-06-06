@@ -8,7 +8,7 @@ import Demo2D from "./demo2d";
 
 const demos = {
   demo1: {
-    title: "Sandbox",
+    title: "Article Embeds",
     component: <Demo1 />,
   },
   demo5: {
@@ -40,7 +40,7 @@ export default function Demos() {
     <div
       style={{
         width: "100%",
-        height: "100%",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         backgroundColor: "#111",
@@ -53,6 +53,10 @@ export default function Demos() {
           padding: "8px 12px",
           backgroundColor: "#1a1a1a",
           borderBottom: "1px solid #2a2a2a",
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          overflowX: "auto",
         }}
       >
         {Object.entries(demos).map(([key, value]) => (
@@ -75,7 +79,7 @@ export default function Demos() {
           </button>
         ))}
       </div>
-      <div style={{ flex: 1, position: "relative" }}>
+      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
         {demos[demo].component}
       </div>
     </div>

@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import type { ItemKind, ItemSnapshot } from "../types/item-registry";
-import { Line2 } from "three/addons/lines/Line2.js";
-import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 // Shared constants for renderers
@@ -69,9 +69,9 @@ export type ThreeSceneTypes = {
   };
   grid3d: {
     kind: "grid3d";
-    geometry: LineGeometry
-    material: LineMaterial
-    mesh: Line2,
+    geometry: LineSegmentsGeometry;
+    material: LineMaterial;
+    mesh: LineSegments2;
   };
   sphere3d: {
     kind: "sphere3d";
