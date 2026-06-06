@@ -73,3 +73,4 @@
 - Hit testing lines in 2D might be an issue
 - Add some anti aliasing to the lines and functions
 - Zooming into a function plot makes the point look not on the function. We need an adaptive function sampling approach I guess.
+  - As a hack though, we can put limits on zoom levels
