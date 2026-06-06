@@ -36,10 +36,12 @@ const demos = {
 // A tab bar with buttons to switch between demos
 export default function Demos() {
   const [demo, setDemo] = useState<keyof typeof demos>("demo1");
+  const isArticleDemo = demo === "demo1";
   return (
     <div
       style={{
         width: "100%",
+        height: isArticleDemo ? undefined : "100vh",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
@@ -79,7 +81,13 @@ export default function Demos() {
           </button>
         ))}
       </div>
-      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+      <div
+        style={{
+          flex: isArticleDemo ? "0 0 auto" : 1,
+          minHeight: 0,
+          position: "relative",
+        }}
+      >
         {demos[demo].component}
       </div>
     </div>
