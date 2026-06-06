@@ -8,6 +8,7 @@ import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
+import { checkedColor } from "../../shared/types/colors";
 
 // Pixel-space sizes for ornaments. Multiplied by item.thickness so the same
 // dial that controls line width also scales ticks and arrowheads
@@ -96,7 +97,7 @@ function createAxis(
   const range = getRange(item[axis]);
 
   const lineMaterial = new LineMaterial({
-    color: item.color,
+    color: checkedColor(item.color, "Axes2D.color"),
     linewidth: item.thickness,
   });
   const lineGeometry = buildAxisLineGeometry(axis, range);
@@ -109,7 +110,7 @@ function createAxis(
   if (item.tickmarks && enabled) {
     const tickGeometry = buildTickGeometry(axis, range, item.tickStep);
     const tickMaterial = new LineMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Axes2D.color"),
       linewidth: item.thickness,
     });
     const tickMesh = new LineSegments2(tickGeometry, tickMaterial);
@@ -125,7 +126,9 @@ function createAxis(
   let arrow: ThreeSceneTypes["axes2d"]["x"]["arrow"] = null;
   if (item.arrows && enabled) {
     const arrowGeometry = buildUnitArrowGeometry(axis);
-    const arrowMaterial = new THREE.MeshBasicMaterial({ color: item.color });
+    const arrowMaterial = new THREE.MeshBasicMaterial({
+      color: checkedColor(item.color, "Axes2D.color"),
+    });
     const arrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
     if (axis === "x") {
       arrowMesh.position.set(range[1], 0, Z_DEFAULT);

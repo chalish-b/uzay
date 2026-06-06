@@ -5,6 +5,7 @@ import { Z_DEFAULT } from "./index";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { checkedColor } from "../../shared/types/colors";
 
 const MIN_SAMPLES = 8;
 
@@ -41,7 +42,7 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
   ): ThreeSceneTypes["parametricfunction2d"] {
     const geometry = buildGeometry(item);
     const material = new LineMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "ParametricFunction2D.color"),
       linewidth: item.thickness,
     });
     const mesh = new Line2(geometry, material);
@@ -55,7 +56,7 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
     item: ItemSnapshot<"parametricfunction2d">,
     obj: ThreeSceneTypes["parametricfunction2d"]
   ): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "ParametricFunction2D.color"));
     obj.material.linewidth = item.thickness;
     obj.material.needsUpdate = true;
     obj.mesh.visible = item.visible;

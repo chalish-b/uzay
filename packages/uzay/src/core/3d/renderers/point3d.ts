@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { pointScaleDown } from "./index";
+import { checkedColor } from "../../shared/types/colors";
 
 export const point3dRenderer: ItemRenderer<"point3d"> = {
   create(
@@ -10,7 +11,7 @@ export const point3dRenderer: ItemRenderer<"point3d"> = {
   ): ThreeSceneTypes["point3d"] {
     const geometry = new THREE.SphereGeometry(1);
     const material = new THREE.MeshPhongMaterial({
-      color: item.color, specular: 0xAAAAAA, shininess: 5,
+      color: checkedColor(item.color, "Point3D.color"), specular: 0xAAAAAA, shininess: 5,
     });
     const mesh = new THREE.Mesh(geometry, material);
     const size = item.radius / pointScaleDown;
@@ -28,7 +29,7 @@ export const point3dRenderer: ItemRenderer<"point3d"> = {
   },
 
   update(item: ItemSnapshot<"point3d">, obj: ThreeSceneTypes["point3d"]): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Point3D.color"));
     const size = item.radius / pointScaleDown;
     obj.mesh.scale.set(size, size, size);
     obj.mesh.position.set(item.coords.x, item.coords.y, item.coords.z);

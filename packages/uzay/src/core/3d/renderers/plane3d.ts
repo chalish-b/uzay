@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { applyOpacityMaterialState } from "./material-transparency";
+import { checkedColor, type Color } from "../../shared/types/colors";
 
 const DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
@@ -13,10 +14,12 @@ function orientToNormal(mesh: THREE.Object3D, normal: { x: number; y: number; z:
 
 function createEdges(
   geometry: THREE.PlaneGeometry,
-  color: string | number
+  color: Color
 ): { edgeGeometry: THREE.EdgesGeometry; edgeMaterial: THREE.LineBasicMaterial; edgeLines: THREE.LineSegments } {
   const edgeGeometry = new THREE.EdgesGeometry(geometry);
-  const edgeMaterial = new THREE.LineBasicMaterial({ color });
+  const edgeMaterial = new THREE.LineBasicMaterial({
+    color: checkedColor(color, "Plane3D.color"),
+  });
   const edgeLines = new THREE.LineSegments(edgeGeometry, edgeMaterial);
   return { edgeGeometry, edgeMaterial, edgeLines };
 }
@@ -28,7 +31,7 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
   ): ThreeSceneTypes["plane3d"] {
     const geometry = new THREE.PlaneGeometry(1, 1);
     const material = new THREE.MeshPhongMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Plane3D.color"),
       side: THREE.DoubleSide,
       specular: 0xaaaaaa,
       shininess: 5,
@@ -67,7 +70,7 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
     item: ItemSnapshot<"plane3d">,
     obj: ThreeSceneTypes["plane3d"]
   ): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Plane3D.color"));
     applyOpacityMaterialState(obj.material, item.opacity);
     obj.mesh.scale.set(item.width, item.height, 1);
     obj.mesh.position.set(item.point.x, item.point.y, item.point.z);
@@ -88,7 +91,7 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
       obj.edgeMaterial = undefined;
       obj.edgeLines = undefined;
     } else if (item.showEdges && obj.edgeLines) {
-      obj.edgeMaterial!.color.set(item.color);
+      obj.edgeMaterial!.color.set(checkedColor(item.color, "Plane3D.color"));
     }
   },
 

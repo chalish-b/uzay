@@ -85,7 +85,7 @@ function createSurfaceScene() {
   sp.point.radius.set(4);
 
   surfaceNormal(scene, { f, xz: sp.xz, color: "tomato" });
-  dropLine(scene, { coords: sp.point.coords, color: "rgba(255, 255, 255, 0.55)" });
+  dropLine(scene, { coords: sp.point.coords, color: "rgb(255, 255, 255)" });
 
   // Writable derived atom: reads the xz projection, writes back to sp.xz on drag
   const groundCoords = scene.atom(

@@ -5,6 +5,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { applyOpacityMaterialState } from "./material-transparency";
+import { checkedColor } from "../../shared/types/colors";
 
 function buildGridGeometry(item: ItemSnapshot<"grid3d">): LineSegmentsGeometry {
   const range1 =
@@ -45,7 +46,7 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
   ): ThreeSceneTypes["grid3d"] {
     const geometry = buildGridGeometry(item);
     const material = new LineMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Grid3D.color"),
       linewidth: item.thickness,
       fog: true,
     });
@@ -65,7 +66,7 @@ export const grid3dRenderer: ItemRenderer<"grid3d"> = {
   },
 
   update(item: ItemSnapshot<"grid3d">, obj: ThreeSceneTypes["grid3d"]): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Grid3D.color"));
     obj.material.linewidth = item.thickness;
     applyOpacityMaterialState(obj.material, item.opacity);
 

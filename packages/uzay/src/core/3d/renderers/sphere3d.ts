@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { applyOpacityMaterialState } from "./material-transparency";
+import { checkedColor } from "../../shared/types/colors";
 
 export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
   create(
@@ -10,7 +11,7 @@ export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
   ): ThreeSceneTypes["sphere3d"] {
     const geometry = new THREE.SphereGeometry(1, 32, 32);
     const material = new THREE.MeshPhongMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Sphere3D.color"),
       specular: 0xaaaaaa,
       shininess: 5,
       transparent: item.opacity < 1,
@@ -36,7 +37,7 @@ export const sphere3dRenderer: ItemRenderer<"sphere3d"> = {
     item: ItemSnapshot<"sphere3d">,
     obj: ThreeSceneTypes["sphere3d"]
   ): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Sphere3D.color"));
     applyOpacityMaterialState(obj.material, item.opacity);
     obj.mesh.scale.set(item.radius, item.radius, item.radius);
     obj.mesh.position.set(item.center.x, item.center.y, item.center.z);

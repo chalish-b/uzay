@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { applyOpacityMaterialState } from "./material-transparency";
+import { checkedColor } from "../../shared/types/colors";
 
 function buildSurfaceBuffers(
   f: (x: number, z: number) => number,
@@ -57,7 +58,7 @@ export const surface3dRenderer: ItemRenderer<"surface3d"> = {
     const N = Math.max(Math.round(item.samples), 2);
     const geometry = createGeometry(item, N);
     const material = new THREE.MeshPhongMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Surface3D.color"),
       specular: 0xaaaaaa,
       shininess: 5,
       side: THREE.DoubleSide,
@@ -75,7 +76,7 @@ export const surface3dRenderer: ItemRenderer<"surface3d"> = {
   },
 
   update(item: ItemSnapshot<"surface3d">, obj: ThreeSceneTypes["surface3d"]): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Surface3D.color"));
     applyOpacityMaterialState(obj.material, item.opacity);
     obj.material.wireframe = item.wireframe;
 

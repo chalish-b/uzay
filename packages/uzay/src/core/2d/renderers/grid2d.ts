@@ -5,6 +5,7 @@ import { Z_GRID } from "./index";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { checkedColor } from "../../shared/types/colors";
 
 // Build the line-segment vertex buffer for a 2D grid covering the given
 // rangeX × rangeY at the requested gap. `true` (infinite) is currently a
@@ -48,7 +49,7 @@ export const grid2dRenderer: ItemRenderer<"grid2d"> = {
   ): ThreeSceneTypes["grid2d"] {
     const geometry = buildGridGeometry(item.rangeX, item.rangeY, item.gap);
     const material = new LineMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Grid2D.color"),
       linewidth: item.thickness,
       transparent: item.opacity < 1,
       opacity: item.opacity,
@@ -61,7 +62,7 @@ export const grid2dRenderer: ItemRenderer<"grid2d"> = {
   },
 
   update(item: ItemSnapshot<"grid2d">, obj: ThreeSceneTypes["grid2d"]): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Grid2D.color"));
     obj.material.linewidth = item.thickness;
     obj.material.opacity = item.opacity;
     obj.material.transparent = item.opacity < 1;

@@ -5,6 +5,7 @@ import { Z_DEFAULT } from "./index";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { checkedColor } from "../../shared/types/colors";
 
 function buildLineGeometry(
   start: { x: number; y: number },
@@ -22,7 +23,7 @@ export const line2dRenderer: ItemRenderer<"line2d"> = {
   ): ThreeSceneTypes["line2d"] {
     const geometry = buildLineGeometry(item.start, item.end);
     const material = new LineMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Line2D.color"),
       linewidth: item.thickness,
     });
     const mesh = new Line2(geometry, material);
@@ -33,7 +34,7 @@ export const line2dRenderer: ItemRenderer<"line2d"> = {
   },
 
   update(item: ItemSnapshot<"line2d">, obj: ThreeSceneTypes["line2d"]): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Line2D.color"));
     obj.material.linewidth = item.thickness;
     obj.material.needsUpdate = true;
     obj.mesh.visible = item.visible;

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { lineThicknessScaleDown } from "./index";
+import { checkedColor, type Color } from "../../shared/types/colors";
 
 const TICK_HEIGHT = 0.01; // thin disc along the axis
 const TICK_RADIUS_MULTIPLIER = 2.5; // tick radius relative to axis tube radius
@@ -44,7 +45,7 @@ function createTicksForAxis(
   range: readonly [number, number],
   step: number,
   thickness: number,
-  color: string,
+  color: Color,
   threeScene: THREE.Scene
 ): THREE.InstancedMesh | null {
   const positions = getTickPositions(range, step);
@@ -64,7 +65,9 @@ function createTicksForAxis(
     TICK_HEIGHT,
     12
   );
-  const material = new THREE.MeshBasicMaterial({ color });
+  const material = new THREE.MeshBasicMaterial({
+    color: checkedColor(color, "Axes3D.color"),
+  });
   const mesh = new THREE.InstancedMesh(geometry, material, positions.length);
 
   const matrix = new THREE.Matrix4();
@@ -147,7 +150,7 @@ function rebuildTicks(
         range,
         item.tickStep,
         item.thickness,
-        item.color as string,
+        item.color,
         threeScene
       );
     } else {
@@ -169,7 +172,7 @@ function createArrowForAxis(
   axis: AxisKey,
   range: readonly [number, number],
   thickness: number,
-  color: string,
+  color: Color,
   threeScene: THREE.Scene
 ): ArrowMesh {
   const axisRadius = thickness / lineThicknessScaleDown;
@@ -177,7 +180,9 @@ function createArrowForAxis(
   const coneRadius = axisRadius * ARROW_WIDTH_MULTIPLIER;
 
   const geometry = new THREE.ConeGeometry(coneRadius, coneHeight, 12);
-  const material = new THREE.MeshBasicMaterial({ color });
+  const material = new THREE.MeshBasicMaterial({
+    color: checkedColor(color, "Axes3D.color"),
+  });
   const mesh = new THREE.Mesh(geometry, material) as ArrowMesh;
 
   // Position at positive end, offset by half cone height so the base sits at the end
@@ -219,7 +224,7 @@ function rebuildArrows(
         axis,
         range,
         item.thickness,
-        item.color as string,
+        item.color,
         threeScene
       );
     } else {
@@ -264,9 +269,15 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
       64,
       item.thickness / lineThicknessScaleDown
     );
-    const xMaterial = new THREE.MeshBasicMaterial({ color: item.color });
-    const yMaterial = new THREE.MeshBasicMaterial({ color: item.color });
-    const zMaterial = new THREE.MeshBasicMaterial({ color: item.color });
+    const xMaterial = new THREE.MeshBasicMaterial({
+      color: checkedColor(item.color, "Axes3D.color"),
+    });
+    const yMaterial = new THREE.MeshBasicMaterial({
+      color: checkedColor(item.color, "Axes3D.color"),
+    });
+    const zMaterial = new THREE.MeshBasicMaterial({
+      color: checkedColor(item.color, "Axes3D.color"),
+    });
     const xMesh = new THREE.Mesh(xGeometry, xMaterial);
     const yMesh = new THREE.Mesh(yGeometry, yMaterial);
     const zMesh = new THREE.Mesh(zGeometry, zMaterial);
@@ -338,7 +349,7 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
           range,
           item.tickStep,
           item.thickness,
-          item.color as string,
+          item.color,
           threeScene
         );
       }
@@ -348,7 +359,7 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
           axis,
           range,
           item.thickness,
-          item.color as string,
+          item.color,
           threeScene
         );
       }
@@ -363,9 +374,9 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     threeScene: THREE.Scene
   ): void {
     // Update material colors
-    obj.x.material.color.set(item.color);
-    obj.y.material.color.set(item.color);
-    obj.z.material.color.set(item.color);
+    obj.x.material.color.set(checkedColor(item.color, "Axes3D.color"));
+    obj.y.material.color.set(checkedColor(item.color, "Axes3D.color"));
+    obj.z.material.color.set(checkedColor(item.color, "Axes3D.color"));
 
     // Update visibility
     obj.x.mesh.visible = item.visible && item.x !== false;

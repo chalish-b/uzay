@@ -6,6 +6,7 @@ import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
+import { checkedColor } from "../../shared/types/colors";
 
 // Layout: shaft and head share a Group whose +x axis points along the vector
 // (group.rotation.z = atan2(vector.y, vector.x)). The shaft runs from the
@@ -62,13 +63,15 @@ export const vector2dRenderer: ItemRenderer<"vector2d"> = {
 
     const shaftGeometry = buildShaftGeometry(length);
     const shaftMaterial = new LineMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Vector2D.color"),
       linewidth: item.thickness,
     });
     const shaftMesh = new Line2(shaftGeometry, shaftMaterial);
 
     const headGeometry = buildUnitHeadGeometry();
-    const headMaterial = new THREE.MeshBasicMaterial({ color: item.color });
+    const headMaterial = new THREE.MeshBasicMaterial({
+      color: checkedColor(item.color, "Vector2D.color"),
+    });
     const headMesh = new THREE.Mesh(headGeometry, headMaterial);
     headMesh.userData.itemId = item.id;
     headMesh.userData.headLength = item.headLength;
@@ -96,10 +99,10 @@ export const vector2dRenderer: ItemRenderer<"vector2d"> = {
   },
 
   update(item: ItemSnapshot<"vector2d">, obj: ThreeSceneTypes["vector2d"]): void {
-    obj.shaftMaterial.color.set(item.color);
+    obj.shaftMaterial.color.set(checkedColor(item.color, "Vector2D.color"));
     obj.shaftMaterial.linewidth = item.thickness;
     obj.shaftMaterial.needsUpdate = true;
-    obj.headMaterial.color.set(item.color);
+    obj.headMaterial.color.set(checkedColor(item.color, "Vector2D.color"));
     obj.group.visible = item.visible;
 
     obj.headMesh.userData.headLength = item.headLength;

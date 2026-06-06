@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { lineThicknessScaleDown } from "./index";
+import { checkedColor } from "../../shared/types/colors";
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -11,7 +12,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
     threeScene: THREE.Scene
   ): ThreeSceneTypes["vector3d"] {
     const material = new THREE.MeshPhongMaterial({
-      color: item.color,
+      color: checkedColor(item.color, "Vector3D.color"),
       specular: 0xaaaaaa,
       shininess: 5,
     });
@@ -47,7 +48,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
     item: ItemSnapshot<"vector3d">,
     obj: ThreeSceneTypes["vector3d"]
   ): void {
-    obj.material.color.set(item.color);
+    obj.material.color.set(checkedColor(item.color, "Vector3D.color"));
 
     // Rebuild geometries
     obj.shaftGeometry.dispose();

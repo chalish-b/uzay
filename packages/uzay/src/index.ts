@@ -42,6 +42,7 @@ export type { DragEvent, ClickEvent, HoverEvent, DragHandler, ClickHandler, Hove
 
 // Overlay types
 export type { OverlayFormat, OverlayAnchor } from "./core/shared/types/overlay"
+export type { Color } from "./core/shared/types/colors"
 
 // Constructions
 export { tangentLine, curvePoint, surfacePoint, surfaceNormal } from "./core/3d/constructions"

@@ -169,19 +169,19 @@ export default function Demo6() {
     scene.create("line3d", {
       start: controlAtoms.p0,
       end: controlAtoms.p1,
-      color: "rgba(255, 255, 255, 0.2)",
+      color: "rgb(255, 255, 255)",
       thickness: 1,
     });
     scene.create("line3d", {
       start: controlAtoms.p1,
       end: controlAtoms.p2,
-      color: "rgba(255, 255, 255, 0.2)",
+      color: "rgb(255, 255, 255)",
       thickness: 1,
     });
     scene.create("line3d", {
       start: controlAtoms.p2,
       end: controlAtoms.p3,
-      color: "rgba(255, 255, 255, 0.2)",
+      color: "rgb(255, 255, 255)",
       thickness: 1,
     });
 
@@ -205,7 +205,7 @@ export default function Demo6() {
       lerpVec(get(p012Atom), get(p123Atom), get(controlAtoms.t))
     );
 
-    const constructionColor = "rgba(255, 255, 255, 0.16)";
+    const constructionColor = "rgb(255, 255, 255)";
     scene.create("line3d", {
       start: p01Atom,
       end: p12Atom,
@@ -221,7 +221,7 @@ export default function Demo6() {
     scene.create("line3d", {
       start: p012Atom,
       end: p123Atom,
-      color: "rgba(255, 255, 255, 0.25)",
+      color: "rgb(255, 255, 255)",
       thickness: 1.2,
     });
 

@@ -189,7 +189,7 @@ export default function Demo5() {
     });
 
     // Projection curves (on the walls)
-    const projectionColor = "rgba(100, 100, 120, 0.4)";
+    const projectionColor = "rgb(100, 100, 120)";
 
     // XY projection (back wall at z = -SCALE-1)
     scene.create("parametricfunction3d", {
@@ -260,8 +260,6 @@ export default function Demo5() {
     });
 
     // Connection lines from trace point to projections
-    const lineAlpha = 0.25;
-
     // Line to XY plane (back wall)
     scene.create("line3d", {
       start: tracePoint.coords,
@@ -270,7 +268,7 @@ export default function Demo5() {
         const pos = get(tracePoint.coords);
         return vec3(pos.x, pos.y, -SCALE - 1);
       }),
-      color: `rgba(255, 255, 255, ${lineAlpha})`,
+      color: "rgb(255, 255, 255)",
       thickness: 1,
     });
 
@@ -282,7 +280,7 @@ export default function Demo5() {
         const pos = get(tracePoint.coords);
         return vec3(pos.x, -SCALE - 1, pos.z);
       }),
-      color: `rgba(255, 255, 255, ${lineAlpha})`,
+      color: "rgb(255, 255, 255)",
       thickness: 1,
     });
 
@@ -294,12 +292,12 @@ export default function Demo5() {
         const pos = get(tracePoint.coords);
         return vec3(-SCALE - 1, pos.y, pos.z);
       }),
-      color: `rgba(255, 255, 255, ${lineAlpha})`,
+      color: "rgb(255, 255, 255)",
       thickness: 1,
     });
 
     // Projection shadow points
-    const shadowPointColor = "rgba(180, 140, 200, 0.6)";
+    const shadowPointColor = "rgb(180, 140, 200)";
 
     scene.create("point3d", {
       coords: scene.atom((get) => {
