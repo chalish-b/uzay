@@ -51,6 +51,8 @@ function createDerivativeScene() {
     thickness: 1.1,
     tickmarks: true,
     tickStep: "auto",
+    labels: true,
+    labelStyle: "color: rgba(255, 255, 255, 0.72); font-size: 12px;",
     arrows: true,
   });
 

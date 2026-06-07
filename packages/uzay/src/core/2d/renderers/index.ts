@@ -36,6 +36,7 @@ export type ThreeSceneTypes = {
     kind: "axes2d";
     x: Axes2DAxisObject;
     y: Axes2DAxisObject;
+    labels: Axes2DLabelObject[];
     layoutKey: string | null;
   };
   line2d: {
@@ -84,6 +85,11 @@ export type Axes2DAxisObject = {
     material: THREE.MeshBasicMaterial;
     mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   } | null;
+};
+
+export type Axes2DLabelObject = {
+  cssObject: CSS2DObject;
+  element: HTMLDivElement;
 };
 
 export type ThreeSceneObject<K extends ItemKind = ItemKind> = ThreeSceneTypes[K];

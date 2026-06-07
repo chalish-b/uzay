@@ -22,6 +22,9 @@ export type Axes2DFields = {
   pointerEvents: PointerEvents;
   tickmarks: boolean;
   tickStep: TickStep;
+  labels: boolean;
+  labelClassName: string;
+  labelStyle: string;
   arrows: boolean;
 };
 export type Axes2DOptions = AtomLikeOptions<Axes2DFields>;
@@ -40,6 +43,9 @@ export const axes2dDefinition = defineItem2D({
     pointerEvents: field<PointerEvents>("none"),
     tickmarks: field(false),
     tickStep: field<TickStep>(1),
+    labels: field(false),
+    labelClassName: field(""),
+    labelStyle: field(""),
     arrows: field(true),
   },
 });

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { Z_DEFAULT } from "./index";
@@ -11,6 +12,7 @@ import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
 import { checkedColor } from "../../shared/types/colors";
 import type { Viewport2D } from "../types/view-context";
 import { getNiceStep } from "../types/nice-step";
+import { anchorToTranslate } from "../../shared/types/overlay";
 
 // Pixel-space sizes for ornaments. Multiplied by item.thickness so the same
 // dial that controls line width also scales ticks and arrowheads
@@ -19,6 +21,15 @@ const BASE_TICK_HALF_LENGTH_PX = 6;
 const BASE_ARROW_LENGTH_PX = 14;
 const BASE_ARROW_HALF_WIDTH_PX = 5;
 const INFINITE_RANGE: readonly [number, number] = [-100, 100];
+const LABEL_STYLE = [
+  "color: rgba(255, 255, 255, 0.72)",
+  "font-size: 12px",
+  "font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+  "line-height: 1",
+  "text-shadow: 0 1px 2px black, 0 0 4px black",
+  "white-space: nowrap",
+  "pointer-events: none",
+].join(";");
 
 type AxisKey = "x" | "y";
 
@@ -60,6 +71,12 @@ function buildTickPositions(
     positions.push(v);
   }
   return positions;
+}
+
+function formatTick(value: number, step: number): string {
+  const decimals = Math.max(0, Math.ceil(-Math.log10(Math.abs(step))));
+  const rounded = Number(value.toFixed(decimals));
+  return Object.is(rounded, -0) ? "0" : String(rounded);
 }
 
 function getTickStep(
@@ -200,6 +217,62 @@ function disposeAxis(
   }
 }
 
+function disposeLabels(
+  labels: ThreeSceneTypes["axes2d"]["labels"],
+  threeScene: THREE.Scene
+) {
+  for (const label of labels) {
+    threeScene.remove(label.cssObject);
+    label.cssObject.element.remove();
+  }
+}
+
+function createLabels(
+  item: ItemSnapshot<"axes2d">,
+  viewport: Viewport2D,
+  threeScene: THREE.Scene
+): ThreeSceneTypes["axes2d"]["labels"] {
+  if (!item.labels || !item.visible) return [];
+
+  const tickStep = getTickStep(item.tickStep, viewport);
+  const labels: ThreeSceneTypes["axes2d"]["labels"] = [];
+  const axes: AxisKey[] = ["x", "y"];
+
+  for (const axis of axes) {
+    if (item[axis] === false) continue;
+
+    const range = getRange(axis, item[axis], viewport);
+    const ticks = buildTickPositions(range, tickStep);
+    for (const tick of ticks) {
+      const wrapper = document.createElement("div");
+      wrapper.style.width = "max-content";
+
+      const element = document.createElement("div");
+      element.textContent = formatTick(tick, tickStep);
+      element.className = item.labelClassName;
+      element.style.cssText = item.labelStyle
+        ? `${LABEL_STYLE};${item.labelStyle}`
+        : LABEL_STYLE;
+      element.style.transform =
+        axis === "x"
+          ? `${anchorToTranslate("top")} translate(0px, 10px)`
+          : `${anchorToTranslate("right")} translate(-10px, 0px)`;
+      wrapper.appendChild(element);
+
+      const cssObject = new CSS2DObject(wrapper);
+      if (axis === "x") {
+        cssObject.position.set(tick, 0, Z_DEFAULT);
+      } else {
+        cssObject.position.set(0, tick, Z_DEFAULT);
+      }
+      threeScene.add(cssObject);
+      labels.push({ cssObject, element });
+    }
+  }
+
+  return labels;
+}
+
 export const axes2dRenderer: ItemRenderer<"axes2d"> = {
   create(
     item: ItemSnapshot<"axes2d">,
@@ -209,6 +282,7 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
       kind: "axes2d",
       x: createAxis("x", item, threeScene),
       y: createAxis("y", item, threeScene),
+      labels: [],
       layoutKey: null,
     };
   },
@@ -223,13 +297,20 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
   ): void {
     disposeAxis(obj.x, threeScene);
     disposeAxis(obj.y, threeScene);
+    disposeLabels(obj.labels, threeScene);
     obj.x = createAxis("x", item, threeScene);
     obj.y = createAxis("y", item, threeScene);
+    obj.labels = [];
     obj.layoutKey = null;
   },
 
   layout(item: ItemSnapshot<"axes2d">, obj: ThreeSceneTypes["axes2d"], ctx): void {
-    if (item.x !== true && item.y !== true && item.tickStep !== "auto") return;
+    if (
+      item.x !== true &&
+      item.y !== true &&
+      item.tickStep !== "auto" &&
+      !item.labels
+    ) return;
 
     const xRange = getRange("x", item.x, ctx.viewport);
     const yRange = getRange("y", item.y, ctx.viewport);
@@ -239,19 +320,26 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
       yRange,
       tickStep,
       worldPerPixel: ctx.viewport.worldPerPixel,
+      labels: item.labels,
+      labelClassName: item.labelClassName,
+      labelStyle: item.labelStyle,
+      visible: item.visible,
     });
     if (layoutKey === obj.layoutKey) return;
 
     disposeAxis(obj.x, ctx.threeScene);
     disposeAxis(obj.y, ctx.threeScene);
+    disposeLabels(obj.labels, ctx.threeScene);
     obj.x = createAxis("x", item, ctx.threeScene, ctx.viewport);
     obj.y = createAxis("y", item, ctx.threeScene, ctx.viewport);
+    obj.labels = createLabels(item, ctx.viewport, ctx.threeScene);
     obj.layoutKey = layoutKey;
   },
 
   dispose(obj: ThreeSceneTypes["axes2d"], threeScene: THREE.Scene): void {
     disposeAxis(obj.x, threeScene);
     disposeAxis(obj.y, threeScene);
+    disposeLabels(obj.labels, threeScene);
   },
 };
 
