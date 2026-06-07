@@ -1,5 +1,6 @@
 ## Features
 
+- A fullscreen button for the demos. But idk whether that should be handled by whatever "wrapper" the user makes instead of the library itself.
 - Reusable themes. Can be attached to the view object, dark and light variants etc.
   - Or instead of the library managing dark and light, the theme itself can be reactive and the user can update it however they want.
 - Add a dedicated examples section in documentation
@@ -13,7 +14,6 @@
   - Handling discontinuities: Just allow the user to pass discontinuous t values manually, it's the simplest approach. Otherwise detection is kinda complex, especially if we don't have access to the symbolic representation of the function
 - Optimizations
 - Axes labels
-- Labels for items
 - Some kind of UI helpers, like latex text / numbers but they are draggable and the value updates in real time
 - More interactivity improvements
   - Better hitboxes for point dragging
@@ -22,7 +22,6 @@
   - Have a better distinction between click vs. drag
 - Custom material options.
   - Just allow the user to pass MessPhongMaterialParameters (or some kind of atomized version of it?). This includes shader as well so they can write their own shaders if they want.
-- 2D scenes
 - Vectors fields
   - I think making a vector field a special (separate) item is more useful and performant (so that we can have a single geometry for it all, if that's possible)
   - The arrow heads are kind of a problem though if we're going with the 2D Line approach. We can use a texture or something, or maybe a custom shader
@@ -38,7 +37,7 @@
   - Convert the API reference stuff to "type tables" in Fumadocs.
 - Infinite grid and axes
 - Filled in shaped / functions
-- Add the `visible` property to all items
+- Add the `visible` property to all items so it can be toggled instead of removing the item completely.
 - Better looking visuals
   - Better materials with shaders and stuff
   - Custom shader support
