@@ -37,7 +37,6 @@
   - Convert the API reference stuff to "type tables" in Fumadocs.
 - Infinite grid and axes
 - Filled in shaped / functions
-- Add the `visible` property to all items so it can be toggled instead of removing the item completely.
 - Better looking visuals
   - Better materials with shaders and stuff
   - Custom shader support

@@ -22,6 +22,9 @@ function applyStyles(
   element.style.cssText = item.style;
   element.style.visibility = item.visible ? "visible" : "hidden";
   element.style.pointerEvents = item.pointerEvents;
+  if (!element.style.zIndex) {
+    element.style.zIndex = "10";
+  }
 
   const offsetX = item.offset.x;
   const offsetY = item.offset.y;

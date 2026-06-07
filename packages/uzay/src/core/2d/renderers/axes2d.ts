@@ -246,6 +246,7 @@ function createLabels(
     for (const tick of ticks) {
       const wrapper = document.createElement("div");
       wrapper.style.width = "max-content";
+      wrapper.style.zIndex = "0";
 
       const element = document.createElement("div");
       element.textContent = formatTick(tick, tickStep);
