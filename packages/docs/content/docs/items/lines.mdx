@@ -3,6 +3,8 @@ title: Lines
 description: 3D line segments
 ---
 
+import { TransparencyWarning } from "@/components/transparency-warning";
+
 ## What is a Line3D?
 
 A `Line3D` renders as a line segment between two 3D points. Lines are useful for:
@@ -54,6 +56,23 @@ scene.create("line3d", {
   thickness: 2, // Thick
 });
 ```
+
+### Opacity
+
+Lines support transparency via the `opacity` property (0 = fully transparent, 1 = fully opaque):
+
+```typescript
+scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(5, 3, 2),
+  color: "cyan",
+  opacity: 0.4, // Semi-transparent
+});
+```
+
+This is handy for de-emphasizing construction or guide lines without hiding them entirely.
+
+<TransparencyWarning />
 
 ## Examples
 
@@ -121,6 +140,7 @@ line.end.set(vec3(2, 2, 2));
 // Update styling
 line.color.set("pink");
 line.thickness.set(2);
+line.opacity.set(0.5);
 ```
 
 ---
@@ -135,6 +155,7 @@ line.thickness.set(2);
 | `end` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Ending point |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
+| `opacity` | `number` | `1` | Opacity (0 to 1) |
 | `visible` | `boolean` | `true` | Whether the line is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the line receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
@@ -148,6 +169,7 @@ line.thickness.set(2);
 | `end` | `BoundAtom<Vec3>` | End point atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

@@ -154,7 +154,8 @@ function createDerivativeScene() {
   scene.create("line2d", {
     start: pointA.coords,
     end: aProjectionAtom,
-    color: "rgb(190, 190, 190)",
+    color: "white",
+    opacity: 0.45,
     thickness: 1.2,
     pointerEvents: "none",
   });
@@ -162,7 +163,8 @@ function createDerivativeScene() {
   scene.create("line2d", {
     start: bCoordsAtom,
     end: bProjectionAtom,
-    color: "rgb(190, 190, 190)",
+    color: "white",
+    opacity: 0.45,
     thickness: 1.2,
     pointerEvents: "none",
   });

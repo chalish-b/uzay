@@ -16,6 +16,7 @@ export type Line2DFields = {
   end: Vec2;
   color: Color;
   thickness: number;
+  opacity: number;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -29,6 +30,7 @@ export const line2dDefinition = defineItem2D({
     end: field<Vec2>(() => vec2(0, 0)),
     color: field<Color>("white"),
     thickness: field(1),
+    opacity: field(1),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },

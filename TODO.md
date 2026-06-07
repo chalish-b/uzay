@@ -63,7 +63,6 @@
 
   ## Bugs
 
-- Even if we define a camera, the react wrapper uses its own internal camera. I think we should just get rid of this camera stuff altogether. Just allow the React wrapper to stay as `Scene3DView`, that's it.
 - Explicitly typed atoms (`scene.atom<T>()`) don't get autocomplete. The type checking still works, but for things like string types, it would be nice if it provided autocomplete.
 - This whole thing with Vec3 type and Vec3 namespace is bad. We need to import Vec3 namespace as Vec3Utils just for this and causes confusions.
 

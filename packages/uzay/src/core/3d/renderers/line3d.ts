@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./index";
 import { lineThicknessScaleDown } from "./index";
+import { applyOpacityMaterialState } from "./material-transparency";
 import { checkedColor } from "../../shared/types/colors";
 
 export const line3dRenderer: ItemRenderer<"line3d"> = {
@@ -17,8 +18,12 @@ export const line3dRenderer: ItemRenderer<"line3d"> = {
       item.thickness / lineThicknessScaleDown
     );
     const material = new THREE.MeshPhongMaterial({
-      color: checkedColor(item.color, "Line3D.color"), specular: 0xAAAAAA, shininess: 5
+      color: checkedColor(item.color, "Line3D.color"), specular: 0xAAAAAA, shininess: 5,
+      transparent: item.opacity < 1,
+      opacity: item.opacity,
+      depthWrite: item.opacity >= 1,
     });
+    applyOpacityMaterialState(material, item.opacity);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
@@ -34,6 +39,7 @@ export const line3dRenderer: ItemRenderer<"line3d"> = {
 
   update(item: ItemSnapshot<"line3d">, obj: ThreeSceneTypes["line3d"]): void {
     obj.material.color.set(checkedColor(item.color, "Line3D.color"));
+    applyOpacityMaterialState(obj.material, item.opacity);
     obj.curve.points[0].set(item.start.x, item.start.y, item.start.z);
     obj.curve.points[1].set(item.end.x, item.end.y, item.end.z);
     // Unfortunately, we can't really change the radius of the tube geometry after creation. So we recreate it.
