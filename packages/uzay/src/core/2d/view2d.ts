@@ -14,6 +14,7 @@ import type {
   InteractionEventType,
 } from "./types/interaction-events";
 import type { PointDraggableDir2D } from "./types/axes";
+import type { ViewLayoutContext2D, Viewport2D } from "./types/view-context";
 
 // Visible vertical extent (in world units) at zoom = 1. The horizontal extent
 // follows from canvas aspect ratio.
@@ -37,7 +38,9 @@ export class View2D {
   lastSceneSnapshot: SceneSnapshot = { itemSnapshots: new Map() };
 
   // Cached camera snapshot used to skip redundant Three.js camera updates.
-  private _lastCameraSnapshot: ReturnType<Camera2D<any>["getItemSnapshot"]> | null = null;
+  private _lastCameraSnapshot: ReturnType<
+    Camera2D<AtomLikeOptions<Camera2DFields>>["getItemSnapshot"]
+  > | null = null;
 
   // Interaction system
   raycaster = new THREE.Raycaster();
@@ -201,6 +204,8 @@ export class View2D {
   _render() {
     this.frameScheduled = false;
     this.sizer.applyIfNeeded();
+    const viewport = this.getViewport2D();
+    this.layoutViewDependentItems(viewport);
     const size = this.threeRenderer.getSize(new THREE.Vector2());
     this.css2dRenderer.setSize(size.x, size.y);
     this.threeRenderer.render(this.threeScene, this.threeCamera);
@@ -222,6 +227,61 @@ export class View2D {
       this.threeCamera.updateProjectionMatrix();
     }
     this._lastCameraSnapshot = snap;
+  }
+
+  // ========== View-dependent layout ==========
+
+  getViewport2D(): Viewport2D {
+    const size = this.threeRenderer.getSize(new THREE.Vector2());
+    const widthPx = size.x;
+    const heightPx = size.y;
+    const zoom = this.threeCamera.zoom;
+    const center = vec2(this.threeCamera.position.x, this.threeCamera.position.y);
+    const left = center.x + this.threeCamera.left / zoom;
+    const right = center.x + this.threeCamera.right / zoom;
+    const bottom = center.y + this.threeCamera.bottom / zoom;
+    const top = center.y + this.threeCamera.top / zoom;
+    const worldWidth = right - left;
+    const worldHeight = top - bottom;
+    const worldPerPixel = heightPx > 0 ? worldHeight / heightPx : 0;
+    const visibleWorldBounds = { left, right, bottom, top };
+
+    return {
+      widthPx,
+      heightPx,
+      center,
+      zoom,
+      worldPerPixel,
+      visibleWorldBounds,
+      worldToScreen: (point) => ({
+        x: worldWidth !== 0 ? ((point.x - left) / worldWidth) * widthPx : 0,
+        y: worldHeight !== 0 ? ((top - point.y) / worldHeight) * heightPx : 0,
+      }),
+      screenToWorld: (point) =>
+        vec2(
+          widthPx !== 0 ? left + (point.x / widthPx) * worldWidth : left,
+          heightPx !== 0 ? top - (point.y / heightPx) * worldHeight : top
+        ),
+    };
+  }
+
+  layoutViewDependentItems(viewport: Viewport2D): void {
+    const ctx: ViewLayoutContext2D = {
+      viewport,
+      threeScene: this.threeScene,
+      camera: this.threeCamera,
+      renderer: this.threeRenderer,
+    };
+
+    for (const [id, obj] of this.threeMeshes.entries()) {
+      const item = this.lastSceneSnapshot.itemSnapshots.get(id);
+      if (!item || obj.kind !== item.kind) continue;
+      const renderer = getRenderer(item.kind);
+      const layout = renderer.layout as
+        | ((item: ItemSnapshot, obj: ThreeSceneObject, ctx: ViewLayoutContext2D) => void)
+        | undefined;
+      layout?.(item, obj, ctx);
+    }
   }
 
   // ========== Coord conversions ==========
@@ -277,11 +337,14 @@ export class View2D {
     }
 
     if (eventType === "drag" && item.handleDrag) {
-      item.handleDrag(event as any);
+      const handleDrag = item.handleDrag as (event: InteractionEvent) => void;
+      handleDrag(event);
     } else if (eventType === "click" && item.handleClick) {
-      item.handleClick(event as any);
+      const handleClick = item.handleClick as (event: InteractionEvent) => void;
+      handleClick(event);
     } else if (eventType === "hover" && item.handleHover) {
-      item.handleHover(event as any);
+      const handleHover = item.handleHover as (event: InteractionEvent) => void;
+      handleHover(event);
     }
   }
 
@@ -503,7 +566,7 @@ export class View2D {
     this.pointerDownInfo = null;
   };
 
-  onPointerLeave = (_event: PointerEvent) => {
+  onPointerLeave = () => {
     if (this.dragState) this.dragState = null;
     if (this.panState) this.panState = null;
     this.hoveredItemId = null;

@@ -67,6 +67,8 @@
 
 ## 2D
 
+- A new `function2d` item that is for non-parametric, simple functions.
+  - This would also allow us to have infinite start/end range (which is kinda ambiguous for parametric functions).
 - Dynamic grid
 - Hit testing lines in 2D might be an issue
 - Add some anti aliasing to the lines and functions

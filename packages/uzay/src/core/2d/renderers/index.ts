@@ -6,6 +6,7 @@ import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import type { ItemKind, ItemSnapshot } from "../types/item-registry";
+import type { ViewLayoutContext2D } from "../types/view-context";
 
 // Stacking offsets so 2D items don't z-fight on the z=0 plane.
 // Higher z draws on top.
@@ -29,11 +30,13 @@ export type ThreeSceneTypes = {
     geometry: LineSegmentsGeometry;
     material: LineMaterial;
     mesh: LineSegments2;
+    layoutKey: string | null;
   };
   axes2d: {
     kind: "axes2d";
     x: Axes2DAxisObject;
     y: Axes2DAxisObject;
+    layoutKey: string | null;
   };
   line2d: {
     kind: "line2d";
@@ -88,6 +91,7 @@ export type ThreeSceneObject<K extends ItemKind = ItemKind> = ThreeSceneTypes[K]
 export type ItemRenderer<K extends ItemKind> = {
   create(item: ItemSnapshot<K>, threeScene: THREE.Scene): ThreeSceneTypes[K];
   update(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K], threeScene: THREE.Scene): void;
+  layout?(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K], ctx: ViewLayoutContext2D): void;
   dispose?(obj: ThreeSceneTypes[K], threeScene: THREE.Scene): void;
 };
 

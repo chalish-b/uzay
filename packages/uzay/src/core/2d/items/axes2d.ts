@@ -8,9 +8,10 @@ import {
 import { defineItem2D } from "../types/define-item";
 
 export type PointerEvents = "auto" | "none";
+export type TickStep = number | "auto";
 
-// Axes2D mirrors Axes3D's API: each axis takes `true` (infinite default range),
-// `false` (axis disabled), or `[min, max]` for an explicit range.
+// Axes2D mirrors Axes3D's API: each axis takes `true` for a viewport-backed
+// axis, `false` to disable it, or `[min, max]` for an explicit range.
 export type Axes2DFields = {
   tags: ItemTags;
   x: boolean | [number, number];
@@ -20,7 +21,7 @@ export type Axes2DFields = {
   visible: boolean;
   pointerEvents: PointerEvents;
   tickmarks: boolean;
-  tickStep: number;
+  tickStep: TickStep;
   arrows: boolean;
 };
 export type Axes2DOptions = AtomLikeOptions<Axes2DFields>;
@@ -38,10 +39,10 @@ export const axes2dDefinition = defineItem2D({
     // tuned line-threshold, so default to "none" (axes are visual scaffolding).
     pointerEvents: field<PointerEvents>("none"),
     tickmarks: field(false),
-    tickStep: field(1),
+    tickStep: field<TickStep>(1),
     arrows: field(true),
   },
 });
 
-export type Axes2D<Opts extends Axes2DOptions = {}> =
+export type Axes2D<Opts extends Axes2DOptions = object> =
   ItemHandleFromDefinition<typeof axes2dDefinition, Opts>;

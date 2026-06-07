@@ -37,20 +37,20 @@ function createDerivativeScene() {
   });
 
   scene.create("grid2d", {
-    rangeX: [-8, 8],
-    rangeY: [-5, 7],
-    gap: 1,
+    rangeX: true,
+    rangeY: true,
+    gap: "auto",
     color: "white",
     opacity: 0.12,
   });
 
   scene.create("axes2d", {
-    x: [-8, 8],
-    y: [-5, 7],
+    x: true,
+    y: true,
     color: "white",
     thickness: 1.1,
     tickmarks: true,
-    tickStep: 1,
+    tickStep: "auto",
     arrows: true,
   });
 

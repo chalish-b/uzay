@@ -6,31 +6,70 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { checkedColor } from "../../shared/types/colors";
+import type { Viewport2D } from "../types/view-context";
+import { getNiceStep } from "../types/nice-step";
 
-// Build the line-segment vertex buffer for a 2D grid covering the given
-// rangeX × rangeY at the requested gap. `true` (infinite) is currently a
-// no-op stub mirroring Grid3D, so we return an empty buffer in that case.
+type GridRange = boolean | [number, number];
+type Bounds = readonly [number, number];
+
+function getResolvedGridBounds(
+  item: ItemSnapshot<"grid2d">,
+  viewport: Viewport2D | null
+): { x: Bounds | null; y: Bounds | null } {
+  const normalize = (bounds: Bounds): Bounds =>
+    bounds[0] <= bounds[1] ? bounds : [bounds[1], bounds[0]];
+
+  const resolve = (
+    range: GridRange,
+    viewportBounds: Bounds | null
+  ): Bounds | null => {
+    if (Array.isArray(range)) return normalize(range);
+    if (range === true) return viewportBounds ? normalize(viewportBounds) : null;
+    return null;
+  };
+
+  const xViewportBounds: Bounds | null = viewport
+    ? [viewport.visibleWorldBounds.left, viewport.visibleWorldBounds.right]
+    : null;
+  const yViewportBounds: Bounds | null = viewport
+    ? [viewport.visibleWorldBounds.bottom, viewport.visibleWorldBounds.top]
+    : null;
+
+  return {
+    x: resolve(item.rangeX, xViewportBounds),
+    y: resolve(item.rangeY, yViewportBounds),
+  };
+}
+
+function getGap(
+  gap: ItemSnapshot<"grid2d">["gap"],
+  viewport: Viewport2D | null
+): number {
+  if (gap !== "auto") return gap;
+  if (!viewport || viewport.worldPerPixel <= 0) return 1;
+  return getNiceStep(viewport.worldPerPixel);
+}
+
+// Build the line-segment vertex buffer for a 2D grid covering the resolved
+// rangeX × rangeY at the requested gap. `true` ranges are viewport-backed when
+// a viewport is provided, and otherwise resolve to an empty geometry.
 function buildGridGeometry(
-  rangeX: boolean | [number, number],
-  rangeY: boolean | [number, number],
-  gap: number
+  item: ItemSnapshot<"grid2d">,
+  viewport: Viewport2D | null = null
 ): LineSegmentsGeometry {
   const positions: number[] = [];
-
-  const xBounds = Array.isArray(rangeX) ? rangeX : null;
-  const yBounds = Array.isArray(rangeY) ? rangeY : null;
+  const { x: xBounds, y: yBounds } = getResolvedGridBounds(item, viewport);
+  const gap = getGap(item.gap, viewport);
 
   if (xBounds && yBounds && gap > 0) {
-    const [x0, x1] = xBounds[0] <= xBounds[1] ? xBounds : [xBounds[1], xBounds[0]];
-    const [y0, y1] = yBounds[0] <= yBounds[1] ? yBounds : [yBounds[1], yBounds[0]];
+    const [x0, x1] = xBounds;
+    const [y0, y1] = yBounds;
 
-    // Vertical lines at each x = k*gap inside [x0, x1].
     const firstX = Math.ceil(x0 / gap) * gap;
     for (let x = firstX; x <= x1 + 1e-9; x += gap) {
       positions.push(x, y0, Z_GRID, x, y1, Z_GRID);
     }
 
-    // Horizontal lines at each y = k*gap inside [y0, y1].
     const firstY = Math.ceil(y0 / gap) * gap;
     for (let y = firstY; y <= y1 + 1e-9; y += gap) {
       positions.push(x0, y, Z_GRID, x1, y, Z_GRID);
@@ -47,7 +86,7 @@ export const grid2dRenderer: ItemRenderer<"grid2d"> = {
     item: ItemSnapshot<"grid2d">,
     threeScene: THREE.Scene
   ): ThreeSceneTypes["grid2d"] {
-    const geometry = buildGridGeometry(item.rangeX, item.rangeY, item.gap);
+    const geometry = buildGridGeometry(item);
     const material = new LineMaterial({
       color: checkedColor(item.color, "Grid2D.color"),
       linewidth: item.thickness,
@@ -58,7 +97,7 @@ export const grid2dRenderer: ItemRenderer<"grid2d"> = {
     mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
-    return { kind: "grid2d", geometry, material, mesh };
+    return { kind: "grid2d", geometry, material, mesh, layoutKey: null };
   },
 
   update(item: ItemSnapshot<"grid2d">, obj: ThreeSceneTypes["grid2d"]): void {
@@ -70,9 +109,21 @@ export const grid2dRenderer: ItemRenderer<"grid2d"> = {
     obj.mesh.visible = item.visible;
 
     obj.geometry.dispose();
-    const next = buildGridGeometry(item.rangeX, item.rangeY, item.gap);
-    obj.mesh.geometry = next;
-    (obj as { geometry: LineSegmentsGeometry }).geometry = next;
+    obj.geometry = buildGridGeometry(item);
+    obj.mesh.geometry = obj.geometry;
+    obj.layoutKey = null;
+  },
+
+  layout(item: ItemSnapshot<"grid2d">, obj: ThreeSceneTypes["grid2d"], ctx): void {
+    if (item.rangeX !== true && item.rangeY !== true && item.gap !== "auto") return;
+    const { x, y } = getResolvedGridBounds(item, ctx.viewport);
+    const gap = getGap(item.gap, ctx.viewport);
+    const layoutKey = JSON.stringify({ x, y, gap });
+    if (layoutKey === obj.layoutKey) return;
+    obj.geometry.dispose();
+    obj.geometry = buildGridGeometry(item, ctx.viewport);
+    obj.mesh.geometry = obj.geometry;
+    obj.layoutKey = layoutKey;
   },
 
   dispose(obj: ThreeSceneTypes["grid2d"], threeScene: THREE.Scene): void {

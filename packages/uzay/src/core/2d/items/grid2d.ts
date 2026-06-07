@@ -8,15 +8,16 @@ import {
 import { defineItem2D } from "../types/define-item";
 
 export type PointerEvents = "auto" | "none";
+export type GridGap = number | "auto";
 
 // Grid2D mirrors Grid3D's range1/range2 shape: explicit bounds [min, max]
-// for finite grids, `true` for an infinite grid (currently a stub matching
-// Grid3D's behavior), or `false` to omit that axis.
+// for finite grids, `true` for a viewport-backed grid, or `false` to omit
+// that axis.
 export type Grid2DFields = {
   tags: ItemTags;
   rangeX: boolean | [number, number];
   rangeY: boolean | [number, number];
-  gap: number;
+  gap: GridGap;
   color: Color;
   opacity: number;
   thickness: number;
@@ -31,7 +32,7 @@ export const grid2dDefinition = defineItem2D({
     tags: field<ItemTags>(() => []),
     rangeX: field<boolean | [number, number]>(() => [-10, 10]),
     rangeY: field<boolean | [number, number]>(() => [-10, 10]),
-    gap: field(1),
+    gap: field<GridGap>(1),
     color: field<Color>("white"),
     opacity: field(0.3),
     thickness: field(1),
@@ -40,5 +41,5 @@ export const grid2dDefinition = defineItem2D({
   },
 });
 
-export type Grid2D<Opts extends Grid2DOptions = {}> =
+export type Grid2D<Opts extends Grid2DOptions = object> =
   ItemHandleFromDefinition<typeof grid2dDefinition, Opts>;

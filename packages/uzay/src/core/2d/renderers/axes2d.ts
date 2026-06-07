@@ -9,6 +9,8 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
 import { checkedColor } from "../../shared/types/colors";
+import type { Viewport2D } from "../types/view-context";
+import { getNiceStep } from "../types/nice-step";
 
 // Pixel-space sizes for ornaments. Multiplied by item.thickness so the same
 // dial that controls line width also scales ticks and arrowheads
@@ -20,8 +22,17 @@ const INFINITE_RANGE: readonly [number, number] = [-100, 100];
 
 type AxisKey = "x" | "y";
 
-function getRange(value: boolean | [number, number]): readonly [number, number] {
-  return typeof value !== "boolean" ? value : INFINITE_RANGE;
+function getRange(
+  axis: AxisKey,
+  value: boolean | [number, number],
+  viewport: Viewport2D | null = null
+): readonly [number, number] {
+  if (typeof value !== "boolean") return value;
+  if (value === true && viewport) {
+    const { left, right, bottom, top } = viewport.visibleWorldBounds;
+    return axis === "x" ? [left, right] : [bottom, top];
+  }
+  return INFINITE_RANGE;
 }
 
 function buildAxisLineGeometry(
@@ -51,21 +62,28 @@ function buildTickPositions(
   return positions;
 }
 
-// Tick geometry uses unit perpendicular extent (±1). The mesh's scale on the
-// perpendicular axis is then set in onBeforeRender so each tick has a fixed
-// pixel length regardless of zoom.
+function getTickStep(
+  tickStep: ItemSnapshot<"axes2d">["tickStep"],
+  viewport: Viewport2D | null
+): number {
+  if (tickStep !== "auto") return tickStep;
+  if (!viewport || viewport.worldPerPixel <= 0) return 1;
+  return getNiceStep(viewport.worldPerPixel);
+}
+
 function buildTickGeometry(
   axis: AxisKey,
   range: readonly [number, number],
-  step: number
+  step: number,
+  halfLength: number = 1
 ): LineSegmentsGeometry {
   const ticks = buildTickPositions(range, step);
   const positions: number[] = [];
   for (const t of ticks) {
     if (axis === "x") {
-      positions.push(t, -1, Z_DEFAULT, t, 1, Z_DEFAULT);
+      positions.push(t, -halfLength, Z_DEFAULT, t, halfLength, Z_DEFAULT);
     } else {
-      positions.push(-1, t, Z_DEFAULT, 1, t, Z_DEFAULT);
+      positions.push(-halfLength, t, Z_DEFAULT, halfLength, t, Z_DEFAULT);
     }
   }
   const geom = new LineSegmentsGeometry();
@@ -91,10 +109,11 @@ function buildUnitArrowGeometry(axis: AxisKey): THREE.BufferGeometry {
 function createAxis(
   axis: AxisKey,
   item: ItemSnapshot<"axes2d">,
-  threeScene: THREE.Scene
+  threeScene: THREE.Scene,
+  viewport: Viewport2D | null = null
 ): ThreeSceneTypes["axes2d"]["x"] {
   const enabled = item[axis] !== false;
-  const range = getRange(item[axis]);
+  const range = getRange(axis, item[axis], viewport);
 
   const lineMaterial = new LineMaterial({
     color: checkedColor(item.color, "Axes2D.color"),
@@ -108,7 +127,16 @@ function createAxis(
 
   let ticks: ThreeSceneTypes["axes2d"]["x"]["ticks"] = null;
   if (item.tickmarks && enabled) {
-    const tickGeometry = buildTickGeometry(axis, range, item.tickStep);
+    const tickStep = getTickStep(item.tickStep, viewport);
+    const tickHalfLength = viewport
+      ? item.thickness * BASE_TICK_HALF_LENGTH_PX * viewport.worldPerPixel
+      : 1;
+    const tickGeometry = buildTickGeometry(
+      axis,
+      range,
+      tickStep,
+      tickHalfLength
+    );
     const tickMaterial = new LineMaterial({
       color: checkedColor(item.color, "Axes2D.color"),
       linewidth: item.thickness,
@@ -118,7 +146,9 @@ function createAxis(
     tickMesh.userData.itemId = item.id;
     tickMesh.userData.axis = axis;
     tickMesh.userData.thickness = item.thickness;
-    chainOnBeforeRender(tickMesh, onTickBeforeRender);
+    if (!viewport) {
+      chainOnBeforeRender(tickMesh, onTickBeforeRender);
+    }
     threeScene.add(tickMesh);
     ticks = { geometry: tickGeometry, material: tickMaterial, mesh: tickMesh };
   }
@@ -179,6 +209,7 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
       kind: "axes2d",
       x: createAxis("x", item, threeScene),
       y: createAxis("y", item, threeScene),
+      layoutKey: null,
     };
   },
 
@@ -194,6 +225,28 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
     disposeAxis(obj.y, threeScene);
     obj.x = createAxis("x", item, threeScene);
     obj.y = createAxis("y", item, threeScene);
+    obj.layoutKey = null;
+  },
+
+  layout(item: ItemSnapshot<"axes2d">, obj: ThreeSceneTypes["axes2d"], ctx): void {
+    if (item.x !== true && item.y !== true && item.tickStep !== "auto") return;
+
+    const xRange = getRange("x", item.x, ctx.viewport);
+    const yRange = getRange("y", item.y, ctx.viewport);
+    const tickStep = getTickStep(item.tickStep, ctx.viewport);
+    const layoutKey = JSON.stringify({
+      xRange,
+      yRange,
+      tickStep,
+      worldPerPixel: ctx.viewport.worldPerPixel,
+    });
+    if (layoutKey === obj.layoutKey) return;
+
+    disposeAxis(obj.x, ctx.threeScene);
+    disposeAxis(obj.y, ctx.threeScene);
+    obj.x = createAxis("x", item, ctx.threeScene, ctx.viewport);
+    obj.y = createAxis("y", item, ctx.threeScene, ctx.viewport);
+    obj.layoutKey = layoutKey;
   },
 
   dispose(obj: ThreeSceneTypes["axes2d"], threeScene: THREE.Scene): void {
