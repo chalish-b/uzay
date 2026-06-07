@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
@@ -56,6 +57,11 @@ export type ThreeSceneTypes = {
     material: LineMaterial;
     mesh: Line2;
   };
+  overlay2d: {
+    kind: "overlay2d";
+    cssObject: CSS2DObject;
+    element: HTMLDivElement;
+  };
 };
 
 // Per-axis bundle for axes2d: a line plus optional tick and arrow meshes.
@@ -92,6 +98,7 @@ import { axes2dRenderer } from "./axes2d";
 import { line2dRenderer } from "./line2d";
 import { vector2dRenderer } from "./vector2d";
 import { parametricFunction2dRenderer } from "./parametric-function2d";
+import { overlay2dRenderer } from "./overlay2d";
 
 export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   camera2d: camera2dRenderer,
@@ -101,6 +108,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   line2d: line2dRenderer,
   vector2d: vector2dRenderer,
   parametricfunction2d: parametricFunction2dRenderer,
+  overlay2d: overlay2dRenderer,
 };
 
 export function getRenderer<K extends ItemKind>(kind: K): ItemRenderer<K> {

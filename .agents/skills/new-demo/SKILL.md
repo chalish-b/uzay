@@ -14,4 +14,6 @@ You can mess around inside the `playground/` repo as much as you want (edit demo
 
 There will be a lot of things and issues at first, it's still a very early project. But as we build more and more demos, the library will get better and better, adding new features, fixes, and improvements with each demo we make. Focus on the most important and biggest issues and obstacles relevant to the current demo instead of small nitpick that can get ironed out over time.
 
+Also, most of the demos will be 2D, which is also a new and even more unpolished section of the library. We'll mostly focus on that part, but if something can be improved for both 2D and 3D cases, mention that too.
+
 Our goal isn't to make the demos up and running as quickly as possible, so don't resort to hacks. The goal is to improve the actual library, while demos are just a convenient testing ground for requirements. I repeat: **The library is the main focus, more important than any specific demo we are making**.

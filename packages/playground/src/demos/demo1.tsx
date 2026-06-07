@@ -1,270 +1,270 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
-import { Scene3D, ensureAtom, surfaceNormal, surfacePoint, vec2, vec3 } from "uzay";
-import type { AtomLikeInput, Scene3D as Scene3DType, Vec3 } from "uzay";
-import { Scene3DView, useAtomValue } from "uzay/react";
+import { Scene2D, curvePoint2D, vec2 } from "uzay";
+import { Scene2DView } from "uzay/react";
 
-// Custom user-written construction: drops a vertical line from a point to the xz plane
-function dropLine(
-  scene: Scene3DType,
-  options: {
-    coords: AtomLikeInput<Vec3>;
-    color?: AtomLikeInput<string>;
-  },
-) {
-  const coordsAtom = ensureAtom(scene.atom, options.coords);
-  const colorAtom = ensureAtom(scene.atom, options.color ?? "gray");
+const a = 1.4;
+const initialH = 1.8;
+const xMin = -8;
+const xMax = 8;
+const nearZero = 1e-4;
 
-  const groundAtom = scene.atom((get) => {
-    const { x, z } = get(coordsAtom);
-    return vec3(x, 0, z);
+function f(x: number) {
+  return 0.25 * x * x - 0.3 * x + 0.4;
+}
+
+function derivative(x: number) {
+  return 0.5 * x - 0.3;
+}
+
+function lineAtPoint(pointX: number, pointY: number, slope: number, x: number) {
+  return pointY + slope * (x - pointX);
+}
+
+function fmt(value: number) {
+  return value.toFixed(2);
+}
+
+function createDerivativeScene() {
+  const scene = new Scene2D();
+
+  const camera = scene.create("camera2d", {
+    center: vec2(1.25, 1.0),
+    zoom: 1.65,
+    enablePan: false,
+    enableZoom: false,
   });
 
-  const line = scene.create("line3d", {
-    start: coordsAtom,
-    end: groundAtom,
-    color: colorAtom,
+  scene.create("grid2d", {
+    rangeX: [-8, 8],
+    rangeY: [-5, 7],
+    gap: 1,
+    color: "white",
+    opacity: 0.12,
   });
 
-  const dot = scene.create("point3d", {
-    coords: groundAtom,
-    color: colorAtom,
-    radius: 2,
+  scene.create("axes2d", {
+    x: [-8, 8],
+    y: [-5, 7],
+    color: "white",
+    thickness: 1.1,
+    tickmarks: true,
+    tickStep: 1,
+    arrows: true,
+  });
+
+  scene.create("parametricfunction2d", {
+    f: (x: number) => vec2(x, f(x)),
+    tStart: xMin,
+    tEnd: xMax,
+    samples: 240,
+    color: "rgb(79, 156, 249)",
+    thickness: 3,
+    pointerEvents: "none",
+  });
+
+  const pointA = scene.create("point2d", {
+    coords: vec2(a, f(a)),
+    color: "rgb(255, 255, 255)",
+    radius: 5,
     draggable: "none",
+    pointerEvents: "none",
+  });
+
+  const pointB = curvePoint2D(scene, {
+    f: (x: number) => vec2(x, f(x)),
+    tStart: xMin,
+    tEnd: xMax,
+    initialT: a + initialH,
+    color: "rgb(255, 181, 71)",
+  });
+  pointB.point.radius.set(6);
+
+  const hAtom = scene.atom((get) => get(pointB.t) - a);
+
+  const bCoordsAtom = scene.atom((get) => {
+    const x = get(pointB.t);
+    return vec2(x, f(x));
+  });
+
+  const aProjectionAtom = scene.atom(vec2(a, 0));
+
+  const bProjectionAtom = scene.atom((get) => {
+    const b = get(bCoordsAtom);
+    return vec2(b.x, 0);
+  });
+
+  const secantSlopeAtom = scene.atom((get) => {
+    const h = get(hAtom);
+    if (Math.abs(h) < nearZero) return derivative(a);
+    return (f(a + h) - f(a)) / h;
+  });
+
+  const secantStartAtom = scene.atom((get) => {
+    const slope = get(secantSlopeAtom);
+    return vec2(xMin, lineAtPoint(a, f(a), slope, xMin));
+  });
+
+  const secantEndAtom = scene.atom((get) => {
+    const slope = get(secantSlopeAtom);
+    return vec2(xMax, lineAtPoint(a, f(a), slope, xMax));
+  });
+
+  const hLabelPositionAtom = scene.atom((get) => {
+    const b = get(bCoordsAtom);
+    return vec2((a + b.x) / 2, -0.18);
+  });
+
+  const hLabelAtom = scene.atom((get) => {
+    const h = get(hAtom);
+    return String.raw`h=${fmt(h)}`;
+  });
+
+  const tangentSlope = derivative(a);
+
+  const slopeLabelAtom = scene.atom((get) => {
+    const slope = get(secantSlopeAtom);
+    return String.raw`\begin{aligned}\frac{f(a+h)-f(a)}{h}&=${slope.toFixed(3)}\\ f'(a)&=${tangentSlope.toFixed(3)}\end{aligned}`;
+  });
+
+  scene.create("line2d", {
+    start: vec2(xMin, lineAtPoint(a, f(a), tangentSlope, xMin)),
+    end: vec2(xMax, lineAtPoint(a, f(a), tangentSlope, xMax)),
+    color: "rgb(58, 196, 125)",
+    thickness: 2,
+    pointerEvents: "none",
+  });
+
+  scene.create("line2d", {
+    start: secantStartAtom,
+    end: secantEndAtom,
+    color: "rgb(255, 181, 71)",
+    thickness: 3.5,
+    pointerEvents: "none",
+  });
+
+  scene.create("line2d", {
+    start: pointA.coords,
+    end: bCoordsAtom,
+    color: "rgb(255, 214, 143)",
+    thickness: 1.5,
+    pointerEvents: "none",
+  });
+
+  scene.create("line2d", {
+    start: pointA.coords,
+    end: aProjectionAtom,
+    color: "rgb(190, 190, 190)",
+    thickness: 1.2,
+    pointerEvents: "none",
+  });
+
+  scene.create("line2d", {
+    start: bCoordsAtom,
+    end: bProjectionAtom,
+    color: "rgb(190, 190, 190)",
+    thickness: 1.2,
+    pointerEvents: "none",
+  });
+
+  scene.create("line2d", {
+    start: aProjectionAtom,
+    end: bProjectionAtom,
+    color: "rgb(255, 214, 143)",
+    thickness: 2,
+    pointerEvents: "none",
+  });
+
+  const pointLabelStyle = [
+    "color: white",
+    "font-size: 18px",
+    "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
+    "font-weight: 600",
+    "text-shadow: 0 1px 2px black, 0 0 6px black",
+    "white-space: nowrap",
+  ].join(";");
+
+  const hLabelStyle = [
+    "color: rgb(255, 214, 143)",
+    "font-size: 15px",
+    "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
+    "text-shadow: 0 1px 2px black, 0 0 6px black",
+    "white-space: nowrap",
+  ].join(";");
+
+  const formulaLabelStyle = [
+    "color: rgba(255, 255, 255, 0.9)",
+    "font-size: 14px",
+    "line-height: 1.35",
+    "text-shadow: 0 1px 2px black, 0 0 6px black",
+    "white-space: nowrap",
+  ].join(";");
+
+  scene.create("overlay2d", {
+    position: pointA.coords,
+    content: String.raw`A`,
+    format: "latex",
+    offset: vec2(-4, -4),
+    anchor: "bottom-right",
+    style: pointLabelStyle,
+  });
+
+  scene.create("overlay2d", {
+    position: bCoordsAtom,
+    content: String.raw`B`,
+    format: "latex",
+    offset: vec2(4, -4),
+    anchor: "bottom-left",
+    style: pointLabelStyle,
+  });
+
+  scene.create("overlay2d", {
+    position: hLabelPositionAtom,
+    content: hLabelAtom,
+    format: "latex",
+    offset: vec2(0, 0),
+    anchor: "top",
+    style: hLabelStyle,
+  });
+
+  scene.create("overlay2d", {
+    position: vec2(-3.25, 3.65),
+    content: slopeLabelAtom,
+    format: "latex",
+    offset: vec2(0, 0),
+    anchor: "top-left",
+    style: formulaLabelStyle,
   });
 
   return {
-    line,
-    dot,
-    dispose: () => {
-      scene.remove(line);
-      scene.remove(dot);
-    },
+    scene,
+    camera,
   };
-}
-
-function createSurfaceScene() {
-  const scene = new Scene3D();
-  const camera = scene.create("camera3d", {
-    position: vec3(7, 5, 7),
-    lookAt: vec3(0, 1.5, 0),
-    fov: 42,
-  });
-
-  scene.create("axes3d", {
-    x: [-5, 5],
-    y: [-1, 5],
-    z: [-5, 5],
-    thickness: 0.45,
-    tickmarks: true,
-    arrows: true,
-  });
-
-  scene.create("grid3d", {
-    plane: "xz",
-    range1: [-5, 5],
-    range2: [-5, 5],
-    color: "white",
-    opacity: 0.12,
-    thickness: 2,
-  });
-
-  const f = (x: number, z: number) => Math.sin(x) * Math.cos(z) + 2;
-
-  scene.create("surface3d", {
-    f,
-    xRange: [-5, 5],
-    zRange: [-5, 5],
-    color: "steelblue",
-    opacity: 0.9,
-    samples: 56,
-  });
-
-  const sp = surfacePoint(scene, {
-    f,
-    xRange: [-5, 5],
-    zRange: [-5, 5],
-    initialXZ: vec2(1, 1),
-    color: "tomato",
-  });
-  sp.point.radius.set(4);
-
-  surfaceNormal(scene, { f, xz: sp.xz, color: "tomato" });
-  dropLine(scene, { coords: sp.point.coords, color: "rgb(255, 255, 255)" });
-
-  // Writable derived atom: reads the xz projection, writes back to sp.xz on drag
-  const groundCoords = scene.atom(
-    (get) => {
-      const { x, z } = get(sp.point.coords);
-      return vec3(x, 0, z);
-    },
-    (_get, set, newValue: Vec3) => {
-      set(sp.xz, vec2(newValue.x, newValue.z));
-    },
-  );
-
-  // Drop line using the writable ground coords
-  scene.create("line3d", {
-    start: sp.point.coords,
-    end: groundCoords,
-    color: "gray",
-  });
-
-  scene.create("point3d", {
-    coords: groundCoords,
-    color: "white",
-    radius: 2.5,
-    draggable: "xz",
-  });
-
-  return { scene, camera, sp };
-}
-
-function createCurveScene(phase: number) {
-  const scene = new Scene3D();
-  const camera = scene.create("camera3d", {
-    position: vec3(5, 4, 6),
-    lookAt: vec3(0, 0, 0),
-    fov: 45,
-  });
-
-  scene.create("axes3d", {
-    x: [-4, 4],
-    y: [-4, 4],
-    z: [-4, 4],
-    thickness: 0.4,
-    tickmarks: false,
-    arrows: true,
-  });
-
-  scene.create("grid3d", {
-    plane: "xz",
-    range1: [-4, 4],
-    range2: [-4, 4],
-    color: "white",
-    opacity: 0.1,
-    thickness: 1.5,
-  });
-
-  scene.create("parametricfunction3d", {
-    f: (t: number) => vec3(
-      2.7 * Math.cos(t + phase),
-      1.5 * Math.sin(2 * t),
-      2.7 * Math.sin(t + phase),
-    ),
-    tStart: 0,
-    tEnd: Math.PI * 2,
-    color: "mediumseagreen",
-    thickness: 2.4,
-    samples: 220,
-  });
-
-  scene.create("sphere3d", {
-    center: vec3(0, 0, 0),
-    radius: 0.35,
-    color: "gold",
-    opacity: 0.9,
-  });
-
-  return { scene, camera };
-}
-
-function createVectorScene() {
-  const scene = new Scene3D();
-  const camera = scene.create("camera3d", {
-    position: vec3(4, 4, 5),
-    lookAt: vec3(0, 0, 0),
-    fov: 45,
-  });
-
-  scene.create("axes3d", {
-    x: [-3.5, 3.5],
-    y: [-3.5, 3.5],
-    z: [-3.5, 3.5],
-    thickness: 0.4,
-    tickmarks: true,
-    arrows: true,
-  });
-
-  scene.create("grid3d", {
-    plane: "xy",
-    range1: [-3, 3],
-    range2: [-3, 3],
-    color: "white",
-    opacity: 0.08,
-    thickness: 1.5,
-  });
-
-  scene.create("plane3d", {
-    normal: vec3(0, 0, 1),
-    point: vec3(0, 0, -0.6),
-    width: 6,
-    height: 6,
-    color: "slateblue",
-    opacity: 0.22,
-  });
-
-  const vec = scene.create("vector3d", {
-    origin: vec3(0, 0, 0),
-    vector: vec3(1.7, 1.2, 0),
-    color: "tomato",
-    thickness: 1,
-    draggable: "xy",
-  });
-
-  return { scene, camera, vec };
 }
 
 function EmbeddedScene({
   children,
-  height = 300,
+  height = 480,
 }: {
   children: ReactNode;
   height?: number;
 }) {
   return (
-    <div className="article-embed" style={{ height }}>
+    <div className="article-embed" style={{ height, width: "min(100%, 760px)", margin: "24px auto" }}>
       {children}
     </div>
   );
 }
 
-function SurfaceEmbed() {
-  const { scene, camera, sp } = useMemo(() => createSurfaceScene(), []);
-  const xz = useAtomValue(sp.xz);
-  const coords = useAtomValue(sp.point.coords);
-
-  return (
-    <EmbeddedScene height={360}>
-      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
-      <div className="embed-readout">
-        <div>xz: ({xz.x.toFixed(2)}, {xz.y.toFixed(2)})</div>
-        <div>pos: ({coords.x.toFixed(2)}, {coords.y.toFixed(2)}, {coords.z.toFixed(2)})</div>
-      </div>
-    </EmbeddedScene>
+function SecantDerivativeEmbed() {
+  const { scene, camera } = useMemo(
+    () => createDerivativeScene(),
+    [],
   );
-}
-
-function CurveEmbed({ phase }: { phase: number }) {
-  const { scene, camera } = useMemo(() => createCurveScene(phase), [phase]);
 
   return (
-    <EmbeddedScene height={260}>
-      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
-    </EmbeddedScene>
-  );
-}
-
-function VectorEmbed() {
-  const { scene, camera, vec } = useMemo(() => createVectorScene(), []);
-  const coords = useAtomValue(vec.vector);
-
-  return (
-    <EmbeddedScene height={300}>
-      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
-      <div className="embed-readout">
-        tip: ({coords.x.toFixed(2)}, {coords.y.toFixed(2)}, {coords.z.toFixed(2)})
-      </div>
+    <EmbeddedScene>
+      <Scene2DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
     </EmbeddedScene>
   );
 }
@@ -273,38 +273,24 @@ export default function Demo1() {
   return (
     <main className="article-page">
       <article className="article-shell">
-        <p className="article-kicker">Uzay playground</p>
-        <h1>Document-style embedded demos</h1>
+        <p className="article-kicker">Derivative intuition</p>
+        <h1>From secant slope to tangent slope</h1>
         <p>
-          This page is a stand-in for a math article that mounts several Uzay scenes inline.
-          It is intentionally scrollable and each scene owns a small, non-fullscreen canvas.
+          Pick a fixed point A on a smooth curve, then place another point B nearby on the
+          same curve. The line through the two points measures the average rate of change
+          over the horizontal step h.
         </p>
 
-        <SurfaceEmbed />
+        <SecantDerivativeEmbed />
 
         <p>
-          The first embed is the old surface-point sandbox running inside a fixed-height
-          article window. The point projection, normal, and readout all belong to this
-          scene instance only.
+          Drag B along the graph toward A. As h gets smaller, the secant line rotates around
+          A and its slope approaches the slope of the green tangent line.
         </p>
 
-        <div className="article-two-up">
-          <CurveEmbed phase={0} />
-          <CurveEmbed phase={Math.PI / 4} />
-        </div>
-
         <p>
-          These two curve embeds intentionally use the same component twice with different
-          scene instances. Orbiting one canvas should not move the other, and remounting
-          this tab should clean up both WebGL renderers.
-        </p>
-
-        <VectorEmbed />
-
-        <p>
-          The last embed keeps a draggable point and vector in a smaller window, which is
-          closer to the kind of interaction an explanatory page would place between
-          paragraphs.
+          In symbols, the changing orange line has slope (f(a+h) - f(a)) / h. The derivative
+          f&apos;(a) is the limiting value this slope approaches as h tends to zero.
         </p>
       </article>
     </main>

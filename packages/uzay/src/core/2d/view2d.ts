@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import type { Camera2D, Camera2DFields } from "./items/camera2d";
 import type { Scene2D, SceneSnapshot } from "./scene2d";
 import { Vec2, vec2 } from "../shared/types/vec2";
@@ -28,6 +29,7 @@ export class View2D {
   threeScene: THREE.Scene;
   threeCamera: THREE.OrthographicCamera;
   threeRenderer: THREE.WebGLRenderer;
+  css2dRenderer: CSS2DRenderer;
   frameScheduled: boolean = false;
   threeMeshes: Map<ItemId, ThreeSceneObject> = new Map();
   unsubscribeSceneInvalidation: (() => void) | null = null;
@@ -102,6 +104,12 @@ export class View2D {
 
     containerElem.appendChild(this.threeRenderer.domElement);
 
+    this.css2dRenderer = new CSS2DRenderer();
+    this.css2dRenderer.domElement.style.position = "absolute";
+    this.css2dRenderer.domElement.style.inset = "0";
+    this.css2dRenderer.domElement.style.pointerEvents = "none";
+    containerElem.appendChild(this.css2dRenderer.domElement);
+
     this._lastCameraSnapshot = camSnap;
 
     const canvas = this.threeRenderer.domElement;
@@ -123,6 +131,13 @@ export class View2D {
     });
 
     this.onSceneChanged();
+    this.requestRender();
+  }
+
+  changeActiveCam(cameraId: ItemId) {
+    this.activeCam = this.scene.getCamera(cameraId);
+    this._lastCameraSnapshot = null;
+    this.syncCameraToThree();
     this.requestRender();
   }
 
@@ -186,7 +201,10 @@ export class View2D {
   _render() {
     this.frameScheduled = false;
     this.sizer.applyIfNeeded();
+    const size = this.threeRenderer.getSize(new THREE.Vector2());
+    this.css2dRenderer.setSize(size.x, size.y);
     this.threeRenderer.render(this.threeScene, this.threeCamera);
+    this.css2dRenderer.render(this.threeScene, this.threeCamera);
   }
 
   // ========== Camera Sync ==========
@@ -557,6 +575,10 @@ export class View2D {
 
     if (this.threeRenderer.domElement.parentNode === this.containerElem) {
       this.containerElem.removeChild(this.threeRenderer.domElement);
+    }
+
+    if (this.css2dRenderer.domElement.parentNode === this.containerElem) {
+      this.containerElem.removeChild(this.css2dRenderer.domElement);
     }
   }
 }
