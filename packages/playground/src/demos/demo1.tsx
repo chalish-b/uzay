@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
+import katex from "katex";
 import { Scene2D, curvePoint2D, vec2 } from "uzay";
-import { Scene2DView } from "uzay/react";
+import { Scene2DView, useAtomValue } from "uzay/react";
 
 const a = 1.4;
 const initialH = 1.8;
@@ -31,8 +32,8 @@ function createDerivativeScene() {
   const camera = scene.create("camera2d", {
     center: vec2(1.25, 1.0),
     zoom: 1.65,
-    enablePan: false,
-    enableZoom: false,
+    enablePan: true,
+    enableZoom: true,
   });
 
   scene.create("grid2d", {
@@ -122,11 +123,6 @@ function createDerivativeScene() {
 
   const tangentSlope = derivative(a);
 
-  const slopeLabelAtom = scene.atom((get) => {
-    const slope = get(secantSlopeAtom);
-    return String.raw`\begin{aligned}\frac{f(a+h)-f(a)}{h}&=${slope.toFixed(3)}\\ f'(a)&=${tangentSlope.toFixed(3)}\end{aligned}`;
-  });
-
   scene.create("line2d", {
     start: vec2(xMin, lineAtPoint(a, f(a), tangentSlope, xMin)),
     end: vec2(xMax, lineAtPoint(a, f(a), tangentSlope, xMax)),
@@ -155,8 +151,8 @@ function createDerivativeScene() {
     start: pointA.coords,
     end: aProjectionAtom,
     color: "white",
-    opacity: 0.45,
-    thickness: 1.2,
+    opacity: 0.3,
+    thickness: 3,
     pointerEvents: "none",
   });
 
@@ -164,16 +160,32 @@ function createDerivativeScene() {
     start: bCoordsAtom,
     end: bProjectionAtom,
     color: "white",
-    opacity: 0.45,
-    thickness: 1.2,
+    opacity: 0.3,
+    thickness: 3,
     pointerEvents: "none",
   });
+
+  scene.create("point2d", {
+    coords: aProjectionAtom,
+    color: "rgb(255, 181, 71)",
+    radius: 4,
+    draggable: "none",
+    pointerEvents: "none",
+  })
+
+  scene.create("point2d", {
+    coords: bProjectionAtom,
+    color: "rgb(255, 181, 71)",
+    radius: 4,
+    draggable: "none",
+    pointerEvents: "none",
+  })
 
   scene.create("line2d", {
     start: aProjectionAtom,
     end: bProjectionAtom,
     color: "rgb(255, 214, 143)",
-    thickness: 2,
+    thickness: 3,
     pointerEvents: "none",
   });
 
@@ -190,14 +202,6 @@ function createDerivativeScene() {
     "color: rgb(255, 214, 143)",
     "font-size: 15px",
     "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    "text-shadow: 0 1px 2px black, 0 0 6px black",
-    "white-space: nowrap",
-  ].join(";");
-
-  const formulaLabelStyle = [
-    "color: rgba(255, 255, 255, 0.9)",
-    "font-size: 14px",
-    "line-height: 1.35",
     "text-shadow: 0 1px 2px black, 0 0 6px black",
     "white-space: nowrap",
   ].join(";");
@@ -229,18 +233,11 @@ function createDerivativeScene() {
     style: hLabelStyle,
   });
 
-  scene.create("overlay2d", {
-    position: vec2(-3.25, 3.65),
-    content: slopeLabelAtom,
-    format: "latex",
-    offset: vec2(0, 0),
-    anchor: "top-left",
-    style: formulaLabelStyle,
-  });
-
   return {
     scene,
     camera,
+    secantSlopeAtom,
+    tangentSlope,
   };
 }
 
@@ -259,14 +256,38 @@ function EmbeddedScene({
 }
 
 function SecantDerivativeEmbed() {
-  const { scene, camera } = useMemo(
+  const { scene, camera, secantSlopeAtom, tangentSlope } = useMemo(
     () => createDerivativeScene(),
     [],
+  );
+  const secantSlope = useAtomValue(secantSlopeAtom);
+  const formulaHtml = useMemo(
+    () => katex.renderToString(
+      String.raw`\begin{aligned}\frac{f(a+h)-f(a)}{h}&=${secantSlope.toFixed(3)}\\ f'(a)&=${tangentSlope.toFixed(3)}\end{aligned}`,
+      {
+        throwOnError: false,
+        displayMode: true,
+      },
+    ),
+    [secantSlope, tangentSlope],
   );
 
   return (
     <EmbeddedScene>
       <Scene2DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
+      <div
+        style={{
+          position: "absolute",
+          top: 18,
+          left: 20,
+          color: "rgba(255, 255, 255, 0.9)",
+          fontSize: 14,
+          lineHeight: 1.35,
+          textShadow: "0 1px 2px black, 0 0 6px black",
+          pointerEvents: "none",
+        }}
+        dangerouslySetInnerHTML={{ __html: formulaHtml }}
+      />
     </EmbeddedScene>
   );
 }
