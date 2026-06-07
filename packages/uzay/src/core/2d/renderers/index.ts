@@ -11,6 +11,8 @@ import type { ViewLayoutContext2D } from "../types/view-context";
 // Stacking offsets so 2D items don't z-fight on the z=0 plane.
 // Higher z draws on top.
 export const Z_GRID = -0.01;
+export const Z_REGION = -0.003;
+export const Z_REGION_STROKE = -0.002;
 export const Z_DEFAULT = 0;
 export const Z_POINT = 0.01;
 
@@ -54,6 +56,15 @@ export type ThreeSceneTypes = {
     headGeometry: THREE.BufferGeometry;
     headMaterial: THREE.MeshBasicMaterial;
     headMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+  };
+  region2d: {
+    kind: "region2d";
+    geometry: THREE.ShapeGeometry;
+    material: THREE.MeshBasicMaterial;
+    mesh: THREE.Mesh<THREE.ShapeGeometry, THREE.MeshBasicMaterial>;
+    strokeGeometry: LineGeometry | null;
+    strokeMaterial: LineMaterial | null;
+    strokeMesh: Line2 | null;
   };
   parametricfunction2d: {
     kind: "parametricfunction2d";
@@ -114,6 +125,7 @@ import { grid2dRenderer } from "./grid2d";
 import { axes2dRenderer } from "./axes2d";
 import { line2dRenderer } from "./line2d";
 import { vector2dRenderer } from "./vector2d";
+import { region2dRenderer } from "./region2d";
 import { parametricFunction2dRenderer } from "./parametric-function2d";
 import { function2dRenderer } from "./function2d";
 import { overlay2dRenderer } from "./overlay2d";
@@ -125,6 +137,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   axes2d: axes2dRenderer,
   line2d: line2dRenderer,
   vector2d: vector2dRenderer,
+  region2d: region2dRenderer,
   parametricfunction2d: parametricFunction2dRenderer,
   function2d: function2dRenderer,
   overlay2d: overlay2dRenderer,

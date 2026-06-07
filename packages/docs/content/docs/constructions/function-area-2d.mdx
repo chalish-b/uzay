@@ -1,0 +1,160 @@
+---
+title: Function Area 2D
+description: Filled area under a 2D function over an interval
+---
+
+## What is Function Area 2D?
+
+`functionArea2D` creates a filled 2D region between a function and a baseline over an interval. It is useful for highlighting the area under a curve, showing the visual shape of a definite integral, or marking any function-defined region without manually sampling the curve yourself.
+
+The construction only creates the filled region. It does not create the function graph, draggable handles, guide lines, labels, or related helpers. Those are scene-specific choices that you can build with regular items.
+
+## Basic Usage
+
+```typescript
+import { Scene2D, functionArea2D, vec2 } from "uzay";
+
+const scene = new Scene2D();
+
+const camera = scene.create("camera2d", {
+  center: vec2(0, 1),
+  zoom: 1.4,
+});
+
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  tickmarks: true,
+  labels: true,
+});
+
+const f = (x: number) => 0.25 * x * x + 0.5;
+
+scene.create("function2d", {
+  f,
+  domain: "infinite",
+  color: "dodgerblue",
+  thickness: 3,
+});
+
+const area = functionArea2D(scene, {
+  f,
+  a: -2,
+  b: 2,
+  baseline: 0,
+  color: "gold",
+  opacity: 0.35,
+});
+```
+
+This samples `f(x)` from `a` to `b`, closes the shape down to `baseline`, and renders it as a `region2d`.
+
+## Reactive Bounds
+
+The interval bounds can be atoms. This lets the highlighted area follow controls that you create yourself.
+
+```typescript
+const aCoords = scene.atom(vec2(-2, 0));
+const bCoords = scene.atom(vec2(2, 0));
+
+const a = scene.atom((get) => get(aCoords).x);
+const b = scene.atom((get) => get(bCoords).x);
+
+scene.create("point2d", {
+  coords: aCoords,
+  draggable: "x",
+  color: "gold",
+});
+
+scene.create("point2d", {
+  coords: bCoords,
+  draggable: "x",
+  color: "gold",
+});
+
+functionArea2D(scene, {
+  f,
+  a,
+  b,
+  baseline: 0,
+  color: "gold",
+  opacity: 0.3,
+});
+```
+
+Drag either point and the region updates automatically.
+
+## Customizing the Region
+
+The construction exposes common fill and stroke options:
+
+```typescript
+const area = functionArea2D(scene, {
+  f,
+  a: -1,
+  b: 3,
+  color: "orange",
+  opacity: 0.25,
+  strokeColor: "white",
+  strokeOpacity: 0.6,
+  strokeThickness: 1.5,
+});
+```
+
+For lower-level item controls, use the returned `region` item:
+
+```typescript
+area.region.visible.set(false);
+area.region.pointerEvents.set("auto");
+```
+
+## Reading the Sampled Points
+
+The returned `points` atom contains the polygon points used by the region:
+
+```typescript
+const area = functionArea2D(scene, { f, a: -2, b: 2 });
+
+area.points.sub((points) => {
+  console.log("region point count", points.length);
+});
+```
+
+This is mainly useful when you want to inspect or reuse the sampled boundary. It is not needed for normal styling.
+
+## Cleanup
+
+Call `dispose()` to remove the region from the scene:
+
+```typescript
+area.dispose();
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(x: number) => number` | (required) | Function to sample |
+| `a` | `number` | (required) | Start of the x interval |
+| `b` | `number` | (required) | End of the x interval |
+| `baseline` | `number` | `0` | Y value that closes the region |
+| `samples` | `number` | `128` | Number of segments used to sample the function |
+| `color` | `string` | `"white"` | Fill color |
+| `opacity` | `number` | `0.35` | Fill opacity |
+| `strokeColor` | `string` | `"white"` | Stroke color |
+| `strokeOpacity` | `number` | `0` | Stroke opacity |
+| `strokeThickness` | `number` | `1` | Stroke thickness |
+
+All options accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `region` | `Region2D` | The filled region item |
+| `points` | `BoundAtom<Vec2[]>` | Derived atom containing the sampled polygon points |
+| `dispose` | `() => void` | Removes the region from the scene |

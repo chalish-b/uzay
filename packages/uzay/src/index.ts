@@ -28,6 +28,7 @@ export type { Grid2D } from "./core/2d/items/grid2d"
 export type { Axes2D } from "./core/2d/items/axes2d"
 export type { Line2D } from "./core/2d/items/line2d"
 export type { Vector2D } from "./core/2d/items/vector2d"
+export type { Region2D } from "./core/2d/items/region2d"
 export type { ParametricFunction2D } from "./core/2d/items/parametric-function2d"
 export type { Function2D } from "./core/2d/items/function2d"
 export type { Overlay2D } from "./core/2d/items/overlay2d"
@@ -48,4 +49,4 @@ export type { Color } from "./core/shared/types/colors"
 
 // Constructions
 export { tangentLine, curvePoint, surfacePoint, surfaceNormal } from "./core/3d/constructions"
-export { curvePoint2D } from "./core/2d/constructions"
+export { curvePoint2D, functionArea2D } from "./core/2d/constructions"
