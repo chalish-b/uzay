@@ -56,10 +56,10 @@ function createDerivativeScene() {
     arrows: true,
   });
 
-  scene.create("parametricfunction2d", {
-    f: (x: number) => vec2(x, f(x)),
-    tStart: xMin,
-    tEnd: xMax,
+  scene.create("function2d", {
+    f,
+    domain: "infinite",
+    discontinuities: [],
     samples: 240,
     color: "rgb(79, 156, 249)",
     thickness: 3,
@@ -103,16 +103,6 @@ function createDerivativeScene() {
     return (f(a + h) - f(a)) / h;
   });
 
-  const secantStartAtom = scene.atom((get) => {
-    const slope = get(secantSlopeAtom);
-    return vec2(xMin, lineAtPoint(a, f(a), slope, xMin));
-  });
-
-  const secantEndAtom = scene.atom((get) => {
-    const slope = get(secantSlopeAtom);
-    return vec2(xMax, lineAtPoint(a, f(a), slope, xMax));
-  });
-
   const hLabelPositionAtom = scene.atom((get) => {
     const b = get(bCoordsAtom);
     return vec2((a + b.x) / 2, -0.18);
@@ -125,17 +115,22 @@ function createDerivativeScene() {
 
   const tangentSlope = derivative(a);
 
-  scene.create("line2d", {
-    start: vec2(xMin, lineAtPoint(a, f(a), tangentSlope, xMin)),
-    end: vec2(xMax, lineAtPoint(a, f(a), tangentSlope, xMax)),
+  scene.create("function2d", {
+    f: (x: number) => lineAtPoint(a, f(a), tangentSlope, x),
+    domain: "infinite",
+    samples: 32,
     color: "rgb(58, 196, 125)",
     thickness: 2,
     pointerEvents: "none",
   });
 
-  scene.create("line2d", {
-    start: secantStartAtom,
-    end: secantEndAtom,
+  scene.create("function2d", {
+    f: scene.atom((get) => {
+      const slope = get(secantSlopeAtom);
+      return (x: number) => lineAtPoint(a, f(a), slope, x);
+    }),
+    domain: "infinite",
+    samples: 32,
     color: "rgb(255, 181, 71)",
     thickness: 3.5,
     pointerEvents: "none",

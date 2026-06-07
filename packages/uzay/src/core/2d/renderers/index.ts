@@ -61,6 +61,13 @@ export type ThreeSceneTypes = {
     material: LineMaterial;
     mesh: Line2;
   };
+  function2d: {
+    kind: "function2d";
+    geometry: LineSegmentsGeometry;
+    material: LineMaterial;
+    mesh: LineSegments2;
+    layoutKey: string | null;
+  };
   overlay2d: {
     kind: "overlay2d";
     cssObject: CSS2DObject;
@@ -108,6 +115,7 @@ import { axes2dRenderer } from "./axes2d";
 import { line2dRenderer } from "./line2d";
 import { vector2dRenderer } from "./vector2d";
 import { parametricFunction2dRenderer } from "./parametric-function2d";
+import { function2dRenderer } from "./function2d";
 import { overlay2dRenderer } from "./overlay2d";
 
 export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
@@ -118,6 +126,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   line2d: line2dRenderer,
   vector2d: vector2dRenderer,
   parametricfunction2d: parametricFunction2dRenderer,
+  function2d: function2dRenderer,
   overlay2d: overlay2dRenderer,
 };
 

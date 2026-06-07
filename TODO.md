@@ -66,6 +66,7 @@
 
 ## 2D
 
+- Adding limits to the zoom and pan in the camera
 - A new `function2d` item that is for non-parametric, simple functions.
   - This would also allow us to have infinite start/end range (which is kinda ambiguous for parametric functions).
 - Dynamic grid
