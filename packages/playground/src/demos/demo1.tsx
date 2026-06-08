@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import katex from "katex";
 import { Scene2D, curvePoint2D, functionArea2D, vec2 } from "uzay";
 import { Scene2DView, useAtomValue } from "uzay/react";
@@ -10,6 +10,128 @@ const xMin = -8;
 const xMax = 8;
 const nearZero = 1e-4;
 const integralSamples = 180;
+
+type DemoThemeMode = "light" | "dark";
+
+type DemoTheme = {
+  page: {
+    background: string;
+    text: string;
+    heading: string;
+    kicker: string;
+    controlBackground: string;
+    controlBorder: string;
+    controlText: string;
+    activeControlBackground: string;
+    activeControlText: string;
+    embedBorder: string;
+    embedShadow: string;
+  };
+  scene: {
+    background: string;
+    grid: string;
+    gridOpacity: number;
+    axes: string;
+    axisLabel: string;
+    axisLabelShadow: string;
+    curve: string;
+    tangent: string;
+    accent: string;
+    accentSoft: string;
+    projection: string;
+    projectionOpacity: number;
+    point: string;
+    label: string;
+    labelShadow: string;
+    rangeLabel: string;
+    integralLabel: string;
+    formula: string;
+    formulaShadow: string;
+    areaOpacity: number;
+    areaStrokeOpacity: number;
+  };
+};
+
+const demoThemes: Record<DemoThemeMode, DemoTheme> = {
+  light: {
+    page: {
+      background: "#f4f1ea",
+      text: "#2b2b2b",
+      heading: "#151515",
+      kicker: "#6d6256",
+      controlBackground: "rgba(255, 255, 255, 0.68)",
+      controlBorder: "rgba(42, 35, 25, 0.14)",
+      controlText: "#4f473f",
+      activeControlBackground: "#202020",
+      activeControlText: "#ffffff",
+      embedBorder: "rgba(0, 0, 0, 0.14)",
+      embedShadow: "0 16px 40px rgba(34, 25, 18, 0.14)",
+    },
+    scene: {
+      background: "#fbfaf6",
+      grid: "#756d63",
+      gridOpacity: 0.18,
+      axes: "#5f584f",
+      axisLabel: "rgba(70, 63, 54, 0.78)",
+      axisLabelShadow: "none",
+      curve: "rgb(28, 105, 210)",
+      tangent: "rgb(24, 145, 88)",
+      accent: "rgb(221, 132, 21)",
+      accentSoft: "rgb(230, 157, 62)",
+      projection: "#3e3933",
+      projectionOpacity: 0.24,
+      point: "#1d1d1d",
+      label: "#1f1f1f",
+      labelShadow:
+        "0 1px 0 rgba(255,255,255,0.9), 0 0 5px rgba(255,255,255,0.9)",
+      rangeLabel: "rgb(169, 93, 8)",
+      integralLabel: "#5b3406",
+      formula: "rgba(31, 31, 31, 0.92)",
+      formulaShadow:
+        "0 1px 0 rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.85)",
+      areaOpacity: 0.24,
+      areaStrokeOpacity: 0.76,
+    },
+  },
+  dark: {
+    page: {
+      background: "#111318",
+      text: "#d6d2ca",
+      heading: "#f4f0e8",
+      kicker: "#c2a56e",
+      controlBackground: "rgba(255, 255, 255, 0.06)",
+      controlBorder: "rgba(255, 255, 255, 0.13)",
+      controlText: "#cfc8bc",
+      activeControlBackground: "#f1eee7",
+      activeControlText: "#151515",
+      embedBorder: "rgba(255, 255, 255, 0.12)",
+      embedShadow: "0 18px 46px rgba(0, 0, 0, 0.34)",
+    },
+    scene: {
+      background: "#111111",
+      grid: "white",
+      gridOpacity: 0.12,
+      axes: "white",
+      axisLabel: "rgba(255, 255, 255, 0.72)",
+      axisLabelShadow: "0 1px 2px black, 0 0 4px black",
+      curve: "rgb(79, 156, 249)",
+      tangent: "rgb(58, 196, 125)",
+      accent: "rgb(255, 181, 71)",
+      accentSoft: "rgb(255, 214, 143)",
+      projection: "white",
+      projectionOpacity: 0.3,
+      point: "rgb(255, 255, 255)",
+      label: "white",
+      labelShadow: "0 1px 2px black, 0 0 6px black",
+      rangeLabel: "rgb(255, 214, 143)",
+      integralLabel: "rgb(255, 244, 224)",
+      formula: "rgba(255, 255, 255, 0.9)",
+      formulaShadow: "0 1px 2px black, 0 0 6px black",
+      areaOpacity: 0.32,
+      areaStrokeOpacity: 0.75,
+    },
+  },
+};
 
 function f(x: number) {
   return 0.25 * x * x - 0.3 * x + 0.4;
@@ -44,8 +166,9 @@ function integrateIntegralFunction(start: number, end: number) {
   return start <= end ? sum : -sum;
 }
 
-function createDerivativeScene() {
+function createDerivativeScene(initialTheme: DemoTheme) {
   const scene = new Scene2D();
+  const themeAtom = scene.atom(initialTheme);
 
   const camera = scene.create("camera2d", {
     center: vec2(1.25, 1.0),
@@ -58,19 +181,23 @@ function createDerivativeScene() {
     rangeX: true,
     rangeY: true,
     gap: "auto",
-    color: "white",
-    opacity: 0.12,
+    color: scene.atom((get) => get(themeAtom).scene.grid),
+    opacity: scene.atom((get) => get(themeAtom).scene.gridOpacity),
   });
 
   scene.create("axes2d", {
     x: true,
     y: true,
-    color: "white",
+    color: scene.atom((get) => get(themeAtom).scene.axes),
     thickness: 1.1,
     tickmarks: true,
     tickStep: "auto",
     labels: true,
-    labelStyle: "color: rgba(255, 255, 255, 0.72); font-size: 12px;",
+    labelStyle: scene.atom(
+      (get) =>
+        `color: ${get(themeAtom).scene.axisLabel}; font-size: 12px; ` +
+        `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
+    ),
     arrows: true,
   });
 
@@ -79,14 +206,14 @@ function createDerivativeScene() {
     domain: "infinite",
     discontinuities: [],
     samples: 240,
-    color: "rgb(79, 156, 249)",
+    color: scene.atom((get) => get(themeAtom).scene.curve),
     thickness: 3,
     pointerEvents: "none",
   });
 
   const pointA = scene.create("point2d", {
     coords: vec2(a, f(a)),
-    color: "rgb(255, 255, 255)",
+    color: scene.atom((get) => get(themeAtom).scene.point),
     radius: 5,
     draggable: "none",
     pointerEvents: "none",
@@ -97,7 +224,7 @@ function createDerivativeScene() {
     tStart: xMin,
     tEnd: xMax,
     initialT: a + initialH,
-    color: "rgb(255, 181, 71)",
+    color: scene.atom((get) => get(themeAtom).scene.accent),
   });
   pointB.point.radius.set(6);
 
@@ -137,7 +264,7 @@ function createDerivativeScene() {
     f: (x: number) => lineAtPoint(a, f(a), tangentSlope, x),
     domain: "infinite",
     samples: 32,
-    color: "rgb(58, 196, 125)",
+    color: scene.atom((get) => get(themeAtom).scene.tangent),
     thickness: 2,
     pointerEvents: "none",
   });
@@ -149,7 +276,7 @@ function createDerivativeScene() {
     }),
     domain: "infinite",
     samples: 32,
-    color: "rgb(255, 181, 71)",
+    color: scene.atom((get) => get(themeAtom).scene.accent),
     thickness: 3.5,
     pointerEvents: "none",
   });
@@ -157,7 +284,7 @@ function createDerivativeScene() {
   scene.create("line2d", {
     start: pointA.coords,
     end: bCoordsAtom,
-    color: "rgb(255, 214, 143)",
+    color: scene.atom((get) => get(themeAtom).scene.accentSoft),
     thickness: 1.5,
     pointerEvents: "none",
   });
@@ -165,8 +292,8 @@ function createDerivativeScene() {
   scene.create("line2d", {
     start: pointA.coords,
     end: aProjectionAtom,
-    color: "white",
-    opacity: 0.3,
+    color: scene.atom((get) => get(themeAtom).scene.projection),
+    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
     thickness: 3,
     pointerEvents: "none",
   });
@@ -174,52 +301,52 @@ function createDerivativeScene() {
   scene.create("line2d", {
     start: bCoordsAtom,
     end: bProjectionAtom,
-    color: "white",
-    opacity: 0.3,
+    color: scene.atom((get) => get(themeAtom).scene.projection),
+    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
     thickness: 3,
     pointerEvents: "none",
   });
 
   scene.create("point2d", {
     coords: aProjectionAtom,
-    color: "rgb(255, 181, 71)",
+    color: scene.atom((get) => get(themeAtom).scene.accent),
     radius: 4,
     draggable: "none",
     pointerEvents: "none",
-  })
+  });
 
   scene.create("point2d", {
     coords: bProjectionAtom,
-    color: "rgb(255, 181, 71)",
+    color: scene.atom((get) => get(themeAtom).scene.accent),
     radius: 4,
     draggable: "none",
     pointerEvents: "none",
-  })
+  });
 
   scene.create("line2d", {
     start: aProjectionAtom,
     end: bProjectionAtom,
-    color: "rgb(255, 214, 143)",
+    color: scene.atom((get) => get(themeAtom).scene.accentSoft),
     thickness: 3,
     pointerEvents: "none",
   });
 
-  const pointLabelStyle = [
-    "color: white",
+  const pointLabelStyle = scene.atom((get) => [
+    `color: ${get(themeAtom).scene.label}`,
     "font-size: 18px",
     "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
     "font-weight: 600",
-    "text-shadow: 0 1px 2px black, 0 0 6px black",
+    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
     "white-space: nowrap",
-  ].join(";");
+  ].join(";"));
 
-  const hLabelStyle = [
-    "color: rgb(255, 214, 143)",
+  const hLabelStyle = scene.atom((get) => [
+    `color: ${get(themeAtom).scene.rangeLabel}`,
     "font-size: 15px",
     "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    "text-shadow: 0 1px 2px black, 0 0 6px black",
+    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
     "white-space: nowrap",
-  ].join(";");
+  ].join(";"));
 
   scene.create("overlay2d", {
     position: pointA.coords,
@@ -251,13 +378,15 @@ function createDerivativeScene() {
   return {
     scene,
     camera,
+    themeAtom,
     secantSlopeAtom,
     tangentSlope,
   };
 }
 
-function createIntegralScene() {
+function createIntegralScene(initialTheme: DemoTheme) {
   const scene = new Scene2D();
+  const themeAtom = scene.atom(initialTheme);
 
   const camera = scene.create("camera2d", {
     center: vec2(0.3, 1.25),
@@ -270,19 +399,23 @@ function createIntegralScene() {
     rangeX: true,
     rangeY: true,
     gap: "auto",
-    color: "white",
-    opacity: 0.12,
+    color: scene.atom((get) => get(themeAtom).scene.grid),
+    opacity: scene.atom((get) => get(themeAtom).scene.gridOpacity),
   });
 
   scene.create("axes2d", {
     x: true,
     y: true,
-    color: "white",
+    color: scene.atom((get) => get(themeAtom).scene.axes),
     thickness: 1.1,
     tickmarks: true,
     tickStep: "auto",
     labels: true,
-    labelStyle: "color: rgba(255, 255, 255, 0.72); font-size: 12px;",
+    labelStyle: scene.atom(
+      (get) =>
+        `color: ${get(themeAtom).scene.axisLabel}; font-size: 12px; ` +
+        `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
+    ),
     arrows: true,
   });
 
@@ -336,10 +469,10 @@ function createIntegralScene() {
     b: bAtom,
     baseline: 0,
     samples: integralSamples,
-    color: "rgb(255, 181, 71)",
-    opacity: 0.32,
-    strokeColor: "rgb(255, 214, 143)",
-    strokeOpacity: 0.75,
+    color: scene.atom((get) => get(themeAtom).scene.accent),
+    opacity: scene.atom((get) => get(themeAtom).scene.areaOpacity),
+    strokeColor: scene.atom((get) => get(themeAtom).scene.accentSoft),
+    strokeOpacity: scene.atom((get) => get(themeAtom).scene.areaStrokeOpacity),
     strokeThickness: 1.6,
   });
 
@@ -348,7 +481,7 @@ function createIntegralScene() {
     domain: "infinite",
     discontinuities: [],
     samples: 260,
-    color: "rgb(79, 156, 249)",
+    color: scene.atom((get) => get(themeAtom).scene.curve),
     thickness: 3,
     pointerEvents: "none",
   });
@@ -356,8 +489,8 @@ function createIntegralScene() {
   scene.create("line2d", {
     start: aCoords,
     end: aCurveCoordsAtom,
-    color: "white",
-    opacity: 0.34,
+    color: scene.atom((get) => get(themeAtom).scene.projection),
+    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
     thickness: 3,
     pointerEvents: "none",
   });
@@ -365,8 +498,8 @@ function createIntegralScene() {
   scene.create("line2d", {
     start: bCoords,
     end: bCurveCoordsAtom,
-    color: "white",
-    opacity: 0.34,
+    color: scene.atom((get) => get(themeAtom).scene.projection),
+    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
     thickness: 3,
     pointerEvents: "none",
   });
@@ -374,7 +507,7 @@ function createIntegralScene() {
   scene.create("line2d", {
     start: scene.atom((get) => vec2(get(sortedAAtom), 0)),
     end: scene.atom((get) => vec2(get(sortedBAtom), 0)),
-    color: "rgb(255, 214, 143)",
+    color: scene.atom((get) => get(themeAtom).scene.accentSoft),
     opacity: 1,
     thickness: 3,
     pointerEvents: "none",
@@ -382,7 +515,7 @@ function createIntegralScene() {
 
   scene.create("point2d", {
     coords: aCurveCoordsAtom,
-    color: "rgb(255, 255, 255)",
+    color: scene.atom((get) => get(themeAtom).scene.point),
     radius: 4.5,
     draggable: "none",
     pointerEvents: "none",
@@ -390,7 +523,7 @@ function createIntegralScene() {
 
   scene.create("point2d", {
     coords: bCurveCoordsAtom,
-    color: "rgb(255, 255, 255)",
+    color: scene.atom((get) => get(themeAtom).scene.point),
     radius: 4.5,
     draggable: "none",
     pointerEvents: "none",
@@ -398,43 +531,43 @@ function createIntegralScene() {
 
   const aPoint = scene.create("point2d", {
     coords: aCoords,
-    color: "rgb(255, 181, 71)",
+    color: scene.atom((get) => get(themeAtom).scene.accent),
     radius: 7,
     draggable: "x",
   });
 
   const bPoint = scene.create("point2d", {
     coords: bCoords,
-    color: "rgb(255, 181, 71)",
+    color: scene.atom((get) => get(themeAtom).scene.accent),
     radius: 7,
     draggable: "x",
   });
 
-  const labelStyle = [
-    "color: white",
+  const labelStyle = scene.atom((get) => [
+    `color: ${get(themeAtom).scene.label}`,
     "font-size: 17px",
     "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
     "font-weight: 600",
-    "text-shadow: 0 1px 2px black, 0 0 6px black",
+    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
     "white-space: nowrap",
-  ].join(";");
+  ].join(";"));
 
-  const integralStyle = [
-    "color: rgb(255, 244, 224)",
+  const integralStyle = scene.atom((get) => [
+    `color: ${get(themeAtom).scene.integralLabel}`,
     "font-size: 19px",
     "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
     "font-weight: 700",
-    "text-shadow: 0 1px 2px black, 0 0 8px black",
+    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
     "white-space: nowrap",
-  ].join(";");
+  ].join(";"));
 
-  const rangeStyle = [
-    "color: rgb(255, 214, 143)",
+  const rangeStyle = scene.atom((get) => [
+    `color: ${get(themeAtom).scene.rangeLabel}`,
     "font-size: 14px",
     "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    "text-shadow: 0 1px 2px black, 0 0 6px black",
+    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
     "white-space: nowrap",
-  ].join(";");
+  ].join(";"));
 
   scene.create("overlay2d", {
     position: aPoint.coords,
@@ -475,6 +608,7 @@ function createIntegralScene() {
   return {
     scene,
     camera,
+    themeAtom,
     integralValueAtom,
     aAtom,
     bAtom,
@@ -483,23 +617,40 @@ function createIntegralScene() {
 
 function EmbeddedScene({
   children,
+  theme,
   height = 480,
 }: {
   children: ReactNode;
+  theme: DemoTheme;
   height?: number;
 }) {
   return (
-    <div className="article-embed" style={{ height, width: "min(100%, 760px)", margin: "24px auto" }}>
+    <div
+      className="article-embed"
+      style={{
+        height,
+        width: "min(100%, 760px)",
+        margin: "24px auto",
+        background: theme.scene.background,
+        borderColor: theme.page.embedBorder,
+        boxShadow: theme.page.embedShadow,
+      }}
+    >
       {children}
     </div>
   );
 }
 
-function IntegralAreaEmbed() {
-  const { scene, camera, integralValueAtom, aAtom, bAtom } = useMemo(
-    () => createIntegralScene(),
+function IntegralAreaEmbed({ theme }: { theme: DemoTheme }) {
+  const { scene, camera, themeAtom, integralValueAtom, aAtom, bAtom } = useMemo(
+    () => createIntegralScene(theme),
     [],
   );
+
+  useEffect(() => {
+    themeAtom.set(theme);
+  }, [theme, themeAtom]);
+
   const integralValue = useAtomValue(integralValueAtom);
   const currentA = useAtomValue(aAtom);
   const currentB = useAtomValue(bAtom);
@@ -509,23 +660,23 @@ function IntegralAreaEmbed() {
       {
         throwOnError: false,
         displayMode: true,
-    },
+      },
     ),
     [currentA, currentB, integralValue],
   );
 
   return (
-    <EmbeddedScene>
+    <EmbeddedScene theme={theme}>
       <Scene2DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
       <div
         style={{
           position: "absolute",
           top: 18,
           left: 20,
-          color: "rgba(255, 255, 255, 0.9)",
+          color: theme.scene.formula,
           fontSize: 14,
           lineHeight: 1.35,
-          textShadow: "0 1px 2px black, 0 0 6px black",
+          textShadow: theme.scene.formulaShadow,
           pointerEvents: "none",
         }}
         dangerouslySetInnerHTML={{ __html: formulaHtml }}
@@ -534,11 +685,16 @@ function IntegralAreaEmbed() {
   );
 }
 
-function SecantDerivativeEmbed() {
-  const { scene, camera, secantSlopeAtom, tangentSlope } = useMemo(
-    () => createDerivativeScene(),
+function SecantDerivativeEmbed({ theme }: { theme: DemoTheme }) {
+  const { scene, camera, themeAtom, secantSlopeAtom, tangentSlope } = useMemo(
+    () => createDerivativeScene(theme),
     [],
   );
+
+  useEffect(() => {
+    themeAtom.set(theme);
+  }, [theme, themeAtom]);
+
   const secantSlope = useAtomValue(secantSlopeAtom);
   const formulaHtml = useMemo(
     () => katex.renderToString(
@@ -552,17 +708,17 @@ function SecantDerivativeEmbed() {
   );
 
   return (
-    <EmbeddedScene>
+    <EmbeddedScene theme={theme}>
       <Scene2DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
       <div
         style={{
           position: "absolute",
           top: 18,
           left: 20,
-          color: "rgba(255, 255, 255, 0.9)",
+          color: theme.scene.formula,
           fontSize: 14,
           lineHeight: 1.35,
-          textShadow: "0 1px 2px black, 0 0 6px black",
+          textShadow: theme.scene.formulaShadow,
           pointerEvents: "none",
         }}
         dangerouslySetInnerHTML={{ __html: formulaHtml }}
@@ -572,10 +728,51 @@ function SecantDerivativeEmbed() {
 }
 
 export default function Demo1() {
+  const [themeMode, setThemeMode] = useState<DemoThemeMode>("light");
+  const theme = demoThemes[themeMode];
+  const themeStyles = {
+    "--article-heading": theme.page.heading,
+    "--article-text": theme.page.text,
+    "--article-kicker": theme.page.kicker,
+  } as CSSProperties;
+
   return (
-    <main className="article-page">
+    <main
+      className="article-page"
+      style={{
+        ...themeStyles,
+        background: theme.page.background,
+        color: theme.page.text,
+      }}
+    >
       <article className="article-shell">
-        <p className="article-kicker">Derivative intuition</p>
+        <div className="article-topbar">
+          <p className="article-kicker">Derivative intuition</p>
+          <div
+            className="theme-toggle"
+            style={{
+              background: theme.page.controlBackground,
+              borderColor: theme.page.controlBorder,
+            }}
+          >
+            {(["light", "dark"] as DemoThemeMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={themeMode === mode}
+                onClick={() => setThemeMode(mode)}
+                style={{
+                  background:
+                    themeMode === mode ? theme.page.activeControlBackground : "transparent",
+                  color:
+                    themeMode === mode ? theme.page.activeControlText : theme.page.controlText,
+                }}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
         <h1>From secant slope to tangent slope</h1>
         <p>
           Pick a fixed point A on a smooth curve, then place another point B nearby on the
@@ -583,7 +780,7 @@ export default function Demo1() {
           over the horizontal step h.
         </p>
 
-        <SecantDerivativeEmbed />
+        <SecantDerivativeEmbed theme={theme} />
 
         <p>
           Drag B along the graph toward A. As h gets smaller, the secant line rotates around
@@ -601,7 +798,7 @@ export default function Demo1() {
           handles on the x-axis to change the interval and watch the highlighted region update.
         </p>
 
-        <IntegralAreaEmbed />
+        <IntegralAreaEmbed theme={theme} />
 
         <p>
           The shaded region is built from sampled points on the curve, then closed back down to

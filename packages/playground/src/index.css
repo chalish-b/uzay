@@ -40,7 +40,7 @@ textarea {
 .article-page {
   min-height: calc(100vh - 41px);
   background: #f4f1ea;
-  color: #161616;
+  color: var(--article-text, #161616);
   padding: 32px 20px 64px;
 }
 
@@ -51,24 +51,61 @@ textarea {
 
 .article-kicker {
   margin: 0 0 8px;
-  color: #6d6256;
+  color: var(--article-kicker, #6d6256);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
+.article-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.article-topbar .article-kicker {
+  margin: 0;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid;
+  border-radius: 999px;
+}
+
+.theme-toggle button {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
 .article-shell h1 {
   margin: 0 0 16px;
-  color: #151515;
+  color: var(--article-heading, #151515);
   font-size: 38px;
   line-height: 1.08;
   letter-spacing: 0;
 }
 
+.article-shell h2 {
+  margin: 38px 0 14px;
+  color: var(--article-heading, #151515);
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
 .article-shell p {
   margin: 18px 0;
-  color: #2b2b2b;
+  color: var(--article-text, #2b2b2b);
   font-size: 18px;
   line-height: 1.68;
 }
@@ -116,6 +153,11 @@ textarea {
 
   .article-shell p {
     font-size: 16px;
+  }
+
+  .article-topbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .article-two-up {
