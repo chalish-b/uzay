@@ -4,6 +4,7 @@ description: 3D line segments
 ---
 
 import { TransparencyWarning } from "@/components/transparency-warning";
+import LinesDemo from "@/components/demos/lines-demo";
 
 ## What is a Line3D?
 
@@ -13,6 +14,10 @@ A `Line3D` renders as a line segment between two 3D points. Lines are useful for
 - Visualizing vectors
 - Drawing edges of shapes
 - Construction lines
+
+<LinesDemo />
+
+Both pink handles are draggable `point3d` items. The `line3d` takes their `coords` atoms as its `start` and `end`, so the segment tracks every drag, and the `overlay3d` at the midpoint recomputes the length live.
 
 ## Basic Usage
 
