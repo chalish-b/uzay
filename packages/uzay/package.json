@@ -1,6 +1,6 @@
 {
   "name": "uzay",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "Reactive 3D mathematical visualization library",
   "license": "MIT",
@@ -50,6 +50,7 @@
   },
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
+    "build:watch": "vite build --watch",
     "lint": "eslint ."
   }
 }
