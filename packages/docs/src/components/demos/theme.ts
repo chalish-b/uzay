@@ -5,7 +5,11 @@
 export type DemoMode = "light" | "dark";
 
 export type DemoTokens = {
-  // Scaffolding
+  // Scaffolding. Canvas-bound tokens must be plain hex/rgb: three.js colors
+  // have no alpha channel (it gets dropped with a warning), transparency goes
+  // through a separate opacity field instead, hence gridOpacity. axisLabel is
+  // the exception: axis labels are CSS2D DOM elements styled with CSS strings,
+  // so rgba is fine there. Don't feed axisLabel into a canvas item's color.
   grid: string;
   gridOpacity: number;
   axes: string;
