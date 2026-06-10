@@ -10,6 +10,10 @@ Bun workspaces with three packages:
 - `packages/playground` — Development playground with demos (`uzay-playground`, private)
 - `packages/docs` — Documentation site (Next.js + Fumadocs, static export)
 
+## Docs demos
+
+Item and construction pages in `packages/docs` open with an interactive demo. Before writing or editing one, read `packages/docs/DEMOS.md`: it covers the demo component recipe, the docs-side theming system (`useDemoScene`, the `t()` token helper, `overlayStyles`), and the content guidelines. The reference implementation is `src/components/demos/points-demo.tsx`.
+
 ## Other notes
 
 - After implementing a feature, if it's testable in a demo, edit demo1.tsx (sandbox demo in `packages/playground/src/demos/`) to create a test scenario for it, to see whether all features work. You can tear down the existing demo1.tsx, make it a demo where we can test all the different features and edge cases of a newly implemented feature.

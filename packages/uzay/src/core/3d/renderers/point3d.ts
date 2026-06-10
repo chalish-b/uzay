@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
-import { pointScaleDown } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
+import { pointScaleDown } from "./shared";
 import { checkedColor } from "../../shared/types/colors";
 
 export const point3dRenderer: ItemRenderer<"point3d"> = {

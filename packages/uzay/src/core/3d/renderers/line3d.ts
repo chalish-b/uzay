@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
-import { lineThicknessScaleDown } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
+import { lineThicknessScaleDown } from "./shared";
 import { applyOpacityMaterialState } from "./material-transparency";
 import { checkedColor } from "../../shared/types/colors";
 

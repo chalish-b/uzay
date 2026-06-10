@@ -4,6 +4,7 @@ description: 3D point items
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
+import PointsDemo from "@/components/demos/points-demo";
 
 ## What is a Point3D?
 
@@ -13,6 +14,10 @@ A `Point3D` renders as a sphere at a specific 3D position. Points are the most b
 - Representing vertices of shapes
 - Creating interactive handles
 - Tracing paths along curves
+
+<PointsDemo />
+
+The pink point is a plain draggable `point3d` with an `overlay3d` label reading its coordinates. The teal point's position is a derived atom, so it follows every drag automatically.
 
 ## Basic Usage
 

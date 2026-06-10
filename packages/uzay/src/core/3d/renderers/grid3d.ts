@@ -1,6 +1,6 @@
 import type { Scene } from "three";
 import type { ItemSnapshot } from "../types/item-registry";
-import { type ItemRenderer, type ThreeSceneTypes } from "./index";
+import { type ItemRenderer, type ThreeSceneTypes } from "./shared";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";

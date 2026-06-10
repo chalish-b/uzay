@@ -3,8 +3,8 @@ import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import type { ItemSnapshot } from "../types/item-registry";
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
-import { Z_REGION, Z_REGION_STROKE } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
+import { Z_REGION, Z_REGION_STROKE } from "./shared";
 import { checkedColor } from "../../shared/types/colors";
 
 const MIN_POINTS = 3;

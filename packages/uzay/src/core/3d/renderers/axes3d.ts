@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
-import { lineThicknessScaleDown } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
+import { lineThicknessScaleDown } from "./shared";
 import { checkedColor, type Color } from "../../shared/types/colors";
 
 const TICK_HEIGHT = 0.01; // thin disc along the axis

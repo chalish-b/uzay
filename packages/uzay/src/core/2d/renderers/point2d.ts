@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
-import { Z_POINT } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
+import { Z_POINT } from "./shared";
 import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
 import { checkedColor } from "../../shared/types/colors";
 

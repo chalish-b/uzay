@@ -1,4 +1,4 @@
-import type { ItemRenderer } from "./index";
+import type { ItemRenderer } from "./shared";
 
 // Camera has no visible representation; the View2D consumes its state directly.
 export const camera2dRenderer: ItemRenderer<"camera2d"> = {

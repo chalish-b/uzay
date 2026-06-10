@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
-import { lineThicknessScaleDown } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
+import { lineThicknessScaleDown } from "./shared";
 import { checkedColor } from "../../shared/types/colors";
 
 export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> = {

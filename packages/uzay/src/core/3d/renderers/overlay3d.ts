@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import katex from "katex";
 import type { ItemSnapshot } from "../types/item-registry";
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { anchorToTranslate } from "../../shared/types/overlay";
 
 function applyStyles(

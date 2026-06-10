@@ -1,4 +1,4 @@
-import type { ItemRenderer, ThreeSceneTypes } from "./index";
+import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 
 // Camera is handled specially by View3D and doesn't create scene objects
 export const camera3dRenderer: ItemRenderer<"camera3d"> = {
