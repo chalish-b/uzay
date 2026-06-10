@@ -4,6 +4,7 @@ description: 3D vector arrows
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
+import VectorsDemo from "@/components/demos/vectors-demo";
 
 ## What is a Vector3D?
 
@@ -13,6 +14,10 @@ A `Vector3D` renders as an arrow in 3D space, defined by an origin point and a d
 - Visualizing normals or tangent directions
 - Drawing coordinate frame axes
 - Creating interactive direction handles
+
+<VectorsDemo />
+
+Grab the pink arrow's tip to reshape the `vector3d`, no point handle needed, its tip is draggable on its own. The teal arrow is a derived atom: the horizontal `xz` component lying flat on the floor like a shadow, so it tracks every drag, and the `overlay3d` reports the magnitude live.
 
 ## Basic Usage
 

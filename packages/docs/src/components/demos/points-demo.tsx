@@ -45,8 +45,9 @@ export default function PointsDemo() {
       position: point.coords,
       content: scene.atom((get) => {
         const { x, y, z } = get(point.coords);
-        return `(${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`;
+        return `(${x.toFixed(1)},\\ ${y.toFixed(1)},\\ ${z.toFixed(1)})`;
       }),
+      format: "latex",
       anchor: "bottom-left",
       offset: vec2(10, -12),
       className: overlayStyles.label,

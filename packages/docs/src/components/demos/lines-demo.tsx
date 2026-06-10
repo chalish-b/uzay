@@ -67,8 +67,7 @@ export default function LinesDemo() {
         const length = Vec3.length(Vec3.subtract(get(p2.coords), get(p1.coords)));
         return `d = ${length.toFixed(2)}`;
       }),
-      anchor: "bottom-left",
-      offset: vec2(10, -12),
+      format: "latex",
       className: overlayStyles.label,
     });
 
