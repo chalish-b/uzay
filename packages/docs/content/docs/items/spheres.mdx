@@ -4,6 +4,7 @@ description: 3D sphere items
 ---
 
 import { TransparencyWarning } from "@/components/transparency-warning";
+import SpheresDemo from "@/components/demos/spheres-demo";
 
 ## What is a Sphere3D?
 
@@ -13,6 +14,10 @@ A `Sphere3D` renders as a sphere with a given center and radius. Spheres are use
 - Visualizing bounding spheres
 - Drawing planets, atoms, or other round objects
 - Creating semi-transparent enclosures around other objects
+
+<SpheresDemo />
+
+The `sphere3d`'s `center` is one draggable `point3d` and its `radius` is a derived atom, the distance to the second point, so the sphere always passes through it. The slider drives the `opacity` atom, and the `overlay3d` reads the radius live.
 
 ## Basic Usage
 
