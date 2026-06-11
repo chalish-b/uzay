@@ -3,6 +3,8 @@ title: Parametric Curves
 description: 3D curves defined by parametric equations
 ---
 
+import ParametricDemo from "@/components/demos/parametric-demo";
+
 ## What is a Parametric Curve?
 
 A parametric curve is defined by a function that maps a parameter $t$ to a 3D point:
@@ -12,6 +14,10 @@ $$
 $$
 
 Instead of defining $y$ as a function of $x$, you define each coordinate independently as a function of the parameter. This allows for curves that loop back on themselves or form complex shapes.
+
+<ParametricDemo />
+
+The knot is a `parametricfunction3d` whose `tEnd` is an atom driven by the slider. A `point3d` and an `overlay3d` ride the moving end at $\vec{r}(t)$, and `samples` is derived from `tEnd` so the curve stays smooth while it grows.
 
 ## Basic Usage
 

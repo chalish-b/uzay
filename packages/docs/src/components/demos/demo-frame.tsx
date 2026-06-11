@@ -26,7 +26,7 @@ export function DemoFrame({
 }) {
   return (
     <div className="not-prose my-6 w-full overflow-hidden rounded-2xl border border-fd-border bg-fd-card">
-      <div className="relative h-80 bg-fd-background">
+      <div className="relative h-100 bg-fd-background">
         {children}
         {hint && (
           <p className="pointer-events-none absolute bottom-3 left-3 text-sm text-black/40 dark:text-white/40">

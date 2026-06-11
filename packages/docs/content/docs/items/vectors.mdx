@@ -17,7 +17,7 @@ A `Vector3D` renders as an arrow in 3D space, defined by an origin point and a d
 
 <VectorsDemo />
 
-Grab the pink arrow's tip to reshape the `vector3d`, no point handle needed, its tip is draggable on its own. The teal arrow is a derived atom: the horizontal `xz` component lying flat on the floor like a shadow, so it tracks every drag, and the `overlay3d` reports the magnitude live.
+The pink arrows are two draggable `vector3d` items chained tip to tail: $\vec{b}$'s `origin` is $\vec{a}$'s `vector` atom, so dragging $\vec{a}$ carries the chain along. The indigo arrow is the derived sum $\vec{a} + \vec{b}$, and the faint gray pair completes the parallelogram, with a copy of $\vec{b}$ at the origin showing that a vector is independent of where it is drawn.
 
 ## Basic Usage
 

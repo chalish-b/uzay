@@ -62,6 +62,8 @@ The token palette lives in `src/components/demos/theme.ts`. It is deliberately s
 - `DemoFrame` provides the card chrome: fd-background canvas (so it matches the page in both modes), optional `hint` line in the corner, optional `controls` strip below the canvas for sliders (see the landing page's `home-surface-demo.tsx` for a controls example).
 - React state binding for readouts and sliders: `useAtomValue` / `useAtomState` from `uzay/react`.
 - The library itself has no theming support, by design. All of this is docs-side. Do not add theme concepts to `packages/uzay`.
+- You can also use other items like sliders or buttons from the DOM, or display live values in the corner of the frame if you can showcase a more interesting behavior.
+- Simple but interesting demos.
 
 ## Content guidelines
 
