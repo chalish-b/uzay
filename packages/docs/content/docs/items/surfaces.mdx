@@ -4,6 +4,7 @@ description: 3D surfaces defined by a function of two variables
 ---
 
 import { TransparencyWarning } from "@/components/transparency-warning";
+import SurfacesDemo from "@/components/demos/surfaces-demo";
 
 ## What is a Surface?
 
@@ -16,6 +17,10 @@ $$
 The function is evaluated over a rectangular grid in the $xz$-plane. Each grid point becomes a vertex at $(x, f(x, z), z)$, and neighboring vertices are connected into triangles to form a smooth surface. Note that Y is the vertical axis (following Three.js conventions), so the function returns the "up" component.
 
 Surfaces are useful for visualizing functions of two variables, terrain, potential fields, probability distributions, and more.
+
+<SurfacesDemo />
+
+The ripples are a single `surface3d` whose `f` is a derived atom: it recomputes from the pink `point3d`'s coordinates, so dragging the source re-centers the whole wave. The checkbox flips the surface's `wireframe` atom to expose the underlying sample mesh.
 
 ## Basic Usage
 
