@@ -21,14 +21,22 @@ const BASE_TICK_HALF_LENGTH_PX = 6;
 const BASE_ARROW_LENGTH_PX = 14;
 const BASE_ARROW_HALF_WIDTH_PX = 5;
 const INFINITE_RANGE: readonly [number, number] = [-100, 100];
-const LABEL_STYLE = [
+// Renderer requirements, always applied regardless of user styling.
+const LABEL_BASE_STYLE = [
+  "line-height: 1",
+  "white-space: nowrap",
+  "pointer-events: none",
+].join(";");
+
+// The default look, tuned for the library's dark-canvas defaults like every
+// other item color. Applied only when the user provides neither labelStyle
+// nor labelClassName; either one replaces this block entirely. Inline
+// defaults would otherwise outrank any class, making CSS theming impossible.
+const LABEL_DEFAULT_STYLE = [
   "color: rgba(255, 255, 255, 0.72)",
   "font-size: 12px",
   "font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-  "line-height: 1",
   "text-shadow: 0 1px 2px black, 0 0 4px black",
-  "white-space: nowrap",
-  "pointer-events: none",
 ].join(";");
 
 type AxisKey = "x" | "y";
@@ -251,9 +259,10 @@ function createLabels(
       const element = document.createElement("div");
       element.textContent = formatTick(tick, tickStep);
       element.className = item.labelClassName;
-      element.style.cssText = item.labelStyle
-        ? `${LABEL_STYLE};${item.labelStyle}`
-        : LABEL_STYLE;
+      element.style.cssText =
+        item.labelStyle || item.labelClassName
+          ? `${LABEL_BASE_STYLE};${item.labelStyle}`
+          : `${LABEL_BASE_STYLE};${LABEL_DEFAULT_STYLE}`;
       element.style.transform =
         axis === "x"
           ? `${anchorToTranslate("top")} translate(0px, 10px)`

@@ -3,11 +3,17 @@ title: Function Area 2D
 description: Filled area under a 2D function over an interval
 ---
 
+import FunctionAreaDemo from "@/components/demos/function-area-demo";
+
 ## What is Function Area 2D?
 
 `functionArea2D` creates a filled 2D region between a function and a baseline over an interval. It is useful for highlighting the area under a curve, showing the visual shape of a definite integral, or marking any function-defined region without manually sampling the curve yourself.
 
 The construction only creates the filled region. It does not create the function graph, draggable handles, guide lines, labels, or related helpers. Those are scene-specific choices that you can build with regular items.
+
+<FunctionAreaDemo />
+
+The fill is a `functionArea2D` under a `function2d`, with two `point2d` handles driving its `a` and `b`. The integral readout in the `overlay2d` is a separate derived atom; it stays in sync with the fill because both follow the same bounds.
 
 ## Basic Usage
 

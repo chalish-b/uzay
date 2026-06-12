@@ -3,6 +3,8 @@ title: Curve Point
 description: Draggable point constrained to a parametric curve
 ---
 
+import CurvePointDemo from "@/components/demos/curve-point-demo";
+
 ## What is a Curve Point?
 
 A `curvePoint` creates a point that is constrained to move along a [parametric curve](/docs/items/parametric). The user can drag the point and it will slide along the curve, snapping to the nearest position. Useful for:
@@ -10,6 +12,10 @@ A `curvePoint` creates a point that is constrained to move along a [parametric c
 - Exploring how a function behaves at different parameter values
 - Driving other constructions (like a [tangent line](/docs/constructions/tangent-line)) reactively
 - Building interactive visualizations where a parameter $t$ needs to be adjustable
+
+<CurvePointDemo />
+
+The point is a `curvePoint` on a `parametricfunction3d` helix; dragging it only ever changes the construction's `t` atom, which the `overlay3d` label reads live.
 
 ## Basic Usage
 

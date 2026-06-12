@@ -7,13 +7,12 @@ export type DemoMode = "light" | "dark";
 export type DemoTokens = {
   // Scaffolding. Canvas-bound tokens must be plain hex/rgb: three.js colors
   // have no alpha channel (it gets dropped with a warning), transparency goes
-  // through a separate opacity field instead, hence gridOpacity. axisLabel is
-  // the exception: axis labels are CSS2D DOM elements styled with CSS strings,
-  // so rgba is fine there. Don't feed axisLabel into a canvas item's color.
+  // through a separate opacity field instead, hence gridOpacity. Axis tick
+  // labels (axes2d) are DOM: theme them with labelClassName like overlays,
+  // they need no token here.
   grid: string;
   gridOpacity: number;
   axes: string;
-  axisLabel: string;
   // Series roles
   primary: string; // the main curve/object of the demo
   secondary: string; // a second, derived or contrasting series
@@ -38,7 +37,6 @@ export const demoTokens: Record<DemoMode, DemoTokens> = {
     grid: "#3f3f46",
     gridOpacity: 0.14,
     axes: "#52525b",
-    axisLabel: "rgba(63, 63, 70, 0.78)",
     primary: "#5b5bd6",
     secondary: "#0e8c7f",
     accent: "#c8537c",
@@ -49,7 +47,6 @@ export const demoTokens: Record<DemoMode, DemoTokens> = {
     grid: "#e4e4e7",
     gridOpacity: 0.12,
     axes: "#a1a1aa",
-    axisLabel: "rgba(228, 228, 231, 0.72)",
     primary: "#8e8efb",
     secondary: "#34d3c2",
     accent: "#e289ab",

@@ -196,6 +196,7 @@ function createDerivativeScene(initialTheme: DemoTheme) {
     labelStyle: scene.atom(
       (get) =>
         `color: ${get(themeAtom).scene.axisLabel}; font-size: 12px; ` +
+        `font-family: ui-sans-serif, system-ui, sans-serif; ` +
         `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
     ),
     arrows: true,
@@ -414,6 +415,7 @@ function createIntegralScene(initialTheme: DemoTheme) {
     labelStyle: scene.atom(
       (get) =>
         `color: ${get(themeAtom).scene.axisLabel}; font-size: 12px; ` +
+        `font-family: ui-sans-serif, system-ui, sans-serif; ` +
         `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
     ),
     arrows: true,

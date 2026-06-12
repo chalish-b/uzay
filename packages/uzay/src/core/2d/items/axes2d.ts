@@ -23,7 +23,18 @@ export type Axes2DFields = {
   tickmarks: boolean;
   tickStep: TickStep;
   labels: boolean;
+  /**
+   * CSS class for tick labels. Providing this (or labelStyle) removes the
+   * default label look entirely (color, font, text-shadow), so classes can
+   * theme labels without fighting inline styles. Only structural styles
+   * (line-height, white-space, pointer-events) remain.
+   */
   labelClassName: string;
+  /**
+   * Inline CSS for tick labels. Replaces the default label look entirely
+   * (color, font, text-shadow) rather than merging with it: properties you
+   * don't set fall back to inherited/browser values, not to the defaults.
+   */
   labelStyle: string;
   arrows: boolean;
 };

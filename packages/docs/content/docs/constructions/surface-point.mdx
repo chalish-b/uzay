@@ -3,6 +3,8 @@ title: Surface Point
 description: Draggable point constrained to a surface
 ---
 
+import SurfacePointDemo from "@/components/demos/surface-point-demo";
+
 ## What is a Surface Point?
 
 A `surfacePoint` creates a point that is constrained to move along a [surface](/docs/items/surfaces). The user can drag the point and it will stay on the surface, tracking the mouse from any camera angle. Useful for:
@@ -10,6 +12,10 @@ A `surfacePoint` creates a point that is constrained to move along a [surface](/
 - Exploring a surface interactively
 - Driving other constructions (like a [surface normal](/docs/constructions/surface-normal)) reactively
 - Building visualizations where a position on a surface needs to be adjustable
+
+<SurfacePointDemo />
+
+The point is a `surfacePoint` on a `surface3d`; dragging it only ever changes the construction's `xz` atom, which the `overlay3d` label reads live.
 
 ## Basic Usage
 

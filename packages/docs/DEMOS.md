@@ -63,6 +63,7 @@ The token palette lives in `src/components/demos/theme.ts`. It is deliberately s
 - React state binding for readouts and sliders: `useAtomValue` / `useAtomState` from `uzay/react`.
 - The library itself has no theming support, by design. All of this is docs-side. Do not add theme concepts to `packages/uzay`.
 - You can also use other items like sliders or buttons from the DOM, or display live values in the corner of the frame if you can showcase a more interesting behavior.
+- 2D axis tick labels (`axes2d`) are DOM, so they follow the overlay rule: theme them with `labelClassName` (fd-* colors, `dark:` variants). Providing `labelClassName` or `labelStyle` replaces the library's default label look entirely (color, font, text-shadow), so what you pass is all there is.
 - Simple but interesting demos.
 
 ## Content guidelines

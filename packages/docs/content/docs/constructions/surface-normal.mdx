@@ -3,6 +3,8 @@ title: Surface Normal
 description: Normal vector at a point on a surface
 ---
 
+import SurfaceNormalDemo from "@/components/demos/surface-normal-demo";
+
 ## What is a Surface Normal?
 
 A `surfaceNormal` draws the normal vector to a [surface](/docs/items/surfaces) at a given $(x, z)$ coordinate. It computes the cross product of the surface's partial derivatives numerically, so you don't need to provide a gradient. Useful for:
@@ -10,6 +12,10 @@ A `surfaceNormal` draws the normal vector to a [surface](/docs/items/surfaces) a
 - Visualizing surface orientation
 - Flux and divergence illustrations
 - Combining with [surfacePoint](/docs/constructions/surface-point) for interactive exploration
+
+<SurfaceNormalDemo />
+
+The `surfaceNormal` follows a `surfacePoint` dragged across a `surface3d`, and the `overlay3d` label reads the construction's `normal` atom live. Notice $\hat{n}_y$ sitting near $1$ on peaks and valleys and dipping wherever the surface gets steep.
 
 ## Basic Usage
 
