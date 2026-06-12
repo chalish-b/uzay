@@ -6,7 +6,7 @@ import {
 } from "../../shared/item-definition";
 import { defineItem3D } from "../types/define-item";
 
-type CameraProjection = "perspective" | "orthogonal";
+export type CameraProjection = "perspective" | "orthographic";
 
 export type Camera3DFields = {
   position: Vec3;

@@ -3,11 +3,17 @@ title: Camera
 description: 3D viewpoint and projection
 ---
 
+import CameraDemo from "@/components/demos/camera-demo";
+
 ## What is Camera3D?
 
 `Camera3D` defines the viewpoint from which a scene is rendered. Unlike most 3D libraries where cameras are separate from scene items, in Uzay cameras are items that live in the scene, which means they can be reactive too.
 
 Every View requires a camera. Without one, you can't render the scene.
+
+<CameraDemo />
+
+Three `camera3d` items look at the same helix: a free perspective camera, and two locked orthographic cameras (Top and Front). The buttons switch which camera the view renders through, and each keeps its own state: orbit the first view, switch away, and come back. The slider drives the active camera's `fov` atom: a lens zoom in perspective, the visible extent in orthographic.
 
 ## Basic Usage
 
@@ -95,14 +101,35 @@ scene.create("camera3d", {
 });
 ```
 
-## Projection Mode (Incomplete)
+## Projection Mode
 
-`Camera3D` includes a `projection` field for future support of multiple projection modes.
+The `projection` property selects how depth is rendered:
 
-- `"perspective"` is fully supported.
-- `"orthogonal"` is not implemented yet in `View3D`.
+```typescript
+// Default: perspective, distant objects appear smaller
+scene.create("camera3d", {
+  position: vec3(10, 10, 10),
+  lookAt: vec3(0, 0, 0),
+  projection: "perspective",
+});
 
-If you set `projection: "orthogonal"`, Uzay currently logs a warning and falls back to perspective rendering.
+// Orthographic: parallel lines stay parallel, no foreshortening
+scene.create("camera3d", {
+  position: vec3(0, 20, 0.1),
+  lookAt: vec3(0, 0, 0),
+  projection: "orthographic",
+});
+```
+
+Orthographic projection is the natural choice for technical and mathematical diagrams: objects keep their size regardless of distance, so proportions read true.
+
+The orthographic view is sized from `fov` and the distance between `position` and `lookAt`, matching what a perspective camera would show at the `lookAt` point. Switching `projection` on a live camera therefore keeps the framing, only the foreshortening changes:
+
+```typescript
+camera.projection.set("orthographic");
+```
+
+`fov` stays meaningful in orthographic mode: it scales the visible extent. Scroll-zooming an orthographic camera changes its `zoom` atom instead of moving the camera.
 
 ## Clipping Planes
 
@@ -262,7 +289,7 @@ canOrbit.set(false);
 |----------|------|---------|-------------|
 | `position` | `Vec3` | `{ x: 10, y: 10, z: 10 }` | Camera location |
 | `lookAt` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Point the camera aims at |
-| `projection` | `"perspective" \| "orthogonal"` | `"perspective"` | Projection mode (`"orthogonal"` currently warns and falls back to perspective) |
+| `projection` | `"perspective" \| "orthographic"` | `"perspective"` | Projection mode |
 | `enableOrbit` | `boolean` | `true` | Enable rotation (left-click drag) |
 | `enablePan` | `boolean` | `true` | Enable panning (right-click drag) |
 | `enableZoom` | `boolean` | `true` | Enable zooming (scroll) |
@@ -278,7 +305,7 @@ canOrbit.set(false);
 | `id` | `string` | Unique identifier (pass to `View3D`) |
 | `position` | `BoundAtom<Vec3>` | Position atom |
 | `lookAt` | `BoundAtom<Vec3>` | Target atom |
-| `projection` | `BoundAtom<"perspective" \| "orthogonal">` | Projection atom |
+| `projection` | `BoundAtom<"perspective" \| "orthographic">` | Projection atom |
 | `enableOrbit` | `BoundAtom<boolean>` | Orbit toggle atom |
 | `enablePan` | `BoundAtom<boolean>` | Pan toggle atom |
 | `enableZoom` | `BoundAtom<boolean>` | Zoom toggle atom |

@@ -21,7 +21,7 @@ export class View3D {
   // three.js specific fields
   // These will probably be extracted into a separate class, like "Renderer"
   threeScene: THREE.Scene;
-  threeCamera: THREE.PerspectiveCamera;
+  threeCamera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
   threeOrbitControls: OrbitControls;
   threeRenderer: THREE.WebGLRenderer;
   css2dRenderer: CSS2DRenderer;
@@ -37,8 +37,7 @@ export class View3D {
   // Camera sync state
   private _isSyncingToThree = false;
   private _isSyncingFromThree = false;
-  private _lastCameraSnapshot: ReturnType<Camera3D<any>["getItemSnapshot"]> | null = null;
-  private _warnedUnsupportedProjectionCameraIds = new Set<ItemId>();
+  private _lastCameraSnapshot: Camera3DSnapshot | null = null;
 
   // Interaction system
   raycaster = new THREE.Raycaster();
@@ -72,16 +71,10 @@ export class View3D {
     this.containerElem = containerElem;
     this.threeScene = new THREE.Scene();
 
+    // Aspect starts at 1; the sizer applies the real canvas aspect on the
+    // first render.
     const camera = this.activeCam.getItemSnapshot();
-    this.threeCamera = new THREE.PerspectiveCamera(
-      camera.fov,
-      1,
-      camera.near,
-      camera.far
-    );
-    this.threeCamera.position.set(...Vec3.asArray(camera.position));
-    this.threeCamera.lookAt(...Vec3.asArray(camera.lookAt));
-    this.threeCamera.zoom = camera.zoom;
+    this.threeCamera = createThreeCamera(camera, 1);
 
     // Set up renderer
     this.threeRenderer = new THREE.WebGLRenderer({
@@ -166,7 +159,7 @@ export class View3D {
     this.sizer = createResponsiveThreeSizer({
       container: containerElem,
       renderer: this.threeRenderer,
-      camera: this.threeCamera,
+      applyCameraSize: (width, height) => this.applyCameraAspect(width / height),
       onResize: () => this.requestRender(),
     });
 
@@ -281,27 +274,45 @@ export class View3D {
 
   // ========== Camera Sync ==========
 
+  // Aspect ratio of the current canvas, falling back to 1 before the first
+  // real resize has been applied.
+  private getAspect(): number {
+    const size = this.threeRenderer.getSize(new THREE.Vector2());
+    return size.x > 0 && size.y > 0 ? size.x / size.y : 1;
+  }
+
+  // Called by the sizer after the renderer resizes. The camera's projection
+  // depends on the canvas aspect ratio; View3D owns the camera instance (and
+  // may swap it on projection change), so sizing it is View3D's job.
+  private applyCameraAspect(aspect: number) {
+    if (this.threeCamera instanceof THREE.PerspectiveCamera) {
+      this.threeCamera.aspect = aspect;
+    } else {
+      applyOrthoFrustum(this.threeCamera, this.activeCam.getItemSnapshot(), aspect);
+    }
+    this.threeCamera.updateProjectionMatrix();
+  }
+
   syncCameraToThree() {
     if (this._isSyncingFromThree) return;
 
     const snap = this.activeCam.getItemSnapshot();
-    const last = this._lastCameraSnapshot;
-
-    // Projection mode handling: for now View3D only supports perspective camera internals.
-    // If users pass "orthogonal", keep rendering with perspective and warn once per camera.
-    if (
-      snap.projection !== "perspective" &&
-      !this._warnedUnsupportedProjectionCameraIds.has(snap.id)
-    ) {
-      this._warnedUnsupportedProjectionCameraIds.add(snap.id);
-      console.warn(
-        `[View3D] Camera "${snap.id}" requested projection "${snap.projection}", ` +
-          `but only "perspective" is currently supported. Falling back to perspective.`
-      );
-    }
+    let last = this._lastCameraSnapshot;
 
     this._isSyncingToThree = true;
     try {
+      // Swap the three.js camera instance when the requested projection
+      // doesn't match the current camera type (projection atom change, or
+      // changeActiveCam to a camera in the other mode). OrbitControls keeps
+      // working across the swap; it reads `object` on every update().
+      const wantsOrtho = snap.projection === "orthographic";
+      const isOrtho = this.threeCamera instanceof THREE.OrthographicCamera;
+      if (wantsOrtho !== isOrtho) {
+        this.threeCamera = createThreeCamera(snap, this.getAspect());
+        this.threeOrbitControls.object = this.threeCamera;
+        last = null; // re-apply every field to the fresh camera below
+      }
+
       // Position
       if (!last || !Vec3.equals(snap.position, last.position)) {
         this.threeCamera.position.set(...Vec3.asArray(snap.position));
@@ -314,8 +325,20 @@ export class View3D {
 
       // Projection properties
       let needsProjectionUpdate = false;
-      if (!last || snap.fov !== last.fov) {
-        this.threeCamera.fov = snap.fov;
+      if (this.threeCamera instanceof THREE.PerspectiveCamera) {
+        if (!last || snap.fov !== last.fov) {
+          this.threeCamera.fov = snap.fov;
+          needsProjectionUpdate = true;
+        }
+      } else if (
+        // The orthographic frustum is derived from fov plus the distance
+        // between position and lookAt, so a change to any of them resizes it.
+        !last ||
+        snap.fov !== last.fov ||
+        !Vec3.equals(snap.position, last.position) ||
+        !Vec3.equals(snap.lookAt, last.lookAt)
+      ) {
+        applyOrthoFrustum(this.threeCamera, snap, this.getAspect());
         needsProjectionUpdate = true;
       }
       if (!last || snap.zoom !== last.zoom) {
@@ -375,6 +398,13 @@ export class View3D {
       }
       if (!Vec3.equals(newLookAt, cam.lookAt.get())) {
         setBoundAtomIfWritable(cam.lookAt, newLookAt);
+      }
+
+      // OrbitControls zooms an orthographic camera by changing camera.zoom
+      // instead of dollying the position, so zoom needs writing back too.
+      const newZoom = this.threeCamera.zoom;
+      if (newZoom !== cam.zoom.get()) {
+        setBoundAtomIfWritable(cam.zoom, newZoom);
       }
 
       // Update snapshot cache so next reconciliation doesn't see a false diff
@@ -878,16 +908,56 @@ export class View3D {
   }
 }
 
+type Camera3DSnapshot = ReturnType<Camera3D<any>["getItemSnapshot"]>;
+
+// Size the orthographic frustum from fov + the distance to lookAt, so the
+// plane through lookAt shows exactly the extent a perspective camera with the
+// same fov would show from the same position. Toggling `projection` therefore
+// preserves framing; only the foreshortening changes. It also keeps fov
+// meaningful in orthographic mode: it scales the visible extent.
+function applyOrthoFrustum(
+  camera: THREE.OrthographicCamera,
+  snap: Camera3DSnapshot,
+  aspect: number
+) {
+  const dist = Vec3.length(Vec3.subtract(snap.position, snap.lookAt)) || 1;
+  const halfHeight = dist * Math.tan((snap.fov * Math.PI) / 360);
+  const halfWidth = halfHeight * aspect;
+  camera.left = -halfWidth;
+  camera.right = halfWidth;
+  camera.top = halfHeight;
+  camera.bottom = -halfHeight;
+}
+
+// Build the matching three.js camera for a camera item snapshot.
+function createThreeCamera(
+  snap: Camera3DSnapshot,
+  aspect: number
+): THREE.PerspectiveCamera | THREE.OrthographicCamera {
+  let camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
+  if (snap.projection === "orthographic") {
+    camera = new THREE.OrthographicCamera(-1, 1, 1, -1, snap.near, snap.far);
+    applyOrthoFrustum(camera, snap, aspect);
+  } else {
+    camera = new THREE.PerspectiveCamera(snap.fov, aspect, snap.near, snap.far);
+  }
+  camera.position.set(...Vec3.asArray(snap.position));
+  camera.lookAt(...Vec3.asArray(snap.lookAt));
+  camera.zoom = snap.zoom;
+  camera.updateProjectionMatrix();
+  return camera;
+}
+
 // Resize helper, defers actual resize until render to avoid flicker
 function createResponsiveThreeSizer({
   container,
   renderer,
-  camera,
+  applyCameraSize,
   onResize,
 }: {
   container: HTMLElement;
   renderer: THREE.WebGLRenderer;
-  camera: THREE.PerspectiveCamera;
+  applyCameraSize: (width: number, height: number) => void;
   onResize: () => void;
 }) {
   let pendingWidth = 0;
@@ -916,8 +986,7 @@ function createResponsiveThreeSizer({
       return;
     }
     renderer.setSize(pendingWidth, pendingHeight, false);
-    camera.aspect = pendingWidth / pendingHeight;
-    camera.updateProjectionMatrix();
+    applyCameraSize(pendingWidth, pendingHeight);
   }
 
   return { applyIfNeeded, dispose: () => ro.disconnect() };

@@ -1,810 +1,257 @@
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
-import katex from "katex";
-import { Scene2D, curvePoint2D, functionArea2D, vec2 } from "uzay";
-import { Scene2DView, useAtomValue } from "uzay/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Scene3D, View3D, vec3, vec2 } from "uzay";
+import type { Camera3D } from "uzay";
+import { useAtomState, useAtomValue } from "uzay/react";
 
-const a = 1.4;
-const initialH = 1.8;
-const xMin = -8;
-const xMax = 8;
-const nearZero = 1e-4;
-const integralSamples = 180;
+// Test lab for camera3d, focused on the orthographic projection support:
+// - in-place projection toggle on a live camera (framing should not jump)
+// - switching between cameras with different projections
+// - fov-derived orthographic frustum (fov slider scales the visible extent)
+// - zoom write-back when OrbitControls scroll-zooms an orthographic camera
+// - raycasting / dragging / overlays under both projections
 
-type DemoThemeMode = "light" | "dark";
+const CAMERA_DEFS = [
+  { key: "perspective", label: "Perspective" },
+  { key: "orthoFree", label: "Ortho ¾" },
+  { key: "top", label: "Top (ortho)" },
+  { key: "front", label: "Front (ortho)" },
+] as const;
+type CamKey = (typeof CAMERA_DEFS)[number]["key"];
 
-type DemoTheme = {
-  page: {
-    background: string;
-    text: string;
-    heading: string;
-    kicker: string;
-    controlBackground: string;
-    controlBorder: string;
-    controlText: string;
-    activeControlBackground: string;
-    activeControlText: string;
-    embedBorder: string;
-    embedShadow: string;
-  };
-  scene: {
-    background: string;
-    grid: string;
-    gridOpacity: number;
-    axes: string;
-    axisLabel: string;
-    axisLabelShadow: string;
-    curve: string;
-    tangent: string;
-    accent: string;
-    accentSoft: string;
-    projection: string;
-    projectionOpacity: number;
-    point: string;
-    label: string;
-    labelShadow: string;
-    rangeLabel: string;
-    integralLabel: string;
-    formula: string;
-    formulaShadow: string;
-    areaOpacity: number;
-    areaStrokeOpacity: number;
-  };
-};
+function buildScene() {
+  const scene = new Scene3D();
 
-const demoThemes: Record<DemoThemeMode, DemoTheme> = {
-  light: {
-    page: {
-      background: "#f4f1ea",
-      text: "#2b2b2b",
-      heading: "#151515",
-      kicker: "#6d6256",
-      controlBackground: "rgba(255, 255, 255, 0.68)",
-      controlBorder: "rgba(42, 35, 25, 0.14)",
-      controlText: "#4f473f",
-      activeControlBackground: "#202020",
-      activeControlText: "#ffffff",
-      embedBorder: "transparent",
-      embedShadow: "none",
-    },
-    scene: {
-      background: "transparent",
-      grid: "#756d63",
-      gridOpacity: 0.1,
-      axes: "#5f584f",
-      axisLabel: "rgba(70, 63, 54, 0.78)",
-      axisLabelShadow: "none",
-      curve: "rgb(28, 105, 210)",
-      tangent: "rgb(24, 145, 88)",
-      accent: "rgb(221, 132, 21)",
-      accentSoft: "rgb(230, 157, 62)",
-      projection: "#3e3933",
-      projectionOpacity: 0.24,
-      point: "#1d1d1d",
-      label: "#1f1f1f",
-      labelShadow:
-        "0 1px 0 rgba(255,255,255,0.9), 0 0 5px rgba(255,255,255,0.9)",
-      rangeLabel: "rgb(169, 93, 8)",
-      integralLabel: "#5b3406",
-      formula: "rgba(31, 31, 31, 0.92)",
-      formulaShadow:
-        "0 1px 0 rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.85)",
-      areaOpacity: 0.24,
-      areaStrokeOpacity: 0.76,
-    },
-  },
-  dark: {
-    page: {
-      background: "#111318",
-      text: "#d6d2ca",
-      heading: "#f4f0e8",
-      kicker: "#c2a56e",
-      controlBackground: "rgba(255, 255, 255, 0.06)",
-      controlBorder: "rgba(255, 255, 255, 0.13)",
-      controlText: "#cfc8bc",
-      activeControlBackground: "#f1eee7",
-      activeControlText: "#151515",
-      embedBorder: "transparent",
-      embedShadow: "none",
-    },
-    scene: {
-      background: "transparent",
-      grid: "white",
-      gridOpacity: 0.1,
-      axes: "white",
-      axisLabel: "rgba(255, 255, 255, 0.72)",
-      axisLabelShadow: "0 1px 2px black, 0 0 4px black",
-      curve: "rgb(79, 156, 249)",
-      tangent: "rgb(58, 196, 125)",
-      accent: "rgb(255, 181, 71)",
-      accentSoft: "rgb(255, 214, 143)",
-      projection: "white",
-      projectionOpacity: 0.3,
-      point: "rgb(255, 255, 255)",
-      label: "white",
-      labelShadow: "0 1px 2px black, 0 0 6px black",
-      rangeLabel: "rgb(255, 214, 143)",
-      integralLabel: "rgb(255, 244, 224)",
-      formula: "rgba(255, 255, 255, 0.9)",
-      formulaShadow: "0 1px 2px black, 0 0 6px black",
-      areaOpacity: 0.32,
-      areaStrokeOpacity: 0.75,
-    },
-  },
-};
-
-function f(x: number) {
-  return 0.25 * x * x - 0.3 * x + 0.4;
-}
-
-function derivative(x: number) {
-  return 0.5 * x - 0.3;
-}
-
-function integralFunction(x: number) {
-  return 0.18 * (x + 0.6) * (x + 0.6) + 0.65 + 0.35 * Math.sin(1.4 * x);
-}
-
-function lineAtPoint(pointX: number, pointY: number, slope: number, x: number) {
-  return pointY + slope * (x - pointX);
-}
-
-function integrateIntegralFunction(start: number, end: number) {
-  if (start === end) return 0;
-
-  const left = Math.min(start, end);
-  const right = Math.max(start, end);
-  const width = right - left;
-  let sum = 0;
-
-  for (let i = 0; i < integralSamples; i++) {
-    const x0 = left + (width * i) / integralSamples;
-    const x1 = left + (width * (i + 1)) / integralSamples;
-    sum += ((integralFunction(x0) + integralFunction(x1)) / 2) * (x1 - x0);
-  }
-
-  return start <= end ? sum : -sum;
-}
-
-function createDerivativeScene(initialTheme: DemoTheme) {
-  const scene = new Scene2D();
-  const themeAtom = scene.atom(initialTheme);
-
-  const camera = scene.create("camera2d", {
-    center: vec2(1.25, 1.0),
-    zoom: 1.65,
-    enablePan: true,
-    enableZoom: true,
-  });
-
-  scene.create("grid2d", {
-    rangeX: true,
-    rangeY: true,
-    gap: "auto",
-    color: scene.atom((get) => get(themeAtom).scene.grid),
-    opacity: scene.atom((get) => get(themeAtom).scene.gridOpacity),
-  });
-
-  scene.create("axes2d", {
-    x: true,
-    y: true,
-    color: scene.atom((get) => get(themeAtom).scene.axes),
-    thickness: 1.1,
-    tickmarks: true,
-    tickStep: "auto",
-    labels: true,
-    labelStyle: scene.atom(
-      (get) =>
-        `color: ${get(themeAtom).scene.axisLabel}; font-size: 12px; ` +
-        `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
-    ),
-    arrows: true,
-  });
-
-  scene.create("function2d", {
-    f,
-    domain: "infinite",
-    discontinuities: [],
-    samples: 240,
-    color: scene.atom((get) => get(themeAtom).scene.curve),
-    thickness: 3,
+  scene.create("grid3d", {
+    plane: "xz",
+    range1: [-6, 6],
+    range2: [-6, 6],
+    offset: -3,
+    gap: 1,
+    color: "#888",
+    opacity: 0.25,
     pointerEvents: "none",
   });
 
-  const pointA = scene.create("point2d", {
-    coords: vec2(a, f(a)),
-    color: scene.atom((get) => get(themeAtom).scene.point),
-    radius: 5,
-    draggable: "none",
+  scene.create("axes3d", {
+    x: [-5, 5],
+    y: [-3, 3],
+    z: [-5, 5],
+    color: "#aaa",
+    thickness: 0.8,
     pointerEvents: "none",
   });
 
-  const pointB = curvePoint2D(scene, {
-    f: (x: number) => vec2(x, f(x)),
-    tStart: xMin,
-    tEnd: xMax,
-    initialT: a + initialH,
-    color: scene.atom((get) => get(themeAtom).scene.accent),
-  });
-  pointB.point.radius.set(6);
-
-  const hAtom = scene.atom((get) => get(pointB.t) - a);
-
-  const bCoordsAtom = scene.atom((get) => {
-    const x = get(pointB.t);
-    return vec2(x, f(x));
-  });
-
-  const aProjectionAtom = scene.atom(vec2(a, 0));
-
-  const bProjectionAtom = scene.atom((get) => {
-    const b = get(bCoordsAtom);
-    return vec2(b.x, 0);
-  });
-
-  const secantSlopeAtom = scene.atom((get) => {
-    const h = get(hAtom);
-    if (Math.abs(h) < nearZero) return derivative(a);
-    return (f(a + h) - f(a)) / h;
-  });
-
-  const hLabelPositionAtom = scene.atom((get) => {
-    const b = get(bCoordsAtom);
-    return vec2((a + b.x) / 2, -0.18);
-  });
-
-  const hLabelAtom = scene.atom((get) => {
-    const h = get(hAtom);
-    return String.raw`h=${h.toFixed(2)}`;
-  });
-
-  const tangentSlope = derivative(a);
-
-  scene.create("function2d", {
-    f: (x: number) => lineAtPoint(a, f(a), tangentSlope, x),
-    domain: "infinite",
-    samples: 32,
-    color: scene.atom((get) => get(themeAtom).scene.tangent),
-    thickness: 2,
-    pointerEvents: "none",
-  });
-
-  scene.create("function2d", {
-    f: scene.atom((get) => {
-      const slope = get(secantSlopeAtom);
-      return (x: number) => lineAtPoint(a, f(a), slope, x);
-    }),
-    domain: "infinite",
-    samples: 32,
-    color: scene.atom((get) => get(themeAtom).scene.accent),
-    thickness: 3.5,
-    pointerEvents: "none",
-  });
-
-  scene.create("line2d", {
-    start: pointA.coords,
-    end: bCoordsAtom,
-    color: scene.atom((get) => get(themeAtom).scene.accentSoft),
+  // Helix: reads as a circle from the top and a cosine wave from the front,
+  // so the fixed orthographic views have something to prove.
+  scene.create("parametricfunction3d", {
+    f: (t: number) => vec3(2.5 * Math.cos(t), 0.28 * t, 2.5 * Math.sin(t)),
+    tStart: -Math.PI * 3,
+    tEnd: Math.PI * 3,
+    samples: 400,
+    color: "#4f9cf9",
     thickness: 1.5,
     pointerEvents: "none",
   });
 
-  scene.create("line2d", {
-    start: pointA.coords,
-    end: aProjectionAtom,
-    color: scene.atom((get) => get(themeAtom).scene.projection),
-    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
-    thickness: 3,
-    pointerEvents: "none",
-  });
+  // Equal spheres receding in depth: identical in orthographic projection,
+  // foreshortened in perspective.
+  for (let z = -4; z <= 4; z += 2) {
+    scene.create("sphere3d", {
+      center: vec3(5, 0, z),
+      radius: 0.6,
+      color: "#ffb547",
+      opacity: 0.9,
+      pointerEvents: "none",
+    });
+  }
 
-  scene.create("line2d", {
-    start: bCoordsAtom,
-    end: bProjectionAtom,
-    color: scene.atom((get) => get(themeAtom).scene.projection),
-    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
-    thickness: 3,
-    pointerEvents: "none",
-  });
-
-  scene.create("point2d", {
-    coords: aProjectionAtom,
-    color: scene.atom((get) => get(themeAtom).scene.accent),
+  // Draggable handle to test raycasting + dragging under both projections.
+  const handle = scene.create("point3d", {
+    coords: vec3(0, 0, 0),
+    color: "#ff6b6b",
     radius: 4,
-    draggable: "none",
-    pointerEvents: "none",
+    draggable: "xyz",
   });
 
-  scene.create("point2d", {
-    coords: bProjectionAtom,
-    color: scene.atom((get) => get(themeAtom).scene.accent),
-    radius: 4,
-    draggable: "none",
-    pointerEvents: "none",
-  });
-
-  scene.create("line2d", {
-    start: aProjectionAtom,
-    end: bProjectionAtom,
-    color: scene.atom((get) => get(themeAtom).scene.accentSoft),
-    thickness: 3,
-    pointerEvents: "none",
-  });
-
-  const pointLabelStyle = scene.atom((get) => [
-    `color: ${get(themeAtom).scene.label}`,
-    "font-size: 18px",
-    "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    "font-weight: 600",
-    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
-    "white-space: nowrap",
-  ].join(";"));
-
-  const hLabelStyle = scene.atom((get) => [
-    `color: ${get(themeAtom).scene.rangeLabel}`,
-    "font-size: 15px",
-    "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
-    "white-space: nowrap",
-  ].join(";"));
-
-  scene.create("overlay2d", {
-    position: pointA.coords,
-    content: String.raw`A`,
-    format: "latex",
-    offset: vec2(-4, -4),
-    anchor: "bottom-right",
-    style: pointLabelStyle,
-  });
-
-  scene.create("overlay2d", {
-    position: bCoordsAtom,
-    content: String.raw`B`,
-    format: "latex",
-    offset: vec2(4, -4),
+  scene.create("overlay3d", {
+    position: handle.coords,
+    content: scene.atom((get) => {
+      const { x, y, z } = get(handle.coords);
+      return `(${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`;
+    }),
     anchor: "bottom-left",
-    style: pointLabelStyle,
+    offset: vec2(10, -10),
+    style: "color: white; font-size: 12px; text-shadow: 0 1px 2px black;",
   });
 
-  scene.create("overlay2d", {
-    position: hLabelPositionAtom,
-    content: hLabelAtom,
-    format: "latex",
-    offset: vec2(0, 0),
-    anchor: "top",
-    style: hLabelStyle,
-  });
-
-  return {
-    scene,
-    camera,
-    themeAtom,
-    secantSlopeAtom,
-    tangentSlope,
+  const cameras: Record<CamKey, Camera3D> = {
+    perspective: scene.create("camera3d", {
+      position: vec3(9, 6, 12),
+      lookAt: vec3(0, 0, 0),
+      fov: 50,
+    }),
+    orthoFree: scene.create("camera3d", {
+      position: vec3(-9, 6, 12),
+      lookAt: vec3(0, 0, 0),
+      projection: "orthographic",
+      fov: 50,
+    }),
+    // Slight z offset so the straight-down view doesn't fight the camera's up vector
+    top: scene.create("camera3d", {
+      position: vec3(0, 16, 0.02),
+      lookAt: vec3(0, 0, 0),
+      projection: "orthographic",
+      fov: 40,
+      enableOrbit: false,
+    }),
+    front: scene.create("camera3d", {
+      position: vec3(0, 0.5, 16),
+      lookAt: vec3(0, 0.5, 0),
+      projection: "orthographic",
+      fov: 40,
+      enableOrbit: false,
+    }),
   };
+
+  return { scene, cameras };
 }
 
-function createIntegralScene(initialTheme: DemoTheme) {
-  const scene = new Scene2D();
-  const themeAtom = scene.atom(initialTheme);
-
-  const camera = scene.create("camera2d", {
-    center: vec2(0.3, 1.25),
-    zoom: 1.35,
-    enablePan: true,
-    enableZoom: true,
-  });
-
-  scene.create("grid2d", {
-    rangeX: true,
-    rangeY: true,
-    gap: "auto",
-    color: scene.atom((get) => get(themeAtom).scene.grid),
-    opacity: scene.atom((get) => get(themeAtom).scene.gridOpacity),
-  });
-
-  scene.create("axes2d", {
-    x: true,
-    y: true,
-    color: scene.atom((get) => get(themeAtom).scene.axes),
-    thickness: 1.1,
-    tickmarks: true,
-    tickStep: "auto",
-    labels: true,
-    labelStyle: scene.atom(
-      (get) =>
-        `color: ${get(themeAtom).scene.axisLabel}; font-size: 12px; ` +
-        `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
-    ),
-    arrows: true,
-  });
-
-  const aCoords = scene.atom(vec2(-2.4, 0));
-  const bCoords = scene.atom(vec2(2.2, 0));
-  const aAtom = scene.atom((get) => get(aCoords).x);
-  const bAtom = scene.atom((get) => get(bCoords).x);
-
-  const sortedAAtom = scene.atom((get) => Math.min(get(aAtom), get(bAtom)));
-  const sortedBAtom = scene.atom((get) => Math.max(get(aAtom), get(bAtom)));
-
-  const aCurveCoordsAtom = scene.atom((get) => {
-    const x = get(aAtom);
-    return vec2(x, integralFunction(x));
-  });
-
-  const bCurveCoordsAtom = scene.atom((get) => {
-    const x = get(bAtom);
-    return vec2(x, integralFunction(x));
-  });
-
-  const integralValueAtom = scene.atom((get) => (
-    integrateIntegralFunction(get(aAtom), get(bAtom))
-  ));
-
-  const labelPositionAtom = scene.atom((get) => {
-    const left = get(sortedAAtom);
-    const right = get(sortedBAtom);
-    const mid = (left + right) / 2;
-    return vec2(mid, Math.max(0.3, integralFunction(mid) * 0.45));
-  });
-
-  const integralLabelAtom = scene.atom((get) => {
-    return get(integralValueAtom).toFixed(2);
-  });
-
-  const rangeLabelPositionAtom = scene.atom((get) => {
-    const left = get(sortedAAtom);
-    const right = get(sortedBAtom);
-    return vec2((left + right) / 2, -0.18);
-  });
-
-  const rangeLabelAtom = scene.atom((get) => {
-    const width = get(bAtom) - get(aAtom);
-    return String.raw`b-a=${width.toFixed(2)}`;
-  });
-
-  functionArea2D(scene, {
-    f: integralFunction,
-    a: aAtom,
-    b: bAtom,
-    baseline: 0,
-    samples: integralSamples,
-    color: scene.atom((get) => get(themeAtom).scene.accent),
-    opacity: scene.atom((get) => get(themeAtom).scene.areaOpacity),
-    strokeColor: scene.atom((get) => get(themeAtom).scene.accentSoft),
-    strokeOpacity: scene.atom((get) => get(themeAtom).scene.areaStrokeOpacity),
-    strokeThickness: 1.6,
-  });
-
-  scene.create("function2d", {
-    f: integralFunction,
-    domain: "infinite",
-    discontinuities: [],
-    samples: 260,
-    color: scene.atom((get) => get(themeAtom).scene.curve),
-    thickness: 3,
-    pointerEvents: "none",
-  });
-
-  scene.create("line2d", {
-    start: aCoords,
-    end: aCurveCoordsAtom,
-    color: scene.atom((get) => get(themeAtom).scene.projection),
-    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
-    thickness: 3,
-    pointerEvents: "none",
-  });
-
-  scene.create("line2d", {
-    start: bCoords,
-    end: bCurveCoordsAtom,
-    color: scene.atom((get) => get(themeAtom).scene.projection),
-    opacity: scene.atom((get) => get(themeAtom).scene.projectionOpacity),
-    thickness: 3,
-    pointerEvents: "none",
-  });
-
-  scene.create("line2d", {
-    start: scene.atom((get) => vec2(get(sortedAAtom), 0)),
-    end: scene.atom((get) => vec2(get(sortedBAtom), 0)),
-    color: scene.atom((get) => get(themeAtom).scene.accentSoft),
-    opacity: 1,
-    thickness: 3,
-    pointerEvents: "none",
-  });
-
-  scene.create("point2d", {
-    coords: aCurveCoordsAtom,
-    color: scene.atom((get) => get(themeAtom).scene.point),
-    radius: 4.5,
-    draggable: "none",
-    pointerEvents: "none",
-  });
-
-  scene.create("point2d", {
-    coords: bCurveCoordsAtom,
-    color: scene.atom((get) => get(themeAtom).scene.point),
-    radius: 4.5,
-    draggable: "none",
-    pointerEvents: "none",
-  });
-
-  const aPoint = scene.create("point2d", {
-    coords: aCoords,
-    color: scene.atom((get) => get(themeAtom).scene.accent),
-    radius: 7,
-    draggable: "x",
-  });
-
-  const bPoint = scene.create("point2d", {
-    coords: bCoords,
-    color: scene.atom((get) => get(themeAtom).scene.accent),
-    radius: 7,
-    draggable: "x",
-  });
-
-  const labelStyle = scene.atom((get) => [
-    `color: ${get(themeAtom).scene.label}`,
-    "font-size: 17px",
-    "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    "font-weight: 600",
-    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
-    "white-space: nowrap",
-  ].join(";"));
-
-  const integralStyle = scene.atom((get) => [
-    `color: ${get(themeAtom).scene.integralLabel}`,
-    "font-size: 19px",
-    "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    "font-weight: 700",
-    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
-    "white-space: nowrap",
-  ].join(";"));
-
-  const rangeStyle = scene.atom((get) => [
-    `color: ${get(themeAtom).scene.rangeLabel}`,
-    "font-size: 14px",
-    "font-family: ui-serif, Georgia, Cambria, Times New Roman, Times, serif",
-    `text-shadow: ${get(themeAtom).scene.labelShadow}`,
-    "white-space: nowrap",
-  ].join(";"));
-
-  scene.create("overlay2d", {
-    position: aPoint.coords,
-    content: String.raw`a`,
-    format: "latex",
-    offset: vec2(0, 10),
-    anchor: "top",
-    style: labelStyle,
-  });
-
-  scene.create("overlay2d", {
-    position: bPoint.coords,
-    content: String.raw`b`,
-    format: "latex",
-    offset: vec2(0, 10),
-    anchor: "top",
-    style: labelStyle,
-  });
-
-  scene.create("overlay2d", {
-    position: labelPositionAtom,
-    content: integralLabelAtom,
-    format: "latex",
-    offset: vec2(0, 0),
-    anchor: "center",
-    style: integralStyle,
-  });
-
-  scene.create("overlay2d", {
-    position: rangeLabelPositionAtom,
-    content: rangeLabelAtom,
-    format: "latex",
-    offset: vec2(0, 0),
-    anchor: "top",
-    style: rangeStyle,
-  });
-
-  return {
-    scene,
-    camera,
-    themeAtom,
-    integralValueAtom,
-    aAtom,
-    bAtom,
-  };
-}
-
-function EmbeddedScene({
-  children,
-  theme,
-  height = 480,
-}: {
-  children: ReactNode;
-  theme: DemoTheme;
-  height?: number;
-}) {
-  return (
-    <div
-      className="article-embed"
-      style={{
-        height,
-        width: "min(100%, 760px)",
-        margin: "24px auto",
-        background: theme.scene.background,
-        borderColor: theme.page.embedBorder,
-        boxShadow: theme.page.embedShadow,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function IntegralAreaEmbed({ theme }: { theme: DemoTheme }) {
-  const { scene, camera, themeAtom, integralValueAtom, aAtom, bAtom } = useMemo(
-    () => createIntegralScene(theme),
-    [],
-  );
-
-  useEffect(() => {
-    themeAtom.set(theme);
-  }, [theme, themeAtom]);
-
-  const integralValue = useAtomValue(integralValueAtom);
-  const currentA = useAtomValue(aAtom);
-  const currentB = useAtomValue(bAtom);
-  const formulaHtml = useMemo(
-    () => katex.renderToString(
-      String.raw`\begin{array}{l}a=${currentA.toFixed(2)}\\ b=${currentB.toFixed(2)}\\ \displaystyle\int_a^b f(x)\,dx=${integralValue.toFixed(2)}\end{array}`,
-      {
-        throwOnError: false,
-        displayMode: true,
-      },
-    ),
-    [currentA, currentB, integralValue],
-  );
-
-  return (
-    <EmbeddedScene theme={theme}>
-      <Scene2DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
-      <div
-        style={{
-          position: "absolute",
-          top: 18,
-          left: 20,
-          color: theme.scene.formula,
-          fontSize: 14,
-          lineHeight: 1.35,
-          textShadow: theme.scene.formulaShadow,
-          pointerEvents: "none",
-        }}
-        dangerouslySetInnerHTML={{ __html: formulaHtml }}
-      />
-    </EmbeddedScene>
-  );
-}
-
-function SecantDerivativeEmbed({ theme }: { theme: DemoTheme }) {
-  const { scene, camera, themeAtom, secantSlopeAtom, tangentSlope } = useMemo(
-    () => createDerivativeScene(theme),
-    [],
-  );
-
-  useEffect(() => {
-    themeAtom.set(theme);
-  }, [theme, themeAtom]);
-
-  const secantSlope = useAtomValue(secantSlopeAtom);
-  const formulaHtml = useMemo(
-    () => katex.renderToString(
-      String.raw`\begin{aligned}\frac{f(a+h)-f(a)}{h}&=${secantSlope.toFixed(3)}\\ f'(a)&=${tangentSlope.toFixed(3)}\end{aligned}`,
-      {
-        throwOnError: false,
-        displayMode: true,
-      },
-    ),
-    [secantSlope, tangentSlope],
-  );
-
-  return (
-    <EmbeddedScene theme={theme}>
-      <Scene2DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
-      <div
-        style={{
-          position: "absolute",
-          top: 18,
-          left: 20,
-          color: theme.scene.formula,
-          fontSize: 14,
-          lineHeight: 1.35,
-          textShadow: theme.scene.formulaShadow,
-          pointerEvents: "none",
-        }}
-        dangerouslySetInnerHTML={{ __html: formulaHtml }}
-      />
-    </EmbeddedScene>
-  );
-}
+const CHECKLIST = [
+  "Switch cameras: each keeps its own state (orbit Perspective, leave, come back)",
+  "Toggle projection in place: framing must not jump, only foreshortening changes",
+  "FOV slider: lens zoom in perspective, visible extent in orthographic",
+  "Scroll-zoom in an ortho view: zoom readout changes and survives camera switches",
+  "Drag the red point in every camera, incl. the locked Top/Front views",
+  "Spheres: equal size in ortho views, receding in perspective",
+];
 
 export default function Demo1() {
-  const [themeMode, setThemeMode] = useState<DemoThemeMode>("light");
-  const theme = demoThemes[themeMode];
-  const themeStyles = {
-    "--article-heading": theme.page.heading,
-    "--article-text": theme.page.text,
-    "--article-kicker": theme.page.kicker,
-  } as CSSProperties;
+  const { scene, cameras } = useMemo(buildScene, []);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<View3D | null>(null);
+  const [activeKey, setActiveKey] = useState<CamKey>("perspective");
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const view = new View3D(scene, cameras.perspective.id, containerRef.current);
+    viewRef.current = view;
+    return () => {
+      view.dispose();
+      viewRef.current = null;
+    };
+  }, [scene, cameras]);
+
+  useEffect(() => {
+    viewRef.current?.changeActiveCam(cameras[activeKey].id);
+  }, [cameras, activeKey]);
+
+  const activeCam = cameras[activeKey];
+  const [fov, setFov] = useAtomState(activeCam.fov);
+  const projection = useAtomValue(activeCam.projection);
+  const zoom = useAtomValue(activeCam.zoom);
+  const position = useAtomValue(activeCam.position);
 
   return (
-    <main
-      className="article-page"
-      style={{
-        ...themeStyles,
-        background: theme.page.background,
-        color: theme.page.text,
-      }}
-    >
-      <article className="article-shell">
-        <div className="article-topbar">
-          <p className="article-kicker">Derivative intuition</p>
-          <div
-            className="theme-toggle"
+    <div style={{ width: "100%", height: "100%", backgroundColor: "#0a0a0a" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+
+      <div
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          padding: 14,
+          width: 320,
+          backgroundColor: "rgba(20, 20, 20, 0.88)",
+          border: "1px solid #2a2a2a",
+          borderRadius: 8,
+          color: "#ddd",
+          fontFamily: "system-ui, sans-serif",
+          fontSize: 13,
+        }}
+      >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {CAMERA_DEFS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveKey(key)}
+              style={{
+                padding: "5px 10px",
+                border: "none",
+                borderRadius: 4,
+                backgroundColor: activeKey === key ? "#4f9cf9" : "#262626",
+                color: activeKey === key ? "#fff" : "#999",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            onClick={() =>
+              activeCam.projection.set(
+                projection === "perspective" ? "orthographic" : "perspective",
+              )
+            }
             style={{
-              background: theme.page.controlBackground,
-              borderColor: theme.page.controlBorder,
+              padding: "5px 10px",
+              border: "1px solid #3a3a3a",
+              borderRadius: 4,
+              backgroundColor: "#1c1c1c",
+              color: "#ffb547",
+              fontSize: 12,
+              cursor: "pointer",
             }}
           >
-            {(["light", "dark"] as DemoThemeMode[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                aria-pressed={themeMode === mode}
-                onClick={() => setThemeMode(mode)}
-                style={{
-                  background:
-                    themeMode === mode ? theme.page.activeControlBackground : "transparent",
-                  color:
-                    themeMode === mode ? theme.page.activeControlText : theme.page.controlText,
-                }}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
+            projection: {projection} (toggle)
+          </button>
+          <button
+            onClick={() => activeCam.zoom.set(1)}
+            style={{
+              padding: "5px 10px",
+              border: "1px solid #3a3a3a",
+              borderRadius: 4,
+              backgroundColor: "#1c1c1c",
+              color: "#999",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            reset zoom
+          </button>
         </div>
-        <h1>From secant slope to tangent slope</h1>
-        <p>
-          Pick a fixed point A on a smooth curve, then place another point B nearby on the
-          same curve. The line through the two points measures the average rate of change
-          over the horizontal step h.
-        </p>
 
-        <SecantDerivativeEmbed theme={theme} />
+        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 60, color: "#999" }}>fov {fov.toFixed(0)}°</span>
+          <input
+            type="range"
+            min={10}
+            max={90}
+            step={1}
+            value={fov}
+            onChange={(event) => setFov(parseFloat(event.target.value))}
+            style={{ flex: 1 }}
+          />
+        </label>
 
-        <p>
-          Drag B along the graph toward A. As h gets smaller, the secant line rotates around
-          A and its slope approaches the slope of the green tangent line.
-        </p>
+        <div style={{ color: "#888", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+          zoom = {zoom.toFixed(2)} · pos = ({position.x.toFixed(1)},{" "}
+          {position.y.toFixed(1)}, {position.z.toFixed(1)})
+        </div>
 
-        <p>
-          In symbols, the changing orange line has slope (f(a+h) - f(a)) / h. The derivative
-          f&apos;(a) is the limiting value this slope approaches as h tends to zero.
-        </p>
-
-        <h2>Accumulating area under a curve</h2>
-        <p>
-          A definite integral tracks the signed accumulation between two x-values. Move the
-          handles on the x-axis to change the interval and watch the highlighted region update.
-        </p>
-
-        <IntegralAreaEmbed theme={theme} />
-
-        <p>
-          The shaded region is built from sampled points on the curve, then closed back down to
-          the x-axis. The value shown inside the region is recomputed from the same interval.
-        </p>
-      </article>
-    </main>
+        <ul style={{ margin: 0, paddingLeft: 18, color: "#777", fontSize: 11, lineHeight: 1.5 }}>
+          {CHECKLIST.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }

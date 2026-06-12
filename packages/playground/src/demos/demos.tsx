@@ -4,11 +4,12 @@ import Demo5 from "./demo5";
 import Demo6 from "./demo6";
 import Demo8 from "./demo8";
 import Demo11 from "./demo11";
+import Demo12 from "./demo12";
 import Demo2D from "./demo2d";
 
 const demos = {
   demo1: {
-    title: "Article Embeds",
+    title: "Sandbox",
     component: <Demo1 />,
   },
   demo5: {
@@ -27,6 +28,10 @@ const demos = {
     title: "Sphere-Line Intersection",
     component: <Demo11 />,
   },
+  demo12: {
+    title: "Article Embeds",
+    component: <Demo12 />,
+  },
   demo2d: {
     title: "2D Sandbox",
     component: <Demo2D />,
@@ -36,7 +41,7 @@ const demos = {
 // A tab bar with buttons to switch between demos
 export default function Demos() {
   const [demo, setDemo] = useState<keyof typeof demos>("demo1");
-  const isArticleDemo = demo === "demo1";
+  const isArticleDemo = demo === "demo12";
   return (
     <div
       style={{
