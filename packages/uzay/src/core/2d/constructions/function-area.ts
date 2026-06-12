@@ -2,7 +2,7 @@ import type { Scene2D } from "../scene2d";
 import type { AtomLikeInput } from "../../shared/atom-wrapper";
 import { ensureAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
-import { vec2 } from "../../shared/types/vec2";
+import { type Vec2, vec2 } from "../../shared/types/vec2";
 
 type Function2DFunc = (x: number) => number;
 
@@ -21,6 +21,20 @@ type FunctionArea2DOptions = {
 
 const MIN_SAMPLES = 2;
 
+// Standard shoelace: positive for counterclockwise winding. Our lobes run
+// left-to-right along the curve and close right-to-left along the baseline,
+// so lobes above the baseline wind clockwise (negative) and lobes below wind
+// counterclockwise (positive). Negating recovers integral sign convention.
+function lobeSignedArea(polygon: readonly Vec2[]): number {
+  let sum = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const p = polygon[i];
+    const q = polygon[(i + 1) % polygon.length];
+    sum += p.x * q.y - q.x * p.y;
+  }
+  return -sum / 2;
+}
+
 export function functionArea2D(scene: Scene2D, options: FunctionArea2DOptions) {
   const fAtom = ensureAtom(scene.atom, options.f, "value");
   const aAtom = ensureAtom(scene.atom, options.a);
@@ -33,7 +47,9 @@ export function functionArea2D(scene: Scene2D, options: FunctionArea2DOptions) {
   const strokeOpacityAtom = ensureAtom(scene.atom, options.strokeOpacity ?? 0);
   const strokeThicknessAtom = ensureAtom(scene.atom, options.strokeThickness ?? 1);
 
-  const pointsAtom = scene.atom((get) => {
+  // One simple polygon per lobe, split where the curve crosses the baseline.
+  // A single polygon would self-intersect there and break triangulation.
+  const polygonsAtom = scene.atom((get) => {
     const f = get(fAtom);
     const a = get(aAtom);
     const b = get(bAtom);
@@ -42,19 +58,56 @@ export function functionArea2D(scene: Scene2D, options: FunctionArea2DOptions) {
     const right = Math.max(a, b);
     const width = right - left;
     const sampleCount = Math.round(Math.max(get(samplesAtom), MIN_SAMPLES));
-    const points = [vec2(left, baseline)];
 
+    const samples: Vec2[] = [];
     for (let i = 0; i <= sampleCount; i++) {
       const x = width === 0 ? left : left + (width * i) / sampleCount;
-      points.push(vec2(x, f(x)));
+      samples.push(vec2(x, f(x)));
     }
 
-    points.push(vec2(right, baseline));
-    return points;
+    const polygons: Vec2[][] = [];
+    let lobe: Vec2[] = [vec2(samples[0].x, baseline), samples[0]];
+
+    for (let i = 1; i < samples.length; i++) {
+      const prev = samples[i - 1];
+      const next = samples[i];
+      const prevSide = prev.y - baseline;
+      const nextSide = next.y - baseline;
+
+      if ((prevSide > 0 && nextSide < 0) || (prevSide < 0 && nextSide > 0)) {
+        const t = prevSide / (prevSide - nextSide);
+        const root = vec2(prev.x + (next.x - prev.x) * t, baseline);
+        lobe.push(root);
+        polygons.push(lobe);
+        lobe = [root, next];
+      } else {
+        lobe.push(next);
+      }
+    }
+
+    lobe.push(vec2(samples[samples.length - 1].x, baseline));
+    polygons.push(lobe);
+    return polygons;
+  });
+
+  const signedAreaAtom = scene.atom((get) => {
+    let total = 0;
+    for (const polygon of get(polygonsAtom)) {
+      total += lobeSignedArea(polygon);
+    }
+    return total;
+  });
+
+  const absoluteAreaAtom = scene.atom((get) => {
+    let total = 0;
+    for (const polygon of get(polygonsAtom)) {
+      total += Math.abs(lobeSignedArea(polygon));
+    }
+    return total;
   });
 
   const region = scene.create("region2d", {
-    points: pointsAtom,
+    points: polygonsAtom,
     color: colorAtom,
     opacity: opacityAtom,
     strokeColor: strokeColorAtom,
@@ -65,7 +118,9 @@ export function functionArea2D(scene: Scene2D, options: FunctionArea2DOptions) {
 
   return {
     region,
-    points: pointsAtom,
+    polygons: polygonsAtom,
+    signedArea: signedAreaAtom,
+    absoluteArea: absoluteAreaAtom,
     dispose: () => {
       scene.remove(region);
     },

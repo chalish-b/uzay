@@ -7,13 +7,13 @@ import FunctionAreaDemo from "@/components/demos/function-area-demo";
 
 ## What is Function Area 2D?
 
-`functionArea2D` creates a filled 2D region between a function and a baseline over an interval. It is useful for highlighting the area under a curve, showing the visual shape of a definite integral, or marking any function-defined region without manually sampling the curve yourself.
+`functionArea2D` creates a filled 2D region between a function and a baseline over an interval. It is useful for highlighting the area under a curve, showing the visual shape of a definite integral, or marking any function-defined region without manually sampling the curve yourself. Where the curve crosses the baseline, the region splits into separate lobes, and the construction also computes the signed and absolute area of what it draws.
 
 The construction only creates the filled region. It does not create the function graph, draggable handles, guide lines, labels, or related helpers. Those are scene-specific choices that you can build with regular items.
 
 <FunctionAreaDemo />
 
-The fill is a `functionArea2D` under a `function2d`, with two `point2d` handles driving its `a` and `b`. The integral readout in the `overlay2d` is a separate derived atom; it stays in sync with the fill because both follow the same bounds.
+The fill is a `functionArea2D` under a `function2d`, with two `point2d` handles driving its `a` and `b`. The integral readout in the `overlay2d` reads the construction's `signedArea` atom, so it always matches the drawn region: drag a bound past a root and watch the lobe below the axis pull the value down.
 
 ## Basic Usage
 
@@ -34,7 +34,7 @@ scene.create("axes2d", {
   labels: true,
 });
 
-const f = (x: number) => 0.25 * x * x + 0.5;
+const f = (x: number) => 0.25 * x * x - 0.5;
 
 scene.create("function2d", {
   f,
@@ -53,7 +53,7 @@ const area = functionArea2D(scene, {
 });
 ```
 
-This samples `f(x)` from `a` to `b`, closes the shape down to `baseline`, and renders it as a `region2d`.
+This samples `f(x)` from `a` to `b`, closes the shape down to `baseline`, and renders it as a `region2d`. This parabola is negative between its roots, so on a wide enough interval the fill splits into separate lobes above and below the baseline. You do not need to handle that case yourself.
 
 ## Reactive Bounds
 
@@ -114,15 +114,32 @@ area.region.visible.set(false);
 area.region.pointerEvents.set("auto");
 ```
 
-## Reading the Sampled Points
+## Reading the Area
 
-The returned `points` atom contains the polygon points used by the region:
+The construction computes the area of the region it draws and returns it as two derived atoms:
 
 ```typescript
 const area = functionArea2D(scene, { f, a: -2, b: 2 });
 
-area.points.sub((points) => {
-  console.log("region point count", points.length);
+scene.create("overlay2d", {
+  position: vec2(0, 2),
+  content: scene.atom((get) => `Area = ${get(area.signedArea).toFixed(2)}`),
+});
+```
+
+`signedArea` follows integral convention: lobes below the baseline count as negative. `absoluteArea` counts every lobe as positive, which is the total painted area. Both are computed from the same samples used to draw the region, so the numbers always match the picture. Raise `samples` if you need them closer to the true integral.
+
+One caveat: the interval is normalized internally, so swapping `a` and `b` does not flip the sign the way reversing the bounds of an integral would.
+
+## Reading the Polygons
+
+The returned `polygons` atom contains the polygons used by the region, one per lobe:
+
+```typescript
+const area = functionArea2D(scene, { f, a: -2, b: 2 });
+
+area.polygons.sub((polygons) => {
+  console.log("lobe count", polygons.length);
 });
 ```
 
@@ -162,5 +179,7 @@ All options accept either a plain value or an atom.
 | Field | Type | Description |
 |-------|------|-------------|
 | `region` | `Region2D` | The filled region item |
-| `points` | `BoundAtom<Vec2[]>` | Derived atom containing the sampled polygon points |
+| `polygons` | `BoundAtom<Vec2[][]>` | Derived atom containing the sampled polygons, one per lobe |
+| `signedArea` | `BoundAtom<number>` | Area of the region, lobes below the baseline counted as negative |
+| `absoluteArea` | `BoundAtom<number>` | Area of the region, all lobes counted as positive |
 | `dispose` | `() => void` | Removes the region from the scene |

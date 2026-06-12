@@ -62,9 +62,7 @@ export type ThreeSceneTypes = {
     geometry: THREE.ShapeGeometry;
     material: THREE.MeshBasicMaterial;
     mesh: THREE.Mesh<THREE.ShapeGeometry, THREE.MeshBasicMaterial>;
-    strokeGeometry: LineGeometry | null;
-    strokeMaterial: LineMaterial | null;
-    strokeMesh: Line2 | null;
+    strokes: Region2DStrokeObject[];
   };
   parametricfunction2d: {
     kind: "parametricfunction2d";
@@ -84,6 +82,13 @@ export type ThreeSceneTypes = {
     cssObject: CSS2DObject;
     element: HTMLDivElement;
   };
+};
+
+// One stroke loop per region polygon.
+export type Region2DStrokeObject = {
+  geometry: LineGeometry;
+  material: LineMaterial;
+  mesh: Line2;
 };
 
 // Per-axis bundle for axes2d: a line plus optional tick and arrow meshes.

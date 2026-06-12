@@ -10,9 +10,12 @@ import { defineItem2D } from "../types/define-item";
 
 export type PointerEvents = "auto" | "none";
 
+// A single polygon, or several disjoint polygons rendered as one region.
+export type Region2DPoints = Vec2[] | Vec2[][];
+
 export type Region2DFields = {
   tags: ItemTags;
-  points: Vec2[];
+  points: Region2DPoints;
   color: Color;
   opacity: number;
   strokeColor: Color;
@@ -27,7 +30,7 @@ export const region2dDefinition = defineItem2D({
   kind: "region2d",
   fields: {
     tags: field<ItemTags>(() => []),
-    points: field<Vec2[]>(() => [vec2(0, 0), vec2(1, 0), vec2(0, 1)]),
+    points: field<Region2DPoints>(() => [vec2(0, 0), vec2(1, 0), vec2(0, 1)]),
     color: field<Color>("white"),
     opacity: field(0.35),
     strokeColor: field<Color>("white"),

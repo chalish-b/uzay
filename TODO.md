@@ -66,11 +66,9 @@
 
 ## 2D
 
+- A construction to display an area between two functions. A logical extension of area under construction.
 - Documentation: Non-existent for 2D, and missing a lot of the new features and stuff for 2D/3D
 - Adding limits to the zoom and pan in the camera
-- A new `function2d` item that is for non-parametric, simple functions.
-  - This would also allow us to have infinite start/end range (which is kinda ambiguous for parametric functions).
-- Dynamic grid
 - Hit testing lines in 2D might be an issue
 - Add some anti aliasing to the lines and functions
 - Zooming into a function plot makes the point look not on the function. We need an adaptive function sampling approach I guess.

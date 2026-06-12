@@ -5,14 +5,11 @@ import { Scene2DView } from "uzay/react";
 import { DemoFrame } from "./demo-frame";
 import { useDemoScene2D } from "./use-demo-scene";
 
-// The same parabola as the code blocks on the page. It has a closed-form
-// antiderivative, so the readout shows the exact integral, no sampling.
+// The same parabola as the code blocks on the page. It dips below the x axis
+// between its roots, so the region splits into lobes and the readout can go
+// negative.
 function f(x: number) {
-  return 0.25 * x * x + 0.5;
-}
-
-function antiderivative(x: number) {
-  return (x * x * x) / 12 + x / 2;
+  return 0.25 * x * x - 0.5;
 }
 
 // Lifts on-board text off the grid lines: a light glow in light mode, a dark
@@ -58,7 +55,7 @@ export default function FunctionAreaDemo() {
     const bAtom = scene.atom((get) => get(bCoords).x);
 
     // The construction: the filled region between f and the baseline.
-    functionArea2D(scene, {
+    const area = functionArea2D(scene, {
       f,
       a: aAtom,
       b: bAtom,
@@ -110,8 +107,8 @@ export default function FunctionAreaDemo() {
       className: `pointer-events-none text-sm text-fd-muted-foreground ${boardTextShadow}`,
     });
 
-    // The construction only draws the shape; the value comes from our own
-    // derived atom. Both follow the same a/b atoms, so they never disagree.
+    // The readout comes straight from the construction's signedArea atom, so
+    // the number always matches the drawn region, lobe splits and all.
     // No chip background here: bare display-style math with a glow reads as
     // part of the board, not something glued on top of it.
     scene.create("overlay2d", {
@@ -120,7 +117,7 @@ export default function FunctionAreaDemo() {
         return vec2(mid, Math.max(0.3, f(mid) * 0.45));
       }),
       content: scene.atom((get) => {
-        const value = antiderivative(get(bAtom)) - antiderivative(get(aAtom));
+        const value = get(area.signedArea);
         return `\\displaystyle\\int_a^b f(x)\\,dx = ${value.toFixed(2)}`;
       }),
       format: "latex",
