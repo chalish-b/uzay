@@ -1,0 +1,183 @@
+---
+title: Points
+description: 2D point items
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+## What is a Point2D?
+
+A `Point2D` renders as a filled dot at a position in the plane. Points are the most basic visual element and are commonly used for:
+
+- Marking locations
+- Representing vertices of shapes
+- Creating interactive handles
+- Tracing positions along curves and functions
+
+## Basic Usage
+
+```typescript
+const point = scene.create("point2d", {
+  coords: vec2(2, 1),
+  color: "crimson",
+  radius: 8,
+});
+```
+
+## Styling Points
+
+### Color
+
+Any CSS color string works:
+
+```typescript
+scene.create("point2d", { coords: vec2(0, 0), color: "red" });
+scene.create("point2d", { coords: vec2(1, 0), color: "#ff6b6b" });
+scene.create("point2d", { coords: vec2(2, 0), color: "rgb(255, 107, 107)" });
+```
+
+### Size
+
+The `radius` property sets the dot's size in **CSS pixels**, so a point stays the same visual size no matter how far the camera is zoomed in or out:
+
+```typescript
+scene.create("point2d", { coords: vec2(0, 0), radius: 4 });  // Small
+scene.create("point2d", { coords: vec2(2, 0), radius: 8 });  // Medium
+scene.create("point2d", { coords: vec2(4, 0), radius: 12 }); // Large
+```
+
+## Dragging
+
+Points are draggable by default. The `draggable` property controls which axes the point can move along:
+
+```typescript
+// Free movement in the plane (default)
+scene.create("point2d", { coords: vec2(0, 0), draggable: "xy" });
+
+// Constrain to horizontal movement
+scene.create("point2d", { coords: vec2(0, 0), draggable: "x" });
+
+// Constrain to vertical movement
+scene.create("point2d", { coords: vec2(0, 0), draggable: "y" });
+
+// Disable dragging
+scene.create("point2d", { coords: vec2(0, 0), draggable: "none" });
+```
+
+The cursor changes to a grab icon when hovering over a draggable point.
+
+<Callout type="warning">
+Dragging only works when `coords` is a writable atom. If you pass a derived (read-only) atom, dragging is automatically disabled.
+</Callout>
+
+### Custom drag behavior
+
+Set `draggable` to `"custom"` to take over the drag yourself. The point still emits drag events, but the built-in axis movement is skipped, so your `.on("drag")` handler is the sole writer. This is how [curvePoint2D](/docs/constructions/curve-point-2d) constrains a point to a curve:
+
+```typescript
+const point = scene.create("point2d", {
+  coords: someDerivedCoords,
+  draggable: "custom",
+});
+
+point.on("drag", (event) => {
+  if (event.phase === "start") return;
+  // event.worldPosition is the cursor position in world units.
+  // Write to whatever atom drives the point.
+});
+```
+
+See [Interactions](/docs/core-concepts/interactions) for the full event API.
+
+## Examples
+
+### Labeled Point
+
+A draggable point with an [overlay](/docs/2d-items/overlays) that displays its coordinates:
+
+```typescript
+const point = scene.create("point2d", {
+  coords: vec2(2, 1),
+  color: "gold",
+  radius: 8,
+});
+
+scene.create("overlay2d", {
+  position: point.coords,
+  content: scene.atom((get) => {
+    const { x, y } = get(point.coords);
+    return `(${x.toFixed(1)}, ${y.toFixed(1)})`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
+```
+
+Drag the point and the label updates automatically.
+
+### Mirrored Point
+
+A second point whose position is derived from the first:
+
+```typescript
+const point = scene.create("point2d", {
+  coords: vec2(2, 1),
+  color: "gold",
+});
+
+// Mirror across the origin
+scene.create("point2d", {
+  coords: scene.atom((get) => {
+    const { x, y } = get(point.coords);
+    return vec2(-x, -y);
+  }),
+  color: "skyblue",
+});
+```
+
+Drag the gold point and the blue one moves to the opposite position.
+
+## Updating Properties
+
+```typescript
+const point = scene.create("point2d", {
+  coords: vec2(0, 0),
+  color: "red",
+  radius: 6,
+});
+
+point.coords.set(vec2(5, 5));
+point.color.set("blue");
+point.radius.set(10);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `coords` | `Vec2` | `{ x: 0, y: 0 }` | Position in the plane |
+| `color` | `string` | `"white"` | CSS color string |
+| `radius` | `number` | `6` | Dot size in CSS pixels (constant across zoom) |
+| `draggable` | `"xy" \| "x" \| "y" \| "none" \| "custom"` | `"xy"` | Axes the point can be dragged along |
+| `visible` | `boolean` | `true` | Whether the point is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the point receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Item
+
+The `scene.create("point2d", options)` call returns a `Point2D` item with these atom fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `coords` | `BoundAtom<Vec2>` | Position atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `radius` | `BoundAtom<number>` | Size atom |
+| `draggable` | `BoundAtom<...>` | Draggable constraint atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

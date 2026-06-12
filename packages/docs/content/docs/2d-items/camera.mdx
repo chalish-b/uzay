@@ -1,0 +1,133 @@
+---
+title: Camera
+description: 2D viewport, pan, and zoom
+---
+
+## What is Camera2D?
+
+`Camera2D` defines the viewport a `Scene2D` is rendered through: which part of the plane is on screen and how zoomed in it is. Like every other item, a camera lives in the scene, so its properties are atoms and can be driven reactively.
+
+Every [View2D](/docs/core-concepts/scenes-views) requires a camera. Without one, you cannot render the scene.
+
+The 2D camera is always orthographic, so distances and proportions read true at every zoom level, which is what you want for a planar diagram.
+
+## Basic Usage
+
+```typescript
+const camera = scene.create("camera2d", {
+  center: vec2(0, 0),
+  zoom: 1,
+});
+
+const view = new View2D(scene, camera.id, containerElement);
+```
+
+## Center
+
+`center` is the world-space point that sits at the middle of the canvas. Move it to frame a different part of the plane:
+
+```typescript
+// Center the view on (3, 2)
+scene.create("camera2d", {
+  center: vec2(3, 2),
+});
+```
+
+## Zoom
+
+`zoom` scales the visible area relative to the camera's base extent. At `zoom: 1` the view shows a fixed vertical span (the horizontal span follows the canvas aspect ratio). Larger values zoom in, smaller values zoom out:
+
+```typescript
+scene.create("camera2d", { center: vec2(0, 0), zoom: 1 });   // Base extent
+scene.create("camera2d", { center: vec2(0, 0), zoom: 2 });   // Zoomed in (shows half as much)
+scene.create("camera2d", { center: vec2(0, 0), zoom: 0.5 }); // Zoomed out (shows twice as much)
+```
+
+## Pan and Zoom Controls
+
+Views come with built-in controls:
+
+- **Drag the background**: pan the camera
+- **Scroll**: zoom in and out toward the cursor
+
+Each can be disabled independently:
+
+```typescript
+// A fixed frame: no panning or zooming
+scene.create("camera2d", {
+  center: vec2(0, 0),
+  zoom: 1,
+  enablePan: false,
+  enableZoom: false,
+});
+```
+
+Since these are atoms, you can toggle them reactively:
+
+```typescript
+const locked = scene.atom(false);
+
+const camera = scene.create("camera2d", {
+  center: vec2(0, 0),
+  enablePan: scene.atom((get) => !get(locked)),
+  enableZoom: scene.atom((get) => !get(locked)),
+});
+
+locked.set(true);
+```
+
+## Reactive Camera
+
+Because `center` and `zoom` are atoms, you can animate the camera or bind it to other state:
+
+```typescript
+const focus = scene.atom(vec2(0, 0));
+
+// A point the camera tracks
+scene.create("point2d", { coords: focus, color: "gold" });
+
+scene.create("camera2d", {
+  center: focus, // Camera keeps the point centered
+});
+```
+
+Camera control is **bidirectional**: when you pass writable atoms for `center` or `zoom`, panning and scroll-zooming write back to those atoms, so UI bound to them stays in sync. If `center` or `zoom` is a read-only derived atom, the interaction is skipped gracefully.
+
+## Multiple Cameras
+
+You can create several cameras and switch the view between them:
+
+```typescript
+const wide = scene.create("camera2d", { center: vec2(0, 0), zoom: 0.5 });
+const close = scene.create("camera2d", { center: vec2(2, 1), zoom: 3 });
+
+const view = new View2D(scene, wide.id, container);
+
+// Switch to the close-up
+view.changeActiveCam(close.id);
+```
+
+Each camera keeps its own `center` and `zoom`, so switching back restores the previous framing.
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `center` | `Vec2` | `{ x: 0, y: 0 }` | World point shown at the canvas center |
+| `zoom` | `number` | `1` | Zoom relative to the base extent (larger zooms in) |
+| `enablePan` | `boolean` | `true` | Enable panning by dragging the background |
+| `enableZoom` | `boolean` | `true` | Enable zooming by scrolling |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier (pass to `View2D`) |
+| `center` | `BoundAtom<Vec2>` | Center atom |
+| `zoom` | `BoundAtom<number>` | Zoom atom |
+| `enablePan` | `BoundAtom<boolean>` | Pan toggle atom |
+| `enableZoom` | `BoundAtom<boolean>` | Zoom toggle atom |

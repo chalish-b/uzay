@@ -1,0 +1,109 @@
+---
+title: Items
+description: Creating, updating, and removing scene items
+---
+
+**Items** are the visual elements that make up a scene: points, lines, vectors, curves, surfaces, axes, grids, and more. Every item property is an atom, so items are reactive by default: change a value and the view updates on its own.
+
+Items come in two families that share the same mechanics:
+
+- [**3D Items**](/docs/3d-items) live in a `Scene3D` and render through a `View3D`.
+- [**2D Items**](/docs/2d-items) live in a `Scene2D` and render through a `View2D`.
+
+This page covers the API that both families have in common. The section pages list the items available in each.
+
+## Creating Items
+
+Use `scene.create(kind, options)` to add an item:
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(1, 2, 3),
+  color: "red",
+  radius: 2,
+});
+```
+
+The first argument is the item kind, the second is an options object where you configure the item's properties. The 2D kinds work the same way:
+
+```typescript
+const point = scene.create("point2d", {
+  coords: vec2(1, 2),
+  color: "red",
+});
+```
+
+`create()` returns the item, which you use to read or update its properties later.
+
+## Reactive Properties
+
+Every property can be either a plain value or an atom:
+
+```typescript
+scene.create("point3d", { radius: 2 });
+
+const r = scene.atom(2);
+scene.create("point3d", { radius: r });
+
+r.set(5);
+```
+
+You can also drive a property from a derived atom that computes its value from other atoms:
+
+```typescript
+const t = scene.atom(0);
+
+scene.create("point3d", {
+  coords: scene.atom((get) => {
+    const time = get(t);
+    return vec3(Math.cos(time), Math.sin(time), 0);
+  }),
+});
+```
+
+When `t` changes, the point's position recomputes and the view re-renders. See [Atoms](/docs/core-concepts/atoms) for more.
+
+## Updating Properties
+
+The returned item exposes each property as an atom you can read or set:
+
+```typescript
+const point = scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  color: "red",
+  radius: 2,
+});
+
+point.coords.set(vec3(5, 5, 5));
+point.color.set("blue");
+point.radius.set(4);
+```
+
+## Removing Items
+
+Remove an item from the scene with `scene.remove()`:
+
+```typescript
+const point = scene.create("point3d", { coords: vec3(1, 1, 1) });
+
+// Later
+scene.remove(point);
+```
+
+## Tags
+
+All items accept a `tags` property for categorization:
+
+```typescript
+scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  tags: ["handles", "active"],
+});
+```
+
+Tags are currently unused. In the future they'll support grouping items so that different views and cameras can filter by tag.
+
+<Cards>
+  <Card title="3D Items" href="/docs/3d-items" description="Points, vectors, surfaces, and more in 3D" />
+  <Card title="2D Items" href="/docs/2d-items" description="Points, functions, regions, and more in 2D" />
+</Cards>

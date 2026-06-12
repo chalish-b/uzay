@@ -1,0 +1,192 @@
+---
+title: Parametric Curves
+description: 2D curves defined by parametric equations
+---
+
+## What is a Parametric Curve?
+
+A parametric curve is defined by a function that maps a parameter $t$ to a point in the plane:
+
+$$
+\vec{r}(t) = (x(t), y(t)), \quad t \in [t_{\text{start}}, t_{\text{end}}]
+$$
+
+Instead of defining $y$ as a function of $x$, you define each coordinate independently as a function of the parameter. This allows for curves that loop back on themselves, such as circles and spirals, which a [function graph](/docs/2d-items/functions) cannot draw.
+
+## Basic Usage
+
+```typescript
+const circle = scene.create("parametricfunction2d", {
+  f: (t) => vec2(Math.cos(t), Math.sin(t)),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  color: "dodgerblue",
+  thickness: 2,
+  samples: 64,
+});
+```
+
+## How Sampling Works
+
+The curve is approximated by connecting discrete sample points. The `samples` property controls how many points are computed:
+
+```typescript
+// Low samples: jaggy curve
+scene.create("parametricfunction2d", {
+  f: (t) => vec2(Math.cos(t), Math.sin(t)),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 8, // Octagon-ish
+});
+
+// High samples: smooth curve
+scene.create("parametricfunction2d", {
+  f: (t) => vec2(Math.cos(t), Math.sin(t)),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 64, // Smooth circle
+});
+```
+
+Higher sample counts look better but cost more to compute.
+
+## Common Curves
+
+### Circle
+
+```typescript
+scene.create("parametricfunction2d", {
+  f: (t) => vec2(Math.cos(t), Math.sin(t)),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 64,
+});
+```
+
+### Spiral
+
+```typescript
+scene.create("parametricfunction2d", {
+  f: (t) => vec2(t * Math.cos(t), t * Math.sin(t)),
+  tStart: 0,
+  tEnd: Math.PI * 6,
+  samples: 200,
+});
+```
+
+### Lissajous Curve
+
+```typescript
+scene.create("parametricfunction2d", {
+  f: (t) => vec2(Math.sin(3 * t), Math.sin(4 * t)),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 256,
+});
+```
+
+## Examples
+
+### Reactive Parameter Range
+
+Animate a curve by making `tEnd` reactive:
+
+```typescript
+const maxT = scene.atom(0);
+
+scene.create("parametricfunction2d", {
+  f: (t) => vec2(t * Math.cos(t), t * Math.sin(t)),
+  tStart: 0,
+  tEnd: maxT,
+  color: "dodgerblue",
+  samples: scene.atom((get) => Math.max(16, Math.ceil(get(maxT) * 16))),
+});
+
+// Animate: curve grows over time
+function animate() {
+  maxT.set((prev) => prev + 0.05);
+  requestAnimationFrame(animate);
+}
+animate();
+```
+
+Notice how `samples` is also reactive, increasing as the curve gets longer to maintain smoothness.
+
+### Reactive Function
+
+The function itself can be an atom. This is powerful for curves that fundamentally change shape:
+
+```typescript
+const freq = scene.atom(3);
+
+const curve = scene.create("parametricfunction2d", {
+  f: scene.atom((get) => {
+    // Read the dependency outside the returned function
+    const k = get(freq);
+    // Return a new function that depends on freq
+    return (t: number) => vec2(Math.sin(k * t), Math.sin((k + 1) * t));
+  }),
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 256,
+});
+```
+
+## Combining with Points
+
+Highlight a point that traces the curve:
+
+```typescript
+const t = scene.atom(0);
+
+const f = (u: number) => vec2(Math.cos(u), Math.sin(u));
+
+scene.create("parametricfunction2d", {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  color: "dodgerblue",
+  samples: 64,
+});
+
+scene.create("point2d", {
+  coords: scene.atom((get) => f(get(t))),
+  color: "gold",
+  radius: 8,
+});
+```
+
+To make a point the user can **drag along** a curve, use the [curvePoint2D](/docs/constructions/curve-point-2d) construction, which projects the cursor onto the curve and snaps the point to the nearest parameter.
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(t: number) => Vec2` | `(t) => vec2(t, t)` | The parametric function |
+| `tStart` | `number` | `0` | Parameter start value |
+| `tEnd` | `number` | `1` | Parameter end value |
+| `samples` | `number` | `64` | Number of sample points |
+| `color` | `string` | `"white"` | CSS color string |
+| `thickness` | `number` | `1` | Line width |
+| `visible` | `boolean` | `true` | Whether the curve is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the curve receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `f` | `BoundAtom<(t: number) => Vec2>` | Function atom |
+| `tStart` | `BoundAtom<number>` | Start parameter atom |
+| `tEnd` | `BoundAtom<number>` | End parameter atom |
+| `samples` | `BoundAtom<number>` | Sample count atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

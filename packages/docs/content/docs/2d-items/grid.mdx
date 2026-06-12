@@ -1,0 +1,155 @@
+---
+title: Grid
+description: Reference grid in the plane
+---
+
+## What is a Grid2D?
+
+`Grid2D` renders a lattice of evenly spaced lines across a rectangular area of the plane. Grids provide spatial reference behind a visualization, much like graph paper.
+
+## Basic Usage
+
+```typescript
+scene.create("grid2d", {
+  rangeX: [-10, 10],
+  rangeY: [-10, 10],
+  gap: 1,
+  color: "#555",
+});
+```
+
+## Range Configuration
+
+`rangeX` sets the horizontal extent the grid covers and `rangeY` the vertical extent. Each takes one of three values:
+
+- **`true`**: cover the visible viewport. The grid re-tiles as you pan or zoom, so it always fills the screen.
+- **`[min, max]`**: cover a fixed interval.
+- **`false`**: omit the grid.
+
+A grid only draws where both `rangeX` and `rangeY` are set, since together they define the rectangle being filled. Setting either to `false` hides the grid.
+
+```typescript
+// Infinite-feeling grid that always fills the view
+scene.create("grid2d", {
+  rangeX: true,
+  rangeY: true,
+});
+
+// Grid confined to a fixed rectangle
+scene.create("grid2d", {
+  rangeX: [-5, 5],
+  rangeY: [0, 8],
+});
+```
+
+## Grid Spacing
+
+`gap` is the distance between grid lines. Pass a number for a fixed spacing, or `"auto"` to pick a round spacing that adapts to the zoom level:
+
+```typescript
+// Fine grid: a line every 0.5 units
+scene.create("grid2d", {
+  rangeX: [-5, 5],
+  rangeY: [-5, 5],
+  gap: 0.5,
+});
+
+// Spacing chosen automatically from the current zoom
+scene.create("grid2d", {
+  rangeX: true,
+  rangeY: true,
+  gap: "auto",
+});
+```
+
+## Styling
+
+```typescript
+scene.create("grid2d", {
+  rangeX: [-10, 10],
+  rangeY: [-10, 10],
+  color: "#333",   // Line color
+  opacity: 0.3,    // Line opacity
+  thickness: 1,    // Line width
+});
+```
+
+## Common Patterns
+
+### Grid with Axes
+
+Pair a faint viewport-filling grid with bolder [axes](/docs/2d-items/axes) on top:
+
+```typescript
+scene.create("grid2d", {
+  rangeX: true,
+  rangeY: true,
+  gap: "auto",
+  color: "#444",
+  opacity: 0.4,
+});
+
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  tickmarks: true,
+  labels: true,
+});
+```
+
+## Examples
+
+Ranges can be reactive:
+
+```typescript
+const size = scene.atom(5);
+
+scene.create("grid2d", {
+  rangeX: scene.atom((get) => [-get(size), get(size)]),
+  rangeY: scene.atom((get) => [-get(size), get(size)]),
+  color: "#555",
+});
+
+size.set(10);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `rangeX` | `boolean \| [number, number]` | `[-10, 10]` | Horizontal extent of the grid |
+| `rangeY` | `boolean \| [number, number]` | `[-10, 10]` | Vertical extent of the grid |
+| `gap` | `number \| "auto"` | `1` | Distance between grid lines, or `"auto"` to adapt to zoom |
+| `color` | `string` | `"white"` | Grid line color |
+| `opacity` | `number` | `0.3` | Grid line opacity (0 to 1) |
+| `thickness` | `number` | `1` | Line width |
+| `visible` | `boolean` | `true` | Whether the grid is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"none"` | Whether the grid receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Range Values
+
+| Value | Meaning |
+|-------|---------|
+| `true` | Cover the visible viewport |
+| `[min, max]` | Cover a fixed interval |
+| `false` | Omit the grid |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `rangeX` | `BoundAtom<boolean \| [number, number]>` | Horizontal range atom |
+| `rangeY` | `BoundAtom<boolean \| [number, number]>` | Vertical range atom |
+| `gap` | `BoundAtom<number \| "auto">` | Gap atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

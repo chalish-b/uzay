@@ -1,0 +1,153 @@
+---
+title: Regions
+description: Filled polygons in the plane
+---
+
+## What is a Region2D?
+
+A `Region2D` renders a filled polygon (or several disjoint polygons) in the plane. Regions are useful for:
+
+- Shading areas, such as the region under a curve
+- Highlighting domains and feasible sets
+- Drawing filled shapes with an optional outline
+
+## Basic Usage
+
+Pass an array of vertices and the region fills the polygon they enclose:
+
+```typescript
+scene.create("region2d", {
+  points: [vec2(0, 0), vec2(3, 0), vec2(3, 2), vec2(0, 2)],
+  color: "dodgerblue",
+  opacity: 0.35,
+});
+```
+
+The polygon is closed automatically; you do not need to repeat the first vertex at the end.
+
+## Multiple Polygons
+
+To draw several disjoint pieces as a single region, pass an array of vertex arrays. This is what `points` accepts as its second shape, `Vec2[][]`:
+
+```typescript
+scene.create("region2d", {
+  points: [
+    [vec2(-3, 0), vec2(-1, 0), vec2(-2, 2)], // left triangle
+    [vec2(1, 0), vec2(3, 0), vec2(2, 2)],    // right triangle
+  ],
+  color: "gold",
+  opacity: 0.3,
+});
+```
+
+Both lobes share the same fill and stroke styling and behave as one item.
+
+## Styling
+
+### Fill
+
+`color` and `opacity` control the fill:
+
+```typescript
+scene.create("region2d", {
+  points: [vec2(0, 0), vec2(4, 0), vec2(2, 3)],
+  color: "tomato",
+  opacity: 0.5,
+});
+```
+
+### Stroke
+
+A region has no outline by default (`strokeOpacity` is `0`). Set the stroke options to draw a border:
+
+```typescript
+scene.create("region2d", {
+  points: [vec2(0, 0), vec2(4, 0), vec2(2, 3)],
+  color: "tomato",
+  opacity: 0.25,
+  strokeColor: "white",
+  strokeOpacity: 0.8,
+  strokeThickness: 2,
+});
+```
+
+## Examples
+
+### Reactive Vertices
+
+Drive the vertices from atoms so the region follows draggable handles:
+
+```typescript
+const a = scene.create("point2d", { coords: vec2(0, 0), color: "gold" });
+const b = scene.create("point2d", { coords: vec2(4, 0), color: "gold" });
+const c = scene.create("point2d", { coords: vec2(2, 3), color: "gold" });
+
+scene.create("region2d", {
+  points: scene.atom((get) => [
+    get(a.coords),
+    get(b.coords),
+    get(c.coords),
+  ]),
+  color: "gold",
+  opacity: 0.3,
+});
+```
+
+Drag any handle and the filled triangle reshapes with it.
+
+### Area Under a Curve
+
+To shade the area between a [function](/docs/2d-items/functions) and a baseline without sampling the curve yourself, use the [functionArea2D](/docs/constructions/function-area-2d) construction. It builds a `Region2D` for you, splitting it into separate lobes where the curve crosses the baseline.
+
+## Updating Properties
+
+```typescript
+const region = scene.create("region2d", {
+  points: [vec2(0, 0), vec2(2, 0), vec2(1, 2)],
+  color: "white",
+});
+
+region.points.set([vec2(0, 0), vec2(3, 0), vec2(3, 3), vec2(0, 3)]);
+region.color.set("seagreen");
+region.opacity.set(0.5);
+```
+
+---
+
+## API Reference
+
+### Types
+
+```ts
+// A single polygon, or several disjoint polygons rendered as one region.
+type Region2DPoints = Vec2[] | Vec2[][];
+```
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `points` | `Vec2[] \| Vec2[][]` | a unit triangle | Polygon vertices, or an array of polygons |
+| `color` | `string` | `"white"` | Fill color |
+| `opacity` | `number` | `0.35` | Fill opacity (0 to 1) |
+| `strokeColor` | `string` | `"white"` | Outline color |
+| `strokeOpacity` | `number` | `0` | Outline opacity (0 hides the outline) |
+| `strokeThickness` | `number` | `1` | Outline width |
+| `visible` | `boolean` | `true` | Whether the region is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the region receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `points` | `BoundAtom<Region2DPoints>` | Vertices atom |
+| `color` | `BoundAtom<string>` | Fill color atom |
+| `opacity` | `BoundAtom<number>` | Fill opacity atom |
+| `strokeColor` | `BoundAtom<string>` | Stroke color atom |
+| `strokeOpacity` | `BoundAtom<number>` | Stroke opacity atom |
+| `strokeThickness` | `BoundAtom<number>` | Stroke width atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

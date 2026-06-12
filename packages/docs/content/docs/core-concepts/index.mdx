@@ -44,7 +44,7 @@ const position = scene.atom((get) => {
 
 ## Items
 
-**Items** are the visual elements in a scene: points, lines, vectors, parametric curves, surfaces, overlays, and more. Every item property is an atom, so items are reactive by default.
+**Items** are the visual elements in a scene: points, lines, vectors, parametric curves, surfaces, overlays, and more. Every item property is an atom, so items are reactive by default. They come in [3D](/docs/3d-items) and [2D](/docs/2d-items) families that share the same mechanics.
 
 ```typescript
 const line = scene.create("line3d", {
@@ -54,7 +54,7 @@ const line = scene.create("line3d", {
 });
 ```
 
-[Browse all items](/docs/items)
+[Learn more about Items](/docs/core-concepts/items)
 
 ## Constructions
 
@@ -76,5 +76,6 @@ Points and vectors are draggable out of the box. You can also listen for drag, c
 <Cards>
   <Card title="Scenes & Views" href="/docs/core-concepts/scenes-views" description="Creating and rendering scenes" />
   <Card title="Atoms" href="/docs/core-concepts/atoms" description="Reactive state management" />
+  <Card title="Items" href="/docs/core-concepts/items" description="Creating, updating, and removing items" />
   <Card title="Interactions" href="/docs/core-concepts/interactions" description="Drag, click, and hover events" />
 </Cards>

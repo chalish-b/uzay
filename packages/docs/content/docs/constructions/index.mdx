@@ -3,7 +3,7 @@ title: Constructions
 description: Composable higher-level objects built from primitives
 ---
 
-Constructions are reusable functions that compose [items](/docs/items) into higher-level mathematical objects. A tangent line, for example, is just a point and a line wired together with derived atoms. The engine doesn't know what a "tangent line" is; it only sees the underlying items.
+Constructions are reusable functions that compose [items](/docs/core-concepts/items) into higher-level mathematical objects. A tangent line, for example, is just a point and a line wired together with derived atoms. The engine doesn't know what a "tangent line" is; it only sees the underlying items.
 
 ## Why constructions?
 
@@ -28,7 +28,7 @@ The first argument is always the scene. The second is an options object. The ret
 
 ### Options: values or atoms
 
-Most options work the same way as [item options](/docs/items): you can pass a plain value or an atom, and the construction handles either one. Pass plain values for things that won't change, pass atoms for things that should update dynamically.
+Most options work the same way as [item options](/docs/core-concepts/items): you can pass a plain value or an atom, and the construction handles either one. Pass plain values for things that won't change, pass atoms for things that should update dynamically.
 
 ```typescript
 // Static color
@@ -140,18 +140,20 @@ The conventions described on this page (options as `AtomLikeInput`, returning a 
 
 ## Available Constructions
 
-| Construction | Description |
-|---|---|
-| [curvePoint](/docs/constructions/curve-point) | Draggable point constrained to a parametric curve |
-| [functionArea2D](/docs/constructions/function-area-2d) | Filled area under a 2D function over an interval |
-| [tangentLine](/docs/constructions/tangent-line) | Tangent line at a point on a parametric curve |
-| [surfacePoint](/docs/constructions/surface-point) | Draggable point constrained to a surface |
-| [surfaceNormal](/docs/constructions/surface-normal) | Normal vector at a point on a surface |
+| Construction | Dimension | Description |
+|---|---|---|
+| [curvePoint](/docs/constructions/curve-point) | 3D | Draggable point constrained to a parametric curve |
+| [tangentLine](/docs/constructions/tangent-line) | 3D | Tangent line at a point on a parametric curve |
+| [surfacePoint](/docs/constructions/surface-point) | 3D | Draggable point constrained to a surface |
+| [surfaceNormal](/docs/constructions/surface-normal) | 3D | Normal vector at a point on a surface |
+| [curvePoint2D](/docs/constructions/curve-point-2d) | 2D | Draggable point constrained to a 2D parametric curve |
+| [functionArea2D](/docs/constructions/function-area-2d) | 2D | Filled area under a 2D function over an interval |
 
 <Cards>
   <Card title="Curve Point" href="/docs/constructions/curve-point" />
-  <Card title="Function Area 2D" href="/docs/constructions/function-area-2d" />
   <Card title="Tangent Line" href="/docs/constructions/tangent-line" />
   <Card title="Surface Point" href="/docs/constructions/surface-point" />
   <Card title="Surface Normal" href="/docs/constructions/surface-normal" />
+  <Card title="Curve Point 2D" href="/docs/constructions/curve-point-2d" />
+  <Card title="Function Area 2D" href="/docs/constructions/function-area-2d" />
 </Cards>

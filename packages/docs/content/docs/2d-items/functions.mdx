@@ -1,0 +1,148 @@
+---
+title: Functions
+description: Graphs of y = f(x)
+---
+
+## What is a Function2D?
+
+A `Function2D` plots the graph of a single-variable function $y = f(x)$. You give it a plain JavaScript function and it samples and draws the curve. Unlike a [parametric curve](/docs/2d-items/parametric), a function graph has exactly one $y$ for each $x$, which lets it sample efficiently across whatever range is on screen.
+
+## Basic Usage
+
+```typescript
+scene.create("function2d", {
+  f: (x) => 0.25 * x * x - 1,
+  color: "dodgerblue",
+  thickness: 2,
+});
+```
+
+## Domain
+
+The `domain` property decides which $x$ values are drawn:
+
+- **`"infinite"`**: the graph is sampled across the visible viewport and re-sampled as you pan or zoom, so it always fills the screen.
+- **`[min, max]`**: the graph is drawn only over that fixed interval.
+
+```typescript
+// Always fills the visible width
+scene.create("function2d", {
+  f: (x) => Math.sin(x),
+  domain: "infinite",
+});
+
+// Drawn only from x = 0 to x = 6
+scene.create("function2d", {
+  f: (x) => Math.sin(x),
+  domain: [0, 6],
+});
+```
+
+## Discontinuities
+
+Functions with vertical asymptotes or jumps would otherwise be drawn with a near-vertical segment connecting the two sides. List the $x$ values where the function breaks in `discontinuities`, and the curve is split there instead of joined across:
+
+```typescript
+// tan(x) has asymptotes at odd multiples of pi/2
+scene.create("function2d", {
+  f: (x) => Math.tan(x),
+  domain: [-Math.PI, Math.PI],
+  discontinuities: [-Math.PI / 2, Math.PI / 2],
+});
+```
+
+The curve also breaks automatically wherever `f(x)` returns a non-finite value (`NaN` or `Infinity`), so a function like `(x) => Math.sqrt(x)` simply has no curve where it is undefined.
+
+## Sampling
+
+`samples` controls how many points are evaluated across the drawn range. Raise it for wiggly functions, lower it for cheap straight-ish ones:
+
+```typescript
+scene.create("function2d", {
+  f: (x) => Math.sin(10 * x),
+  samples: 400, // Dense enough to resolve fast oscillation
+});
+```
+
+## Styling
+
+```typescript
+scene.create("function2d", {
+  f: (x) => Math.cos(x),
+  color: "tomato",
+  thickness: 3,
+});
+```
+
+## Examples
+
+### Reactive Function
+
+Drive the function from an atom to reshape the graph live:
+
+```typescript
+const k = scene.atom(1);
+
+scene.create("function2d", {
+  f: scene.atom((get) => {
+    const a = get(k);
+    return (x: number) => a * x * x;
+  }),
+  domain: "infinite",
+  color: "dodgerblue",
+});
+
+// Change the parabola's width
+k.set(0.5);
+```
+
+### Highlighting the Area Under a Curve
+
+To shade the region between a function and an axis, pair it with the [functionArea2D](/docs/constructions/function-area-2d) construction, which samples the same function and fills the area as a [region](/docs/2d-items/regions).
+
+## Updating Properties
+
+```typescript
+const graph = scene.create("function2d", {
+  f: (x) => x * x,
+  color: "white",
+});
+
+graph.f.set((x) => Math.sin(x));
+graph.domain.set([-3, 3]);
+graph.color.set("gold");
+graph.thickness.set(3);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(x: number) => number` | `(x) => x` | The function to plot |
+| `domain` | `"infinite" \| [number, number]` | `[-10, 10]` | Range of $x$ to draw, or `"infinite"` to follow the viewport |
+| `discontinuities` | `number[]` | `[]` | $x$ values where the curve should break |
+| `samples` | `number` | `128` | Number of points evaluated across the drawn range |
+| `color` | `string` | `"white"` | CSS color string |
+| `thickness` | `number` | `1` | Line width |
+| `visible` | `boolean` | `true` | Whether the graph is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the graph receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `f` | `BoundAtom<(x: number) => number>` | Function atom |
+| `domain` | `BoundAtom<"infinite" \| [number, number]>` | Domain atom |
+| `discontinuities` | `BoundAtom<number[]>` | Discontinuities atom |
+| `samples` | `BoundAtom<number>` | Sample count atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

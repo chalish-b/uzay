@@ -108,9 +108,43 @@ scene.create("overlay3d", {
 
 The label follows the point and updates its text as you drag. This is reactivity in Uzay: change an atom, and everything that depends on it updates automatically.
 
+## A 2D Scene
+
+Uzay also works in the plane. The 2D API mirrors the 3D one: swap `Scene3D`/`View3D` for `Scene2D`/`View2D`, use `vec2` instead of `vec3`, and create `*2d` items. Here is a graph of $y = \sin(x)$ with labeled axes:
+
+```typescript
+import { Scene2D, View2D, vec2 } from "uzay";
+
+const scene = new Scene2D();
+
+const camera = scene.create("camera2d", {
+  center: vec2(0, 0),
+  zoom: 1,
+});
+
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  tickmarks: true,
+  labels: true,
+});
+
+scene.create("function2d", {
+  f: (x) => Math.sin(x),
+  color: "dodgerblue",
+  thickness: 2,
+});
+
+const container = document.getElementById("container") as HTMLElement;
+const view = new View2D(scene, camera.id, container);
+```
+
+Drag the background to pan and scroll to zoom. From here, everything you know about atoms, dragging, and overlays carries over to 2D.
+
 ## Next Steps
 
 - [**Core Concepts**](/docs/core-concepts): Scenes, Views, and Atoms in depth
-- [**Items**](/docs/items): All available 3D items
+- [**3D Items**](/docs/3d-items): All available 3D items
+- [**2D Items**](/docs/2d-items): All available 2D items
 - [**Interactions**](/docs/core-concepts/interactions): Drag, click, and hover events
 

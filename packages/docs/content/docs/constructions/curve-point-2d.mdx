@@ -1,0 +1,122 @@
+---
+title: Curve Point 2D
+description: Draggable point constrained to a 2D parametric curve
+---
+
+## What is a Curve Point 2D?
+
+`curvePoint2D` creates a point that is constrained to move along a [2D parametric curve](/docs/2d-items/parametric). The user can drag the point and it slides along the curve, snapping to the nearest position. It is the planar counterpart of [curvePoint](/docs/constructions/curve-point). Useful for:
+
+- Exploring how a curve behaves at different parameter values
+- Driving other items or readouts reactively from a parameter $t$
+- Building interactive plane visualizations where $t$ needs to be adjustable
+
+Because the 2D view is orthographic, the cursor maps directly to a world position, so the construction snaps the point to the nearest $t$ by minimizing the plain point-to-curve distance.
+
+## Basic Usage
+
+```typescript
+import { Scene2D, curvePoint2D, vec2 } from "uzay";
+
+const f = (t: number) => vec2(Math.cos(t), Math.sin(t));
+
+scene.create("parametricfunction2d", {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  samples: 128,
+  color: "dodgerblue",
+});
+
+const p = curvePoint2D(scene, {
+  f,
+  tStart: 0,
+  tEnd: Math.PI * 2,
+  initialT: 1.0,
+  color: "gold",
+});
+```
+
+The point appears on the curve at $t = 1$ and can be dragged along it.
+
+## Reading and Setting the Parameter
+
+The returned `t` atom is writable. Read the current value, set it externally, or subscribe to changes:
+
+```typescript
+const p = curvePoint2D(scene, { f, initialT: 0 });
+
+// Read
+console.log(p.t.get());
+
+// Set externally (e.g. from a slider)
+p.t.set(Math.PI);
+
+// Subscribe to changes
+p.t.sub((value) => console.log("t is now", value));
+```
+
+## Examples
+
+### Coordinate Readout
+
+Show the current position with an [overlay](/docs/2d-items/overlays):
+
+```typescript
+const p = curvePoint2D(scene, { f, initialT: 0, color: "gold" });
+
+scene.create("overlay2d", {
+  position: p.point.coords,
+  content: scene.atom((get) => {
+    const { x, y } = get(p.point.coords);
+    return `(${x.toFixed(1)}, ${y.toFixed(1)})`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
+```
+
+Drag the point along the curve and the label follows.
+
+## Customizing the Point
+
+The returned `point` is a regular [Point2D](/docs/2d-items/points), so you can adjust any of its properties:
+
+```typescript
+const { point } = curvePoint2D(scene, { f, initialT: 0 });
+
+point.radius.set(8);
+point.color.set("lime");
+```
+
+## Cleanup
+
+Call `dispose()` to remove the point from the scene:
+
+```typescript
+p.dispose();
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(t: number) => Vec2` | (required) | The parametric function defining the curve |
+| `tStart` | `number` | `0` | Start of the parameter range |
+| `tEnd` | `number` | `1` | End of the parameter range |
+| `initialT` | `number` | `0` | Initial value of the $t$ parameter |
+| `color` | `string` | `"white"` | CSS color string |
+
+All options except `initialT` accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `point` | `Point2D` | The point item on the curve |
+| `t` | `BoundAtom<number>` | Writable atom for the current parameter value |
+| `dispose` | `() => void` | Removes the point from the scene |

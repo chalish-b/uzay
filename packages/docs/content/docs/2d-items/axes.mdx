@@ -1,0 +1,187 @@
+---
+title: Axes
+description: 2D coordinate axes
+---
+
+## What is Axes2D?
+
+`Axes2D` renders X and Y coordinate axes through the origin, with optional arrowheads, tick marks, and numeric labels. It provides orientation and scale reference for a plane visualization.
+
+## Basic Usage
+
+```typescript
+scene.create("axes2d", {
+  x: true,
+  y: true,
+});
+```
+
+## Axis Configuration
+
+Each axis takes one of three values:
+
+- **`true`**: draw the axis across the visible viewport. It re-extends as you pan or zoom, so it always spans the screen.
+- **`false`**: hide this axis.
+- **`[min, max]`**: draw the axis over a fixed range.
+
+```typescript
+// Both axes span the viewport
+scene.create("axes2d", { x: true, y: true });
+
+// X spans the viewport, Y is fixed from 0 to 8
+scene.create("axes2d", {
+  x: true,
+  y: [0, 8],
+});
+
+// Only the x-axis
+scene.create("axes2d", {
+  x: true,
+  y: false,
+});
+```
+
+## Styling
+
+### Color and Thickness
+
+```typescript
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  color: "#888",
+  thickness: 2,
+});
+```
+
+### Arrows
+
+Axes show arrowheads at their positive ends by default. Toggle them off:
+
+```typescript
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  arrows: false,
+});
+```
+
+## Tick Marks and Labels
+
+Enable `tickmarks` to draw ticks at regular intervals, and `labels` to print the numeric value at each tick:
+
+```typescript
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  tickmarks: true,
+  labels: true,
+});
+```
+
+### Tick Spacing
+
+`tickStep` sets the interval between ticks. Pass a number for a fixed step, or `"auto"` to pick a round step that adapts to the zoom level:
+
+```typescript
+// A tick every 2 units
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  tickmarks: true,
+  tickStep: 2,
+});
+
+// Step chosen automatically from the current zoom
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  tickmarks: true,
+  labels: true,
+  tickStep: "auto",
+});
+```
+
+### Styling Labels
+
+Tick labels carry a default look (color, font, and a subtle text-shadow for legibility). Providing `labelClassName` or `labelStyle` replaces that default styling entirely, so you can theme labels without fighting inline styles:
+
+```typescript
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  labels: true,
+  labelClassName: "axis-label",
+});
+
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  labels: true,
+  labelStyle: "color: #aaa; font-size: 11px;",
+});
+```
+
+## Examples
+
+Axis ranges can be reactive:
+
+```typescript
+const scale = scene.atom(5);
+
+scene.create("axes2d", {
+  x: scene.atom((get) => [-get(scale), get(scale)]),
+  y: scene.atom((get) => [-get(scale), get(scale)]),
+});
+
+scale.set(10);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `x` | `boolean \| [number, number]` | `true` | X-axis configuration |
+| `y` | `boolean \| [number, number]` | `true` | Y-axis configuration |
+| `color` | `string` | `"white"` | Axis color |
+| `thickness` | `number` | `1` | Line width |
+| `arrows` | `boolean` | `true` | Show arrowheads at positive ends |
+| `tickmarks` | `boolean` | `false` | Show tick marks |
+| `tickStep` | `number \| "auto"` | `1` | Interval between ticks, or `"auto"` to adapt to zoom |
+| `labels` | `boolean` | `false` | Show numeric labels at ticks |
+| `labelClassName` | `string` | `""` | CSS class for tick labels (replaces default label styling) |
+| `labelStyle` | `string` | `""` | Inline CSS for tick labels (replaces default label styling) |
+| `visible` | `boolean` | `true` | Whether the axes are shown |
+| `pointerEvents` | `"auto" \| "none"` | `"none"` | Whether the axes receive pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Axis Configuration Values
+
+| Value | Meaning |
+|-------|---------|
+| `true` | Draw the axis across the visible viewport |
+| `false` | Hide the axis |
+| `[min, max]` | Draw the axis over a fixed range |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `x` | `BoundAtom<boolean \| [number, number]>` | X-axis config atom |
+| `y` | `BoundAtom<boolean \| [number, number]>` | Y-axis config atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `arrows` | `BoundAtom<boolean>` | Arrows atom |
+| `tickmarks` | `BoundAtom<boolean>` | Tick marks atom |
+| `tickStep` | `BoundAtom<number \| "auto">` | Tick step atom |
+| `labels` | `BoundAtom<boolean>` | Labels atom |
+| `labelClassName` | `BoundAtom<string>` | Label class atom |
+| `labelStyle` | `BoundAtom<string>` | Label style atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

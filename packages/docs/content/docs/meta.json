@@ -1,3 +1,3 @@
 {
-  "pages": ["index", "getting-started", "core-concepts", "utilities", "items", "constructions", "react-usage"]
+  "pages": ["index", "getting-started", "core-concepts", "3d-items", "2d-items", "constructions", "utilities", "react-usage"]
 }

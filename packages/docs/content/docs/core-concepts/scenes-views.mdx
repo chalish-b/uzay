@@ -135,6 +135,26 @@ Views come with built-in orbit controls:
 - **Right-click + drag**: Pan the camera
 - **Scroll**: Zoom in/out
 
+## 2D Scenes and Views
+
+Everything above has a planar equivalent. A `Scene2D` holds 2D items and renders through a `View2D`, with the same `create`, `remove`, and `atom` methods and the same three-argument view constructor:
+
+```typescript
+import { Scene2D, View2D, vec2 } from "uzay";
+
+const scene = new Scene2D();
+
+const camera = scene.create("camera2d", {
+  center: vec2(0, 0),
+  zoom: 1,
+});
+
+const container = document.getElementById("canvas-container") as HTMLElement;
+const view = new View2D(scene, camera.id, container);
+```
+
+The only difference in feel is the controls: instead of orbiting, a `View2D` pans when you drag the background and zooms when you scroll. See [Camera2D](/docs/2d-items/camera) for framing and [2D Items](/docs/2d-items) for what you can place in the scene.
+
 ---
 
 ## API Reference
@@ -156,4 +176,8 @@ Views come with built-in orbit controls:
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `changeActiveCam` | `changeActiveCam(cameraId)` | Switch to a different camera |
+
+### Scene2D and View2D
+
+`Scene2D` and `View2D` are the planar counterparts. They expose the same methods and constructor as the 3D versions: `new View2D(scene, cameraId, container)` renders a 2D scene, and `view.changeActiveCam(cameraId)` switches the active [Camera2D](/docs/2d-items/camera).
 

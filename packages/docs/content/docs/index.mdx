@@ -1,9 +1,9 @@
 ---
 title: Uzay
-description: Reactive 3D mathematical visualizations
+description: "Reactive 3D & 2D math visualizations for the web"
 ---
 
-Uzay (oo-zai) is a library for creating interactive 3D mathematical visualizations with reactive state management. Built on Three.js, it provides a declarative API where your visualizations automatically update when underlying data changes.
+Uzay (pronounced *oo-zai*, Turkish for *space*) is a TypeScript library for building interactive math figures, the kind you'd make in GeoGebra or Desmos, but as a composable, code-based part of your own app. Every value is a reactive atom: drag a point and the line, the label, and everything else derived from it update on their own. Inspired by Manim, scenes are defined in code, except they run live in the browser instead of being rendered to video.
 
 <Callout type="warning">
 Uzay is in early development. The API is unstable, features may be incomplete or missing, and breaking changes can happen at any time. Use it for experimentation and prototyping, but keep in mind that things will change.
@@ -16,17 +16,19 @@ Uzay is in early development. The API is unstable, features may be incomplete or
 ## Key Features
 
 - **Reactive by design**: Values are atoms that automatically trigger re-renders when updated
+- **3D and 2D**: Points, lines, vectors, surfaces, planes, spheres, and parametric curves in 3D, plus functions, regions, and area-under-curve in 2D
 - **Imperative, composable API**: Build scenes with `scene.create()`, compose reusable constructions as plain functions
 - **TypeScript-first**: Full type safety and autocomplete support
 - **Interactive by default**: Points and vectors are draggable out of the box, with built-in drag, click, and hover events
 - **Framework agnostic**: Works with vanilla JS, React, or any other framework
-- **Three.js powered**: Hardware-accelerated 3D rendering
+- **Three.js powered**: Hardware-accelerated rendering
 
 Get up and running in a few minutes with the [Getting Started](/docs/getting-started) guide.
 
 <Cards>
   <Card title="Getting Started" href="/docs/getting-started" description="Installation and first steps" />
   <Card title="Core Concepts" href="/docs/core-concepts" description="Scenes, Atoms, Items, and Constructions" />
-  <Card title="Items" href="/docs/items" description="Points, Lines, Curves, and more" />
+  <Card title="3D Items" href="/docs/3d-items" description="Points, vectors, surfaces, and more in 3D" />
+  <Card title="2D Items" href="/docs/2d-items" description="Points, functions, regions, and more in 2D" />
   <Card title="Constructions" href="/docs/constructions" description="Composable higher-level objects" />
 </Cards>

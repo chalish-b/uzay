@@ -1,0 +1,169 @@
+---
+title: Lines
+description: 2D line segments
+---
+
+## What is a Line2D?
+
+A `Line2D` renders as a straight segment between two points in the plane. Lines are useful for:
+
+- Connecting points
+- Drawing edges of shapes
+- Construction and guide lines
+- Chords, secants, and tangents
+
+## Basic Usage
+
+```typescript
+const line = scene.create("line2d", {
+  start: vec2(0, 0),
+  end: vec2(4, 3),
+  color: "cyan",
+  thickness: 2,
+});
+```
+
+## Styling Lines
+
+### Color
+
+Any CSS color string:
+
+```typescript
+scene.create("line2d", {
+  start: vec2(0, 0),
+  end: vec2(1, 0),
+  color: "red",
+});
+```
+
+### Thickness
+
+Control the line width:
+
+```typescript
+scene.create("line2d", {
+  start: vec2(0, 0),
+  end: vec2(1, 0),
+  thickness: 1, // Thin
+});
+
+scene.create("line2d", {
+  start: vec2(0, 1),
+  end: vec2(1, 1),
+  thickness: 3, // Thick
+});
+```
+
+### Opacity
+
+Lines support transparency via the `opacity` property (0 = fully transparent, 1 = fully opaque):
+
+```typescript
+scene.create("line2d", {
+  start: vec2(0, 0),
+  end: vec2(4, 3),
+  color: "cyan",
+  opacity: 0.4, // Semi-transparent
+});
+```
+
+This is handy for de-emphasizing construction or guide lines without hiding them entirely.
+
+## Examples
+
+### Connecting Two Points
+
+Pass point atoms directly as line endpoints:
+
+```typescript
+const p1 = scene.create("point2d", { coords: vec2(0, 0), color: "red" });
+const p2 = scene.create("point2d", { coords: vec2(3, 3), color: "blue" });
+
+scene.create("line2d", {
+  start: p1.coords,
+  end: p2.coords,
+  color: "white",
+  thickness: 1,
+});
+```
+
+Drag either point and the line follows.
+
+### Line with Length Label
+
+```typescript
+const p1 = scene.create("point2d", { coords: vec2(0, 0), color: "red" });
+const p2 = scene.create("point2d", { coords: vec2(3, 2), color: "blue" });
+
+scene.create("line2d", {
+  start: p1.coords,
+  end: p2.coords,
+  color: "white",
+});
+
+// Label at the midpoint showing the line's length
+const midpoint = scene.atom((get) => {
+  const start = get(p1.coords);
+  const end = get(p2.coords);
+  return vec2((start.x + end.x) / 2, (start.y + end.y) / 2);
+});
+
+scene.create("overlay2d", {
+  position: midpoint,
+  content: scene.atom((get) => {
+    const diff = Vec2.subtract(get(p2.coords), get(p1.coords));
+    return `d = ${Vec2.length(diff).toFixed(2)}`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(6, -6),
+});
+```
+
+## Updating Properties
+
+```typescript
+const line = scene.create("line2d", {
+  start: vec2(0, 0),
+  end: vec2(1, 1),
+  color: "white",
+});
+
+line.start.set(vec2(-1, -1));
+line.end.set(vec2(2, 2));
+
+line.color.set("pink");
+line.thickness.set(3);
+line.opacity.set(0.5);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `start` | `Vec2` | `{ x: 0, y: 0 }` | Starting point |
+| `end` | `Vec2` | `{ x: 0, y: 0 }` | Ending point |
+| `color` | `string` | `"white"` | CSS color string |
+| `thickness` | `number` | `1` | Line width |
+| `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `visible` | `boolean` | `true` | Whether the line is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the line receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `start` | `BoundAtom<Vec2>` | Start point atom |
+| `end` | `BoundAtom<Vec2>` | End point atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

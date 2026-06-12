@@ -1,0 +1,176 @@
+---
+title: Vectors
+description: 2D vector arrows
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+## What is a Vector2D?
+
+A `Vector2D` renders as an arrow in the plane, defined by an origin point and a direction vector. The arrow points from `origin` to `origin + vector`. Vectors are useful for:
+
+- Showing forces, velocities, or gradients
+- Visualizing tangents and normals
+- Drawing basis vectors
+- Creating interactive direction handles
+
+## Basic Usage
+
+```typescript
+const v = scene.create("vector2d", {
+  origin: vec2(0, 0),
+  vector: vec2(3, 2),
+  color: "cyan",
+});
+```
+
+This draws an arrow from the origin pointing to (3, 2).
+
+## Styling Vectors
+
+### Color
+
+Any CSS color string:
+
+```typescript
+scene.create("vector2d", { vector: vec2(1, 0), color: "red" });
+scene.create("vector2d", { vector: vec2(0, 1), color: "green" });
+```
+
+### Thickness
+
+Control the shaft width:
+
+```typescript
+scene.create("vector2d", { vector: vec2(3, 0), thickness: 1 }); // Thin
+scene.create("vector2d", { vector: vec2(0, 3), thickness: 3 }); // Thick
+```
+
+### Arrow Head
+
+Customize the arrowhead with `headLength` and `headWidth`. Both are measured in **CSS pixels**, so the head keeps a constant size as the camera zooms:
+
+```typescript
+scene.create("vector2d", {
+  vector: vec2(5, 0),
+  color: "orange",
+  headLength: 20, // Longer arrow tip
+  headWidth: 14,  // Wider arrow tip
+});
+```
+
+## Draggable Vectors
+
+Vectors are draggable by default. Grab the arrow tip and drag it around. The `draggable` property controls which axes the tip can move along:
+
+```typescript
+// Drag freely in the plane (default)
+scene.create("vector2d", { vector: vec2(1, 1), draggable: "xy" });
+
+// Only drag along the x-axis
+scene.create("vector2d", { vector: vec2(1, 0), draggable: "x" });
+
+// Not draggable
+scene.create("vector2d", { vector: vec2(1, 1), draggable: "none" });
+```
+
+Only the arrow tip is draggable; the origin stays fixed. The cursor changes to a grab icon when hovering over the tip.
+
+<Callout type="warning">
+Dragging only works when the `vector` field is a writable atom (a plain value or `scene.atom(value)`). If the vector is a derived atom, dragging is automatically disabled.
+</Callout>
+
+## Examples
+
+### Vector with Magnitude Label
+
+Drag the arrow tip and the overlay shows the current magnitude:
+
+```typescript
+const v = scene.create("vector2d", {
+  origin: vec2(0, 0),
+  vector: vec2(3, 2),
+  color: "cyan",
+});
+
+scene.create("overlay2d", {
+  position: scene.atom((get) => {
+    const dir = get(v.vector);
+    return vec2(dir.x / 2, dir.y / 2);
+  }),
+  content: scene.atom((get) => {
+    const { x, y } = get(v.vector);
+    return `|v| = ${Math.hypot(x, y).toFixed(2)}`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
+```
+
+### Vector Between Two Points
+
+Draw a vector from one draggable point to another:
+
+```typescript
+const a = scene.create("point2d", { coords: vec2(0, 0), color: "red" });
+const b = scene.create("point2d", { coords: vec2(3, 2), color: "blue" });
+
+scene.create("vector2d", {
+  origin: a.coords,
+  vector: scene.atom((get) => Vec2.subtract(get(b.coords), get(a.coords))),
+  color: "white",
+  draggable: "none",
+});
+```
+
+Drag either point and the vector updates.
+
+## Updating Properties
+
+```typescript
+const v = scene.create("vector2d", {
+  origin: vec2(0, 0),
+  vector: vec2(1, 0),
+  color: "white",
+});
+
+v.origin.set(vec2(1, 1));
+v.vector.set(vec2(0, 3));
+v.color.set("lime");
+v.thickness.set(2);
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `origin` | `Vec2` | `{ x: 0, y: 0 }` | Starting point of the arrow |
+| `vector` | `Vec2` | `{ x: 1, y: 0 }` | Direction and length of the arrow |
+| `draggable` | `"xy" \| "x" \| "y" \| "none" \| "custom"` | `"xy"` | Axes the arrow tip can be dragged along |
+| `color` | `string` | `"white"` | CSS color string |
+| `thickness` | `number` | `1` | Shaft width |
+| `headLength` | `number` | `14` | Length of the arrowhead in CSS pixels |
+| `headWidth` | `number` | `10` | Width of the arrowhead in CSS pixels |
+| `visible` | `boolean` | `true` | Whether the vector is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the vector receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags for grouping |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `origin` | `BoundAtom<Vec2>` | Origin point atom |
+| `vector` | `BoundAtom<Vec2>` | Direction vector atom |
+| `draggable` | `BoundAtom<...>` | Drag constraint atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `headLength` | `BoundAtom<number>` | Head length atom |
+| `headWidth` | `BoundAtom<number>` | Head width atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

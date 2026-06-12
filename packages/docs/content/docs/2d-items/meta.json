@@ -1,0 +1,5 @@
+{
+  "title": "2D Items",
+  "icon": "Square",
+  "pages": ["points", "lines", "vectors", "parametric", "functions", "regions", "overlays", "axes", "grid", "camera"]
+}

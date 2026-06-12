@@ -8,21 +8,19 @@ export default function HomePage() {
         <div className="mx-auto max-w-2xl lg:mx-0">
           <h1 className="mb-4 text-3xl font-bold sm:text-4xl">Uzay</h1>
           <p className="mb-6 text-lg text-fd-muted-foreground">
-            A reactive 3D mathematical visualization library for TypeScript,
-            built on Three.js and Jotai.
+            Reactive 3D &amp; 2D math visualizations for the web.
           </p>
 
           <div className="mb-8 flex flex-col gap-4 text-[15px]">
             <p>
-              Uzay lets you create interactive 3D scenes with points, lines,
-              parametric functions, spheres, planes, and more. Every property
-              is a reactive atom, so the scene updates automatically when
-              values change.
+              Uzay (pronounced <em>oo-zai</em>) is a TypeScript library for
+              building interactive math figures in code. Every value is a
+              reactive atom: drag a point and the line, the label, and
+              everything derived from it update on their own.
             </p>
             <p>
-              The core API is plain TypeScript with no framework dependency, so
-              it works with any UI layer. A lightweight React wrapper is
-              included for mounting scenes and connecting UI controls.
+              The core API is plain TypeScript with no framework dependency. A
+              lightweight React wrapper handles mounting scenes and wiring up UI.
             </p>
           </div>
 

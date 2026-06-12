@@ -1,0 +1,38 @@
+---
+title: 3D Items
+description: Visual primitives for a Scene3D
+---
+
+3D items are the visual building blocks of a `Scene3D`: points, lines, vectors, curves, surfaces, and the reference scaffolding around them. They render through a `View3D` with a perspective or orthographic [camera](/docs/3d-items/camera).
+
+Creating, updating, and removing items follows the same pattern for every kind. If you haven't seen it yet, read [Items](/docs/core-concepts/items) for the shared mechanics. Working in the plane instead? See [2D Items](/docs/2d-items).
+
+## Available Items
+
+| Item | Description | Common Use Cases |
+|------|-------------|------------------|
+| [Point3D](/docs/3d-items/points) | A sphere at a 3D position | Markers, vertices, handles |
+| [Line3D](/docs/3d-items/lines) | A line segment between two points | Connections, edges |
+| [Vector3D](/docs/3d-items/vectors) | An arrow with origin and direction | Forces, velocities, normals |
+| [ParametricFunction3D](/docs/3d-items/parametric) | A curve defined by a parametric equation | Helixes, spirals, paths |
+| [Surface3D](/docs/3d-items/surfaces) | A surface defined by a height function | Terrain, potential fields, function plots |
+| [Sphere3D](/docs/3d-items/spheres) | A sphere with center and radius | Volumes, regions, atoms |
+| [Plane3D](/docs/3d-items/planes) | A rectangular surface with normal vector | Surfaces, walls, cross-sections |
+| [Overlay3D](/docs/3d-items/overlays) | A 2D label anchored to a 3D position | Labels, equations, annotations |
+| [Axes3D](/docs/3d-items/axes) | Coordinate axes | Reference, orientation |
+| [Grid3D](/docs/3d-items/grid) | A grid on a plane | Reference planes, floors |
+| [Camera3D](/docs/3d-items/camera) | A viewpoint into the scene | Required for rendering |
+
+<Cards>
+  <Card title="Points" href="/docs/3d-items/points" />
+  <Card title="Lines" href="/docs/3d-items/lines" />
+  <Card title="Vectors" href="/docs/3d-items/vectors" />
+  <Card title="Parametric Curves" href="/docs/3d-items/parametric" />
+  <Card title="Surfaces" href="/docs/3d-items/surfaces" />
+  <Card title="Spheres" href="/docs/3d-items/spheres" />
+  <Card title="Planes" href="/docs/3d-items/planes" />
+  <Card title="Overlays" href="/docs/3d-items/overlays" />
+  <Card title="Axes" href="/docs/3d-items/axes" />
+  <Card title="Grid" href="/docs/3d-items/grid" />
+  <Card title="Camera" href="/docs/3d-items/camera" />
+</Cards>

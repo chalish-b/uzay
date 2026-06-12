@@ -54,7 +54,7 @@ Uzay (pronounced *oo-zai*, Turkish for *space*) is a TypeScript library for buil
   </tr>
   <tr>
     <td width="50%" align="center">
-      <a href="https://uzay.chalish.dev/docs/items/vectors">
+      <a href="https://uzay.chalish.dev/docs/3d-items/vectors">
         <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-vectors.gif" alt="Dragging the tip of a 3D vector" />
       </a>
       <br /><sub><b>Draggable vectors</b>: grab a vector's tip and anything derived from it follows.</sub>
@@ -186,7 +186,8 @@ Full docs live at **[uzay.chalish.dev](https://uzay.chalish.dev)**.
 
 - [Getting Started](https://uzay.chalish.dev/docs/getting-started): installation and your first scene.
 - [Core Concepts](https://uzay.chalish.dev/docs/core-concepts): scenes, views, atoms, and interactions.
-- [Items](https://uzay.chalish.dev/docs/items): points, lines, vectors, surfaces, and more.
+- [3D Items](https://uzay.chalish.dev/docs/3d-items): points, lines, vectors, surfaces, and more.
+- [2D Items](https://uzay.chalish.dev/docs/2d-items): points, functions, regions, and more.
 - [Constructions](https://uzay.chalish.dev/docs/constructions): composable higher-level objects.
 - [React Usage](https://uzay.chalish.dev/docs/react-usage): mounting scenes and wiring up UI.
 
