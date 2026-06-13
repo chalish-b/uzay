@@ -17,14 +17,21 @@ function buildScene2D() {
 
   // Two cameras over one scene. The top frames sin, the bottom frames cos, and
   // each only renders its own tag plus the untagged scaffolding.
+  // Shared camera pose. Both panels read and write the same center/zoom atoms,
+  // so panning or zooming one 2D panel moves the other in lockstep. Same trick
+  // as the 3D pair: hand one bound atom to both cameras and the view writes
+  // pan/zoom back through it.
+  const camCenter = scene.atom(vec2(0, 0));
+  const camZoom = scene.atom(1);
+
   const camTop = scene.create("camera2d", {
-    center: vec2(0, 0),
-    zoom: 0.8,
+    center: camCenter,
+    zoom: camZoom,
     visibleTags: ["top"],
   });
   const camBottom = scene.create("camera2d", {
-    center: vec2(0, 0),
-    zoom: 1.1,
+    center: camCenter,
+    zoom: camZoom,
     visibleTags: ["bottom"],
   });
 
@@ -155,14 +162,21 @@ function buildScene2D() {
 function buildScene3D() {
   const scene = new Scene3D();
 
+  // Shared camera pose. Both panels read and write the same position/lookAt
+  // atoms, so orbiting or panning one 3D panel moves the other in lockstep.
+  // Passing one bound atom to both cameras' fields makes them share state;
+  // OrbitControls writes back through it, so no library change is needed.
+  const camPosition = scene.atom(vec3(9, 7, 9));
+  const camLookAt = scene.atom(vec3(0, 0, 0));
+
   const camLeft = scene.create("camera3d", {
-    position: vec3(9, 7, 9),
-    lookAt: vec3(0, 0, 0),
+    position: camPosition,
+    lookAt: camLookAt,
     visibleTags: ["a"],
   });
   const camRight = scene.create("camera3d", {
-    position: vec3(-4, 6, 11),
-    lookAt: vec3(0, 0, 0),
+    position: camPosition,
+    lookAt: camLookAt,
     visibleTags: ["b"],
   });
 
@@ -254,7 +268,8 @@ const CHECKLIST = [
   "Drag the orange point (3D left): the right sphere grows and the vector follows",
   "You cannot grab a handle from a panel whose camera does not show it",
   "CSS labels follow the same filter (top readout absent from the bottom panel)",
-  "Pan/zoom one panel; the sibling keeps its own framing",
+  "Pan/zoom a 2D panel; the other 2D panel mirrors it (shared camera atom)",
+  "Orbit/pan a 3D panel; the other 3D panel mirrors it (shared camera atom)",
   "Switch a camera to 'all': the magenta 'extra' marker (tag outside the union) appears",
   "Toggle an item's .visible: it hides even where the camera shows its tag",
 ];
