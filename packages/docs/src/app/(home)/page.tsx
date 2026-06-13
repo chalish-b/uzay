@@ -13,7 +13,7 @@ export default function HomePage() {
 
           <div className="mb-8 flex flex-col gap-4 text-[15px]">
             <p>
-              Uzay (pronounced <em>oo-zai</em>) is a TypeScript library for
+              Uzay (pronounced <em>oo-ZAI</em>) is a TypeScript library for
               building interactive math figures in code. Every value is a
               reactive atom: drag a point and the line, the label, and
               everything derived from it update on their own.

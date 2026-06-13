@@ -35,7 +35,7 @@
 
 </div>
 
-Uzay (pronounced *oo-zai*, Turkish for *space*) is a TypeScript library for building interactive math figures, the kind you'd make in GeoGebra or Desmos, but as a composable, code-based part of your own app. Every value is a reactive atom: drag a point and the line, the label, and everything else derived from it update on their own. Inspired by Manim, scenes are defined in code, except they run live in the browser instead of being rendered to video.
+Uzay (pronounced *oo-ZAI*, Turkish for *space*) is a TypeScript library for building interactive math figures, the kind you'd make in GeoGebra or Desmos, but as a composable, code-based part of your own app. Every value is a reactive atom: drag a point and the line, the label, and everything else derived from it update on their own. Inspired by Manim, scenes are defined in code, except they run live in the browser instead of being rendered to video.
 
 <!-- <table> -->
 <!--   <tr> -->
