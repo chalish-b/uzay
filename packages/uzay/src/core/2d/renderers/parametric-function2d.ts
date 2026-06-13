@@ -44,6 +44,8 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
     const material = new LineMaterial({
       color: checkedColor(item.color, "ParametricFunction2D.color"),
       linewidth: item.thickness,
+      transparent: item.opacity < 1,
+      opacity: item.opacity,
     });
     const mesh = new Line2(geometry, material);
     mesh.visible = item.visible;
@@ -58,6 +60,8 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
   ): void {
     obj.material.color.set(checkedColor(item.color, "ParametricFunction2D.color"));
     obj.material.linewidth = item.thickness;
+    obj.material.opacity = item.opacity;
+    obj.material.transparent = item.opacity < 1;
     obj.material.needsUpdate = true;
     obj.mesh.visible = item.visible;
 

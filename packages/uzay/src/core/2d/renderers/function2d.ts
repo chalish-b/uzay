@@ -86,6 +86,8 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
     const material = new LineMaterial({
       color: checkedColor(item.color, "Function2D.color"),
       linewidth: item.thickness,
+      transparent: item.opacity < 1,
+      opacity: item.opacity,
     });
     const mesh = new LineSegments2(geometry, material);
     mesh.visible = item.visible;
@@ -97,6 +99,8 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
   update(item: ItemSnapshot<"function2d">, obj: ThreeSceneTypes["function2d"]): void {
     obj.material.color.set(checkedColor(item.color, "Function2D.color"));
     obj.material.linewidth = item.thickness;
+    obj.material.opacity = item.opacity;
+    obj.material.transparent = item.opacity < 1;
     obj.material.needsUpdate = true;
     obj.mesh.visible = item.visible;
 

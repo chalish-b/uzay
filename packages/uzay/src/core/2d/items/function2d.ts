@@ -18,6 +18,7 @@ export type Function2DFields = {
   discontinuities: number[];
   color: Color;
   thickness: number;
+  opacity: number;
   samples: number;
   visible: boolean;
   pointerEvents: PointerEvents;
@@ -33,6 +34,7 @@ export const function2dDefinition = defineItem2D({
     discontinuities: field<number[]>(() => []),
     color: field<Color>("white"),
     thickness: field(1),
+    opacity: field(1),
     samples: field(128),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
