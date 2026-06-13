@@ -38,7 +38,7 @@ function buildGeometry(item: ItemSnapshot<"parametricfunction2d">): LineGeometry
 export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> = {
   create(
     item: ItemSnapshot<"parametricfunction2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["parametricfunction2d"] {
     const geometry = buildGeometry(item);
     const material = new LineMaterial({
@@ -73,7 +73,7 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
 
   dispose(
     obj: ThreeSceneTypes["parametricfunction2d"],
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();

@@ -84,7 +84,7 @@ function buildGridGeometry(
 export const grid2dRenderer: ItemRenderer<"grid2d"> = {
   create(
     item: ItemSnapshot<"grid2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["grid2d"] {
     const geometry = buildGridGeometry(item);
     const material = new LineMaterial({
@@ -126,7 +126,7 @@ export const grid2dRenderer: ItemRenderer<"grid2d"> = {
     obj.layoutKey = layoutKey;
   },
 
-  dispose(obj: ThreeSceneTypes["grid2d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["grid2d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();

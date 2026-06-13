@@ -113,9 +113,13 @@ export type ThreeSceneTypes = {
 export type ThreeSceneObject<K extends ItemKind = ItemKind> =
   ThreeSceneTypes[K];
 
-// Renderer contract
+// Renderer contract.
+// `threeScene` is the item's own container in the scene graph (a per-item
+// group the view owns), not the root scene. Renderers only ever add/remove
+// their objects on it, which lets the view toggle camera-scoped visibility on
+// the whole item without touching the item's own `visible` field.
 export type ItemRenderer<K extends ItemKind> = {
-  create(item: ItemSnapshot<K>, threeScene: THREE.Scene): ThreeSceneTypes[K];
-  update(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K], threeScene: THREE.Scene): void;
-  dispose?(obj: ThreeSceneTypes[K], threeScene: THREE.Scene): void;
+  create(item: ItemSnapshot<K>, threeScene: THREE.Object3D): ThreeSceneTypes[K];
+  update(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K], threeScene: THREE.Object3D): void;
+  dispose?(obj: ThreeSceneTypes[K], threeScene: THREE.Object3D): void;
 };

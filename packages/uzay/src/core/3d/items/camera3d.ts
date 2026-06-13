@@ -1,5 +1,6 @@
 import type { AtomLikeOptions } from "../../shared/atom-wrapper";
 import { vec3, type Vec3 } from "../../shared/types/vec3";
+import type { ItemTags } from "../../shared/types/tags";
 import {
   field,
   type ItemHandleFromDefinition,
@@ -19,6 +20,10 @@ export type Camera3DFields = {
   zoom: number;
   near: number;
   far: number;
+  // Tags this camera renders. undefined shows everything; an array shows
+  // untagged items plus any item whose tags intersect the list. Lets several
+  // cameras frame different slices of one shared scene.
+  visibleTags: ItemTags | undefined;
 }
 
 export type Camera3DOptions = AtomLikeOptions<Camera3DFields>;
@@ -36,6 +41,7 @@ export const camera3dDefinition = defineItem3D({
     zoom: field(1),
     near: field(0.1),
     far: field(1000),
+    visibleTags: field<ItemTags | undefined>(undefined),
   },
 });
 

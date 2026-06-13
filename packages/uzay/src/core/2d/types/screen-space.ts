@@ -48,5 +48,11 @@ export function chainOnBeforeRender(
   ) {
     previous.call(this, renderer, scene, camera, geometry, material, group);
     hook.call(this, renderer, camera);
+    // Screen-space hooks set this.scale here, but the renderer already baked
+    // this object's world matrix for the frame before onBeforeRender ran. Without
+    // refreshing it, a scale change only shows on the next frame, so an object's
+    // first rendered frame (page load, or when a camera filter first reveals it)
+    // draws the raw unit-sized geometry. Recompute now so it lands this frame.
+    this.updateMatrixWorld();
   };
 }

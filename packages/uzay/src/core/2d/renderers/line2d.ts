@@ -19,7 +19,7 @@ function buildLineGeometry(
 export const line2dRenderer: ItemRenderer<"line2d"> = {
   create(
     item: ItemSnapshot<"line2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["line2d"] {
     const geometry = buildLineGeometry(item.start, item.end);
     const material = new LineMaterial({
@@ -49,7 +49,7 @@ export const line2dRenderer: ItemRenderer<"line2d"> = {
     (obj as { geometry: LineGeometry }).geometry = next;
   },
 
-  dispose(obj: ThreeSceneTypes["line2d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["line2d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();

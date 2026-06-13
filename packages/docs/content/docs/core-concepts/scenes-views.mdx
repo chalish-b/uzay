@@ -119,6 +119,58 @@ const topView = new View3D(scene, topCamera.id, document.getElementById("top"));
 
 Both views will update when the scene changes.
 
+## Camera-scoped visibility
+
+Multiple views become powerful when each one shows a different slice of the same scene. Every item carries a `tags` list, and every camera has a `visibleTags` list that decides which items it renders:
+
+- When `visibleTags` is unset (`undefined`), the camera renders everything. This is the default, so a camera shows the whole scene until you give it tags to filter by.
+- An item with no tags is universal: every camera renders it. Shared scaffolding like axes and grids can stay untagged and appear in every panel.
+- Otherwise a camera renders an item when their tags intersect.
+
+```typescript
+const scene = new Scene3D();
+
+// Each camera renders its own group, plus any untagged items.
+const inputCam = scene.create("camera3d", {
+  position: vec3(8, 6, 8),
+  lookAt: vec3(0, 0, 0),
+  visibleTags: ["input"],
+});
+const resultCam = scene.create("camera3d", {
+  position: vec3(-8, 6, 8),
+  lookAt: vec3(0, 0, 0),
+  visibleTags: ["result"],
+});
+
+// Untagged: shows in both views.
+scene.create("axes3d", { x: [-6, 6], y: [-6, 6], z: [-6, 6] });
+
+// A draggable handle, rendered only by the input camera.
+const handle = scene.create("point3d", {
+  coords: vec3(2, 1, 0),
+  draggable: "xyz",
+  tags: ["input"],
+});
+
+// Derived from the handle, rendered only by the result camera.
+scene.create("sphere3d", {
+  center: vec3(0, 0, 0),
+  radius: scene.atom((get) => {
+    const c = get(handle.coords);
+    return Math.hypot(c.x, c.y, c.z);
+  }),
+  tags: ["result"],
+});
+```
+
+Because there is one scene and one store, the two panels share reactive state automatically. Dragging the handle in the input view grows the sphere in the result view through the derived atom alone, with no code needed to keep the two panels in sync. Interaction honors the filter too: a camera cannot grab an item it does not render.
+
+To render only untagged items, pass an empty list: `visibleTags: []`.
+
+`visibleTags` is a reactive atom like any other field, so you can drive it from state to reveal a group, swap which group is shown, or animate a reveal over time.
+
+Camera-scoped visibility works the same way in 2D: give a [Camera2D](/docs/2d-items/camera) a `visibleTags` list and tag your [2D items](/docs/2d-items) to match.
+
 ## Switching Cameras
 
 Change the active camera of a view:

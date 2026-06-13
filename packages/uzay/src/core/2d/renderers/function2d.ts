@@ -80,7 +80,7 @@ function buildGeometry(
 export const function2dRenderer: ItemRenderer<"function2d"> = {
   create(
     item: ItemSnapshot<"function2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["function2d"] {
     const geometry = buildGeometry(item);
     const material = new LineMaterial({
@@ -126,7 +126,7 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
     obj.layoutKey = layoutKey;
   },
 
-  dispose(obj: ThreeSceneTypes["function2d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["function2d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();

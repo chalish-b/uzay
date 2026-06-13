@@ -35,7 +35,7 @@ function applyStyles(
 export const overlay2dRenderer: ItemRenderer<"overlay2d"> = {
   create(
     item: ItemSnapshot<"overlay2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["overlay2d"] {
     const wrapper = document.createElement("div");
     wrapper.style.width = "max-content";
@@ -66,7 +66,7 @@ export const overlay2dRenderer: ItemRenderer<"overlay2d"> = {
 
   dispose(
     obj: ThreeSceneTypes["overlay2d"],
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): void {
     threeScene.remove(obj.cssObject);
     obj.cssObject.element.remove();

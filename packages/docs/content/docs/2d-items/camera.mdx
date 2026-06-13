@@ -109,6 +109,19 @@ view.changeActiveCam(close.id);
 
 Each camera keeps its own `center` and `zoom`, so switching back restores the previous framing.
 
+## Filtering Visible Items
+
+A camera can render only part of the scene. Pass a `visibleTags` list and the camera draws only items whose `tags` match it, plus any untagged items. This is what lets several panels share one scene yet show different content.
+
+```typescript
+const camera = scene.create("camera2d", {
+  center: vec2(0, 0),
+  visibleTags: ["top"],
+});
+```
+
+See [Camera-scoped visibility](/docs/core-concepts/scenes-views#camera-scoped-visibility) for the rules and a full example.
+
 ---
 
 ## API Reference
@@ -121,6 +134,7 @@ Each camera keeps its own `center` and `zoom`, so switching back restores the pr
 | `zoom` | `number` | `1` | Zoom relative to the base extent (larger zooms in) |
 | `enablePan` | `boolean` | `true` | Enable panning by dragging the background |
 | `enableZoom` | `boolean` | `true` | Enable zooming by scrolling |
+| `visibleTags` | `string[] \| undefined` | `undefined` | Tags this camera renders; unset shows everything. See [Camera-scoped visibility](/docs/core-concepts/scenes-views#camera-scoped-visibility) |
 
 ### Returned Item
 
@@ -131,3 +145,4 @@ Each camera keeps its own `center` and `zoom`, so switching back restores the pr
 | `zoom` | `BoundAtom<number>` | Zoom atom |
 | `enablePan` | `BoundAtom<boolean>` | Pan toggle atom |
 | `enableZoom` | `BoundAtom<boolean>` | Zoom toggle atom |
+| `visibleTags` | `BoundAtom<string[] \| undefined>` | Visible-tags atom |

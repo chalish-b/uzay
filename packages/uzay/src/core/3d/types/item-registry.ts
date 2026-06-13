@@ -68,6 +68,7 @@ export type ItemSnapshot<K extends ItemKind = ItemKind> = K extends ItemKind
       id: ItemId;
       kind: K;
       isDirty: boolean;
+      version: number;
     } & ItemFields<K>
   : never;
 

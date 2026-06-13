@@ -6,7 +6,7 @@ import { applyOpacityMaterialState } from "./material-transparency";
 import { checkedColor } from "../../shared/types/colors";
 
 export const line3dRenderer: ItemRenderer<"line3d"> = {
-  create(item: ItemSnapshot<"line3d">, threeScene: THREE.Scene): ThreeSceneTypes["line3d"] {
+  create(item: ItemSnapshot<"line3d">, threeScene: THREE.Object3D): ThreeSceneTypes["line3d"] {
     const curve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(item.start.x, item.start.y, item.start.z),
       new THREE.Vector3(item.end.x, item.end.y, item.end.z),
@@ -56,7 +56,7 @@ export const line3dRenderer: ItemRenderer<"line3d"> = {
     obj.mesh.visible = item.visible;
   },
 
-  dispose(obj: ThreeSceneTypes["line3d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["line3d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();

@@ -134,7 +134,7 @@ function buildUnitArrowGeometry(axis: AxisKey): THREE.BufferGeometry {
 function createAxis(
   axis: AxisKey,
   item: ItemSnapshot<"axes2d">,
-  threeScene: THREE.Scene,
+  threeScene: THREE.Object3D,
   viewport: Viewport2D | null = null
 ): ThreeSceneTypes["axes2d"]["x"] {
   const enabled = item[axis] !== false;
@@ -208,7 +208,7 @@ function createAxis(
 
 function disposeAxis(
   axisObj: ThreeSceneTypes["axes2d"]["x"],
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ) {
   threeScene.remove(axisObj.line.mesh);
   axisObj.line.geometry.dispose();
@@ -227,7 +227,7 @@ function disposeAxis(
 
 function disposeLabels(
   labels: ThreeSceneTypes["axes2d"]["labels"],
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ) {
   for (const label of labels) {
     threeScene.remove(label.cssObject);
@@ -238,7 +238,7 @@ function disposeLabels(
 function createLabels(
   item: ItemSnapshot<"axes2d">,
   viewport: Viewport2D,
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ): ThreeSceneTypes["axes2d"]["labels"] {
   if (!item.labels || !item.visible) return [];
 
@@ -286,7 +286,7 @@ function createLabels(
 export const axes2dRenderer: ItemRenderer<"axes2d"> = {
   create(
     item: ItemSnapshot<"axes2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["axes2d"] {
     return {
       kind: "axes2d",
@@ -303,7 +303,7 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
   update(
     item: ItemSnapshot<"axes2d">,
     obj: ThreeSceneTypes["axes2d"],
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): void {
     disposeAxis(obj.x, threeScene);
     disposeAxis(obj.y, threeScene);
@@ -346,7 +346,7 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
     obj.layoutKey = layoutKey;
   },
 
-  dispose(obj: ThreeSceneTypes["axes2d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["axes2d"], threeScene: THREE.Object3D): void {
     disposeAxis(obj.x, threeScene);
     disposeAxis(obj.y, threeScene);
     disposeLabels(obj.labels, threeScene);

@@ -7,7 +7,7 @@ import { checkedColor } from "../../shared/types/colors";
 export const point3dRenderer: ItemRenderer<"point3d"> = {
   create(
     item: ItemSnapshot<"point3d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["point3d"] {
     const geometry = new THREE.SphereGeometry(1);
     const material = new THREE.MeshPhongMaterial({
@@ -36,7 +36,7 @@ export const point3dRenderer: ItemRenderer<"point3d"> = {
     obj.mesh.visible = item.visible;
   },
 
-  dispose(obj: ThreeSceneTypes["point3d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["point3d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();

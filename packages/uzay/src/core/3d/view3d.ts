@@ -4,6 +4,7 @@ import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import type { Camera3D, Camera3DFields } from "./items/camera3d";
 import type { Scene3D, SceneSnapshot } from "./scene3d";
 import { Vec3, vec3 } from "../shared/types/vec3";
+import { cameraShowsTags } from "../shared/types/tags";
 import type { ItemId, ItemSnapshot } from "./types/item-registry";
 import { setBoundAtomIfWritable, type AtomLikeOptions } from "../shared/atom-wrapper";
 import { getRenderer, type ThreeSceneObject } from "./renderers";
@@ -27,6 +28,10 @@ export class View3D {
   css2dRenderer: CSS2DRenderer;
   frameScheduled: boolean = false;
   threeMeshes: Map<ItemId, ThreeSceneObject> = new Map();
+  // Each item's objects live under their own group so the active camera's
+  // `visibleTags` can hide the whole item at once, independent of the item's
+  // own `visible` field.
+  itemGroups: Map<ItemId, THREE.Group> = new Map();
   ambientLight: THREE.AmbientLight;
   directionalLight: THREE.DirectionalLight;
   unsubscribeSceneInvalidation: (() => void) | null = null;
@@ -193,10 +198,13 @@ export class View3D {
       this.lastSceneSnapshot.itemSnapshots.keys()
     );
     for (const [id, item] of newSceneSnapshot.itemSnapshots.entries()) {
-      if (unrenderedItems.has(id)) {
-        // If it exists and it's dirty, we update it
+      const prev = this.lastSceneSnapshot.itemSnapshots.get(id);
+      if (prev) {
+        // Redraw only what changed since this view last applied it. Comparing
+        // against our own previous snapshot keeps views independent: another
+        // view rendering the same item doesn't reset our state.
         unrenderedItems.delete(id);
-        if (!item.isDirty) continue;
+        if (item.version === prev.version) continue;
         this.updateItem(item);
       } else {
         // If the item doesn't exist in the last snapshot, we create it
@@ -220,27 +228,34 @@ export class View3D {
 
   createItem(item: ItemSnapshot) {
     const renderer = getRenderer(item.kind);
-    const obj = renderer.create(item, this.threeScene);
+    const group = new THREE.Group();
+    this.threeScene.add(group);
+    const obj = renderer.create(item, group);
     this.threeMeshes.set(item.id, obj);
+    this.itemGroups.set(item.id, group);
   }
 
   updateItem(item: ItemSnapshot) {
     const obj = this.threeMeshes.get(item.id);
-    if (!obj || !item.isDirty) return;
+    const group = this.itemGroups.get(item.id);
+    if (!obj || !group) return;
     // Ensure the kind matches
     if (obj.kind !== item.kind) return;
     const renderer = getRenderer(item.kind);
-    renderer.update(item, obj, this.threeScene);
+    renderer.update(item, obj, group);
   }
 
   removeItem(id: ItemId) {
     const obj = this.threeMeshes.get(id);
-    if (!obj) return;
+    const group = this.itemGroups.get(id);
+    if (!obj || !group) return;
     const renderer = getRenderer(obj.kind);
     if (renderer.dispose) {
-      renderer.dispose(obj, this.threeScene);
+      renderer.dispose(obj, group);
     }
+    this.threeScene.remove(group);
     this.threeMeshes.delete(id);
+    this.itemGroups.delete(id);
   }
 
   requestRender() {
@@ -266,6 +281,9 @@ export class View3D {
     this.threeOrbitControls.update();
     this.directionalLight.position.copy(this.threeCamera.position);
     this.directionalLight.target.position.set(0, 0, 0);
+
+    // Hide items the active camera's visibleTags filter out
+    this.applyCameraVisibility();
 
     // Render
     this.threeRenderer.render(this.threeScene, this.threeCamera);
@@ -414,6 +432,36 @@ export class View3D {
     }
   }
 
+  // ========== Camera-scoped visibility ==========
+
+  // Hide whole items the active camera's `visibleTags` filters out. We toggle
+  // the per-item group (which culls its WebGL meshes) and each CSS2D label
+  // inside it (CSS2DRenderer ignores an ancestor's visibility, so it needs its
+  // own flag set). The item's own `visible` field stays untouched on the inner
+  // meshes, so the two compose.
+  applyCameraVisibility(): void {
+    const visibleTags = this.activeCam.visibleTags.get();
+    for (const [id, group] of this.itemGroups.entries()) {
+      const item = this.lastSceneSnapshot.itemSnapshots.get(id);
+      const tags = item && "tags" in item ? item.tags : [];
+      const show = cameraShowsTags(visibleTags, tags);
+      group.visible = show;
+      group.traverse((obj) => {
+        if ((obj as { isCSS2DObject?: boolean }).isCSS2DObject) {
+          obj.visible = show;
+        }
+      });
+    }
+  }
+
+  // Whether the active camera renders the given item (by its tags). Used to
+  // keep hit-testing in step with what's drawn.
+  cameraShowsItem(id: ItemId): boolean {
+    const item = this.lastSceneSnapshot.itemSnapshots.get(id);
+    const tags = item && "tags" in item ? item.tags : [];
+    return cameraShowsTags(this.activeCam.visibleTags.get(), tags);
+  }
+
   // ========== Interaction System ==========
 
   // Raycast to find item under pointer
@@ -437,12 +485,15 @@ export class View3D {
       let obj: THREE.Object3D | null = hit.object;
       while (obj) {
         if (obj.userData.itemId) {
+          const itemId = obj.userData.itemId as ItemId;
           // Skip items with pointerEvents: "none"
-          const item = this.scene.items.get(obj.userData.itemId as ItemId);
+          const item = this.scene.items.get(itemId);
           if (item && "pointerEvents" in item && item.pointerEvents.get() === "none") break;
+          // Can't grab what the active camera doesn't render.
+          if (!this.cameraShowsItem(itemId)) break;
 
           return {
-            itemId: obj.userData.itemId as ItemId,
+            itemId,
             worldPosition: vec3(hit.point.x, hit.point.y, hit.point.z),
           };
         }

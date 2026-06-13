@@ -1,5 +1,6 @@
 import type { AtomLikeOptions } from "../../shared/atom-wrapper";
 import { vec2, type Vec2 } from "../../shared/types/vec2";
+import type { ItemTags } from "../../shared/types/tags";
 import {
   field,
   type ItemHandleFromDefinition,
@@ -14,6 +15,10 @@ export type Camera2DFields = {
   zoom: number;
   enablePan: boolean;
   enableZoom: boolean;
+  // Tags this camera renders. undefined shows everything; an array shows
+  // untagged items plus any item whose tags intersect the list. Lets several
+  // cameras frame different slices of one shared scene.
+  visibleTags: ItemTags | undefined;
 };
 
 export type Camera2DOptions = AtomLikeOptions<Camera2DFields>;
@@ -25,6 +30,7 @@ export const camera2dDefinition = defineItem2D({
     zoom: field(1),
     enablePan: field(true),
     enableZoom: field(true),
+    visibleTags: field<ItemTags | undefined>(undefined),
   },
 });
 

@@ -46,7 +46,7 @@ function createTicksForAxis(
   step: number,
   thickness: number,
   color: Color,
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ): THREE.InstancedMesh | null {
   const positions = getTickPositions(range, step);
   if (positions.length === 0) return null;
@@ -110,7 +110,7 @@ function createTicksForAxis(
 
 function disposeTickMesh(
   mesh: THREE.InstancedMesh | null,
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ) {
   if (!mesh) return;
   threeScene.remove(mesh);
@@ -122,7 +122,7 @@ function disposeTickMesh(
 function rebuildTicks(
   item: ItemSnapshot<"axes3d">,
   obj: ThreeSceneTypes["axes3d"],
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ) {
   // Dispose old ticks
   disposeTickMesh(obj.ticks.x, threeScene);
@@ -173,7 +173,7 @@ function createArrowForAxis(
   range: readonly [number, number],
   thickness: number,
   color: Color,
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ): ArrowMesh {
   const axisRadius = thickness / lineThicknessScaleDown;
   const coneHeight = axisRadius * ARROW_LENGTH_MULTIPLIER;
@@ -198,7 +198,7 @@ function createArrowForAxis(
 
 function disposeArrowMesh(
   mesh: ArrowMesh | null,
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ) {
   if (!mesh) return;
   threeScene.remove(mesh);
@@ -209,7 +209,7 @@ function disposeArrowMesh(
 function rebuildArrows(
   item: ItemSnapshot<"axes3d">,
   obj: ThreeSceneTypes["axes3d"],
-  threeScene: THREE.Scene
+  threeScene: THREE.Object3D
 ) {
   disposeArrowMesh(obj.arrows.x, threeScene);
   disposeArrowMesh(obj.arrows.y, threeScene);
@@ -236,7 +236,7 @@ function rebuildArrows(
 export const axes3dRenderer: ItemRenderer<"axes3d"> = {
   create(
     item: ItemSnapshot<"axes3d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["axes3d"] {
     const xRange = getRange(item.x);
     const yRange = getRange(item.y);
@@ -371,7 +371,7 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
   update(
     item: ItemSnapshot<"axes3d">,
     obj: ThreeSceneTypes["axes3d"],
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): void {
     // Update material colors
     obj.x.material.color.set(checkedColor(item.color, "Axes3D.color"));
@@ -441,7 +441,7 @@ export const axes3dRenderer: ItemRenderer<"axes3d"> = {
     rebuildArrows(item, obj, threeScene);
   },
 
-  dispose(obj: ThreeSceneTypes["axes3d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["axes3d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.x.mesh);
     threeScene.remove(obj.y.mesh);
     threeScene.remove(obj.z.mesh);

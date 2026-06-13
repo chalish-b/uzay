@@ -37,6 +37,10 @@ export abstract class BaseItem<
   abstract kind: K;
   id: ItemId = crypto.randomUUID();
   isDirty: boolean = false;
+  // Bumped on every field change. Views compare it against the version they
+  // last applied (held in their previous snapshot) to decide what to redraw,
+  // so several views of one scene each track their own progress independently.
+  version: number = 0;
   invalidateScene: () => void = () => { };
 
   // Event handlers for interaction events (drag, click, hover)
@@ -68,6 +72,7 @@ export abstract class BaseItem<
     // But I guess it requires the "store" to be passed, so it's a bit awkward to do it there.
     for (const atom of this.atomFields) {
       const subscription = atom.sub(() => {
+        this.version++;
         if (this.isDirty) return;
         this.markDirty();
       });
@@ -121,6 +126,7 @@ export abstract class BaseItem<
     id: ItemId;
     kind: K;
     isDirty: boolean;
+    version: number;
   } & T;
 }
 
@@ -179,15 +185,18 @@ class DefinedItem<
     id: ItemId;
     kind: DefinitionKind<Definition>;
     isDirty: boolean;
+    version: number;
   } & DefinitionFields<Definition> {
     const snapshot = {
       id: this.id,
       kind: this.kind,
       isDirty: this.isDirty,
+      version: this.version,
     } as {
       id: ItemId;
       kind: DefinitionKind<Definition>;
       isDirty: boolean;
+      version: number;
     } & DefinitionFields<Definition>;
 
     // Snapshot generation is generic so simple item definitions do not need to

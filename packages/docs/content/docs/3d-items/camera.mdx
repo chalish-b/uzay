@@ -173,6 +173,20 @@ const view = new View3D(scene, frontCamera.id, container);
 view.changeActiveCam(topCamera.id);
 ```
 
+## Filtering Visible Items
+
+A camera can render only part of the scene. Pass a `visibleTags` list and the camera draws only items whose `tags` match it, plus any untagged items. This is what lets several panels share one scene yet show different content.
+
+```typescript
+const camera = scene.create("camera3d", {
+  position: vec3(8, 6, 8),
+  lookAt: vec3(0, 0, 0),
+  visibleTags: ["input"],
+});
+```
+
+See [Camera-scoped visibility](/docs/core-concepts/scenes-views#camera-scoped-visibility) for the rules and a full example.
+
 ## Examples
 
 Since cameras are scene items, their properties can be atoms. Camera sync is **bidirectional**: atom changes update the Three.js camera, and orbit control interactions update the atoms.
@@ -297,6 +311,7 @@ canOrbit.set(false);
 | `zoom` | `number` | `1` | Zoom level |
 | `near` | `number` | `0.1` | Near clipping plane |
 | `far` | `number` | `1000` | Far clipping plane |
+| `visibleTags` | `string[] \| undefined` | `undefined` | Tags this camera renders; unset shows everything. See [Camera-scoped visibility](/docs/core-concepts/scenes-views#camera-scoped-visibility) |
 
 ### Returned Item
 
@@ -313,3 +328,4 @@ canOrbit.set(false);
 | `zoom` | `BoundAtom<number>` | Zoom atom |
 | `near` | `BoundAtom<number>` | Near plane atom |
 | `far` | `BoundAtom<number>` | Far plane atom |
+| `visibleTags` | `BoundAtom<string[] \| undefined>` | Visible-tags atom |

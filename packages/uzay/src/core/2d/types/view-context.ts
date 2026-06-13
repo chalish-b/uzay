@@ -26,7 +26,9 @@ export type Viewport2D = {
 
 export type ViewLayoutContext2D = {
   viewport: Viewport2D;
-  threeScene: THREE.Scene;
+  // The item's own container in the scene graph (a per-item group the view
+  // owns), not the root scene. Renderers add/remove their objects here.
+  threeScene: THREE.Object3D;
   camera: THREE.OrthographicCamera;
   renderer: THREE.WebGLRenderer;
 };

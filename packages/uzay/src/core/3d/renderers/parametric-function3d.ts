@@ -5,7 +5,7 @@ import { lineThicknessScaleDown } from "./shared";
 import { checkedColor } from "../../shared/types/colors";
 
 export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> = {
-  create(item: ItemSnapshot<"parametricfunction3d">, threeScene: THREE.Scene): ThreeSceneTypes["parametricfunction3d"] {
+  create(item: ItemSnapshot<"parametricfunction3d">, threeScene: THREE.Object3D): ThreeSceneTypes["parametricfunction3d"] {
     // Calculate all the points based on the sample count
     const points = [];
     // TODO: Stop hardcoding this minimum sample count
@@ -68,7 +68,7 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
     obj.mesh.visible = item.visible;
   },
 
-  dispose(obj: ThreeSceneTypes["parametricfunction3d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["parametricfunction3d"], threeScene: THREE.Object3D): void {
     obj.geometry.dispose();
     obj.material.dispose();
     threeScene.remove(obj.mesh);

@@ -101,7 +101,7 @@ scene.create("point3d", {
 });
 ```
 
-Tags are currently unused. In the future they'll support grouping items so that different views and cameras can filter by tag.
+Tags let a camera render only part of a scene. Each camera has a `visibleTags` list, and an item is drawn by that camera when its tags match (untagged items show everywhere). This is how several panels can share one scene yet each show different content. See [Camera-scoped visibility](/docs/core-concepts/scenes-views#camera-scoped-visibility) for the full mechanism.
 
 <Cards>
   <Card title="3D Items" href="/docs/3d-items" description="Points, vectors, surfaces, and more in 3D" />

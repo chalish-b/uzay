@@ -73,7 +73,7 @@ function createStrokes(item: ItemSnapshot<"region2d">): Region2DStrokeObject[] {
   return strokes;
 }
 
-function disposeStrokes(strokes: Region2DStrokeObject[], threeScene: THREE.Scene): void {
+function disposeStrokes(strokes: Region2DStrokeObject[], threeScene: THREE.Object3D): void {
   for (const stroke of strokes) {
     threeScene.remove(stroke.mesh);
     stroke.geometry.dispose();
@@ -84,7 +84,7 @@ function disposeStrokes(strokes: Region2DStrokeObject[], threeScene: THREE.Scene
 export const region2dRenderer: ItemRenderer<"region2d"> = {
   create(
     item: ItemSnapshot<"region2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["region2d"] {
     const geometry = buildFillGeometry(item.points);
     const material = new THREE.MeshBasicMaterial({
@@ -128,7 +128,7 @@ export const region2dRenderer: ItemRenderer<"region2d"> = {
     for (const stroke of obj.strokes) threeScene.add(stroke.mesh);
   },
 
-  dispose(obj: ThreeSceneTypes["region2d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["region2d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();

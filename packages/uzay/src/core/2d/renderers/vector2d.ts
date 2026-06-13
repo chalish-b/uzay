@@ -57,7 +57,7 @@ function applyTransform(
 export const vector2dRenderer: ItemRenderer<"vector2d"> = {
   create(
     item: ItemSnapshot<"vector2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["vector2d"] {
     const length = Math.sqrt(item.vector.x * item.vector.x + item.vector.y * item.vector.y);
 
@@ -121,7 +121,7 @@ export const vector2dRenderer: ItemRenderer<"vector2d"> = {
     applyTransform(obj.group, obj.headMesh, item.origin, item.vector);
   },
 
-  dispose(obj: ThreeSceneTypes["vector2d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["vector2d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.group);
     obj.shaftGeometry.dispose();
     obj.shaftMaterial.dispose();

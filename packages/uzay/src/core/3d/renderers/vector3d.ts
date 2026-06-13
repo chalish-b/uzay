@@ -9,7 +9,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 export const vector3dRenderer: ItemRenderer<"vector3d"> = {
   create(
     item: ItemSnapshot<"vector3d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["vector3d"] {
     const material = new THREE.MeshPhongMaterial({
       color: checkedColor(item.color, "Vector3D.color"),
@@ -76,7 +76,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
 
   dispose(
     obj: ThreeSceneTypes["vector3d"],
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): void {
     threeScene.remove(obj.group);
     obj.shaftGeometry.dispose();

@@ -32,7 +32,7 @@ function applyStyles(
 export const overlay3dRenderer: ItemRenderer<"overlay3d"> = {
   create(
     item: ItemSnapshot<"overlay3d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["overlay3d"] {
     // CSS2DRenderer overwrites `transform` on the element it manages each frame,
     // so we use a wrapper div for CSS2DObject and nest the content div inside it.
@@ -70,7 +70,7 @@ export const overlay3dRenderer: ItemRenderer<"overlay3d"> = {
 
   dispose(
     obj: ThreeSceneTypes["overlay3d"],
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): void {
     threeScene.remove(obj.cssObject);
     obj.cssObject.element.remove();

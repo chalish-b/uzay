@@ -54,7 +54,7 @@ function createGeometry(item: ItemSnapshot<"surface3d">, N: number): THREE.Buffe
 }
 
 export const surface3dRenderer: ItemRenderer<"surface3d"> = {
-  create(item: ItemSnapshot<"surface3d">, threeScene: THREE.Scene): ThreeSceneTypes["surface3d"] {
+  create(item: ItemSnapshot<"surface3d">, threeScene: THREE.Object3D): ThreeSceneTypes["surface3d"] {
     const N = Math.max(Math.round(item.samples), 2);
     const geometry = createGeometry(item, N);
     const material = new THREE.MeshPhongMaterial({
@@ -103,7 +103,7 @@ export const surface3dRenderer: ItemRenderer<"surface3d"> = {
     obj.mesh.visible = item.visible;
   },
 
-  dispose(obj: ThreeSceneTypes["surface3d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["surface3d"], threeScene: THREE.Object3D): void {
     obj.geometry.dispose();
     obj.material.dispose();
     threeScene.remove(obj.mesh);

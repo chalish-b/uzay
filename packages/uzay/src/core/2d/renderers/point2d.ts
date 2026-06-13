@@ -14,7 +14,7 @@ const SEGMENTS = 32;
 export const point2dRenderer: ItemRenderer<"point2d"> = {
   create(
     item: ItemSnapshot<"point2d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["point2d"] {
     const geometry = new THREE.CircleGeometry(UNIT_RADIUS, SEGMENTS);
     const material = new THREE.MeshBasicMaterial({
@@ -39,7 +39,7 @@ export const point2dRenderer: ItemRenderer<"point2d"> = {
     obj.mesh.userData.radius = item.radius;
   },
 
-  dispose(obj: ThreeSceneTypes["point2d"], threeScene: THREE.Scene): void {
+  dispose(obj: ThreeSceneTypes["point2d"], threeScene: THREE.Object3D): void {
     threeScene.remove(obj.mesh);
     obj.geometry.dispose();
     obj.material.dispose();

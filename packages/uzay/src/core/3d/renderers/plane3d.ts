@@ -27,7 +27,7 @@ function createEdges(
 export const plane3dRenderer: ItemRenderer<"plane3d"> = {
   create(
     item: ItemSnapshot<"plane3d">,
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): ThreeSceneTypes["plane3d"] {
     const geometry = new THREE.PlaneGeometry(1, 1);
     const material = new THREE.MeshPhongMaterial({
@@ -97,7 +97,7 @@ export const plane3dRenderer: ItemRenderer<"plane3d"> = {
 
   dispose(
     obj: ThreeSceneTypes["plane3d"],
-    threeScene: THREE.Scene
+    threeScene: THREE.Object3D
   ): void {
     if (obj.edgeLines) {
       obj.mesh.remove(obj.edgeLines);
