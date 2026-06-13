@@ -3,6 +3,8 @@ title: Curve Point 2D
 description: Draggable point constrained to a 2D parametric curve
 ---
 
+import CurvePoint2DDemo from "@/components/demos/curve-point-2d-demo";
+
 ## What is a Curve Point 2D?
 
 `curvePoint2D` creates a point that is constrained to move along a [2D parametric curve](/docs/2d-items/parametric). The user can drag the point and it slides along the curve, snapping to the nearest position. It is the planar counterpart of [curvePoint](/docs/constructions/curve-point). Useful for:
@@ -10,6 +12,10 @@ description: Draggable point constrained to a 2D parametric curve
 - Exploring how a curve behaves at different parameter values
 - Driving other items or readouts reactively from a parameter $t$
 - Building interactive plane visualizations where $t$ needs to be adjustable
+
+<CurvePoint2DDemo />
+
+The accent point is a `curvePoint2D` bound to the limaçon `parametricfunction2d` behind it. Drag it anywhere and it snaps to the nearest spot on the curve; the `overlay2d` reads the construction's `t` atom live.
 
 Because the 2D view is orthographic, the cursor maps directly to a world position, so the construction snaps the point to the nearest $t$ by minimizing the plain point-to-curve distance.
 

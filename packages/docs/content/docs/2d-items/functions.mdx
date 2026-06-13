@@ -3,9 +3,15 @@ title: Functions
 description: Graphs of y = f(x)
 ---
 
+import Functions2DDemo from "@/components/demos/functions-2d-demo";
+
 ## What is a Function2D?
 
 A `Function2D` plots the graph of a single-variable function $y = f(x)$. You give it a plain JavaScript function and it samples and draws the curve. Unlike a [parametric curve](/docs/2d-items/parametric), a function graph has exactly one $y$ for each $x$, which lets it sample efficiently across whatever range is on screen.
+
+<Functions2DDemo />
+
+A `function2d` graph of $\sin(x)$ on an `"infinite"` domain, so it re-samples to fill the board as you pan and zoom. Dragging the `point2d` handle along the x-axis evaluates `f` there, and the `overlay2d` reads off the result.
 
 ## Basic Usage
 
