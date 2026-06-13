@@ -115,9 +115,9 @@ const container = document.getElementById("container")!;
 const view = new View3D(scene, camera.id, container);
 ```
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/hello-world.png" alt="The Quick Start scene" width="560" />
-</div>
+<!-- <div align="center"> -->
+<!--   <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/hello-world.png" alt="The Quick Start scene" width="560" /> -->
+<!-- </div> -->
 
 Orbit by dragging the background, and the point is draggable. Drag it and the line follows. That is reactivity in Uzay: change an atom and everything derived from it updates.
 
