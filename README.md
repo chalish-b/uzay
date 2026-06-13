@@ -31,44 +31,44 @@
 
 <!-- HERO: for an autoplaying video, drag-drop hero.mp4 into this README via GitHub's web
      editor and swap the URL below. The committed poster at assets/hero.png is the fallback. -->
-<img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/hero.png" alt="Uzay showcase" width="820" />
+<!-- <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/hero.png" alt="Uzay showcase" width="820" /> -->
 
 </div>
 
 Uzay (pronounced *oo-zai*, Turkish for *space*) is a TypeScript library for building interactive math figures, the kind you'd make in GeoGebra or Desmos, but as a composable, code-based part of your own app. Every value is a reactive atom: drag a point and the line, the label, and everything else derived from it update on their own. Inspired by Manim, scenes are defined in code, except they run live in the browser instead of being rendered to video.
 
-<table>
-  <tr>
-    <td width="50%" align="center">
-      <a href="https://uzay.chalish.dev/docs/constructions/surface-normal">
-        <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-surface-normal.gif" alt="Surface normal tracking a point on a 3D surface" />
-      </a>
-      <br /><sub><b>Surface normal</b>: a normal vector that tracks a point as it moves across a 3D surface.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="https://uzay.chalish.dev/docs/constructions/function-area-2d">
-        <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-function-area.gif" alt="Area under a 2D curve, with draggable bounds" />
-      </a>
-      <br /><sub><b>Area under a curve</b>: drag the bounds and the shaded region and its value recompute live.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <a href="https://uzay.chalish.dev/docs/3d-items/vectors">
-        <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-vectors.gif" alt="Dragging the tip of a 3D vector" />
-      </a>
-      <br /><sub><b>Draggable vectors</b>: grab a vector's tip and anything derived from it follows.</sub>
-    </td>
-    <td width="50%" align="center">
-      <a href="https://uzay.chalish.dev/docs/constructions/tangent-line">
-        <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-tangent-line.gif" alt="Tangent line following a point along a curve" />
-      </a>
-      <br /><sub><b>Tangent line</b>: slide a point along a curve and the tangent updates with it.</sub>
-    </td>
-  </tr>
-</table>
-
-<sub>Each clip links to its live, interactive version in the docs.</sub>
+<!-- <table> -->
+<!--   <tr> -->
+<!--     <td width="50%" align="center"> -->
+<!--       <a href="https://uzay.chalish.dev/docs/constructions/surface-normal"> -->
+<!--         <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-surface-normal.gif" alt="Surface normal tracking a point on a 3D surface" /> -->
+<!--       </a> -->
+<!--       <br /><sub><b>Surface normal</b>: a normal vector that tracks a point as it moves across a 3D surface.</sub> -->
+<!--     </td> -->
+<!--     <td width="50%" align="center"> -->
+<!--       <a href="https://uzay.chalish.dev/docs/constructions/function-area-2d"> -->
+<!--         <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-function-area.gif" alt="Area under a 2D curve, with draggable bounds" /> -->
+<!--       </a> -->
+<!--       <br /><sub><b>Area under a curve</b>: drag the bounds and the shaded region and its value recompute live.</sub> -->
+<!--     </td> -->
+<!--   </tr> -->
+<!--   <tr> -->
+<!--     <td width="50%" align="center"> -->
+<!--       <a href="https://uzay.chalish.dev/docs/3d-items/vectors"> -->
+<!--         <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-vectors.gif" alt="Dragging the tip of a 3D vector" /> -->
+<!--       </a> -->
+<!--       <br /><sub><b>Draggable vectors</b>: grab a vector's tip and anything derived from it follows.</sub> -->
+<!--     </td> -->
+<!--     <td width="50%" align="center"> -->
+<!--       <a href="https://uzay.chalish.dev/docs/constructions/tangent-line"> -->
+<!--         <img src="https://raw.githubusercontent.com/chalish-b/uzay/master/assets/showcase-tangent-line.gif" alt="Tangent line following a point along a curve" /> -->
+<!--       </a> -->
+<!--       <br /><sub><b>Tangent line</b>: slide a point along a curve and the tangent updates with it.</sub> -->
+<!--     </td> -->
+<!--   </tr> -->
+<!-- </table> -->
+<!--  -->
+<!-- <sub>Each clip links to its live, interactive version in the docs.</sub> -->
 
 ## Installation
 

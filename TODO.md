@@ -7,18 +7,13 @@
   - Show more patterns like:
     - How to constrain points to be on a sphere, on a plane etc.
 - Camera improvements
-  - A single scene having multiple views (multiple cameras in one scene is already implemented, but never tried multiple views of the same scene, that can be interesting)
-  - Perspective / Orthographics camera choice
   - Camera reset button (easy to lose track of position when orbiting)
-- Function improvements
-  - Handling discontinuities: Just allow the user to pass discontinuous t values manually, it's the simplest approach. Otherwise detection is kinda complex, especially if we don't have access to the symbolic representation of the function
 - Optimizations
-- Axes labels
+- Axes labels (3D). We added them in 2D but not in 3D because idk how they'd work in 3D.
+- Infinite grid and axes (3D). Again, done in 2D but not in 3D. I don't even know how it'd work in 3D.
 - Some kind of UI helpers, like latex text / numbers but they are draggable and the value updates in real time
 - More interactivity improvements
   - Better hitboxes for point dragging
-  - Update documentation and give more examples
-  - Create more demos that rely on interactive points
   - Have a better distinction between click vs. drag
 - Custom material options.
   - Just allow the user to pass MessPhongMaterialParameters (or some kind of atomized version of it?). This includes shader as well so they can write their own shaders if they want.
@@ -29,13 +24,10 @@
   - Items can be added to groups instead of the scene. The group has a coordinate. The child items' coordinates are relative to the group
 - Unify the "thickness" values for axes and grid.
   - Since grid uses Line2 instead of a 3D geometry, its thickness is different (pixels vs. world units).
-- We should separate orthographic and perspective cameras to be different items.
-  - There isn't really a good way to switch between them, because they are fundamentally different objects in Three.js. Since a scene can have multiple cameras, and we will have a `view.changeCam` method, the API will still be nice.
 - Documentation improvements
   - Add an "examples" section that shows demos and their source code.
   - In addition to a separate examples section, add small examples inside the pages themselves. Currently we do this, but the examples are kind of mixed with the explanations.
   - Convert the API reference stuff to "type tables" in Fumadocs.
-- Infinite grid and axes
 - Filled in shaped / functions
 - Better looking visuals
   - Better materials with shaders and stuff
@@ -69,7 +61,6 @@
 - When dragging a point or panning around, the cursor going over another item, or going outside the canvas, should not stop the pan. It's just bad UX imo. It should continue even outside the board until we release the mouse button.
 - Function plotting is still weird, especially for steep stuff like log(x), sqrt(x), 1/x etc around x=0.
 - A construction to display an area between two functions. A logical extension of area under construction.
-- Documentation: Non-existent for 2D, and missing a lot of the new features and stuff for 2D/3D
 - Adding limits to the zoom and pan in the camera
 - Hit testing lines in 2D might be an issue
 - Add some anti aliasing to the lines and functions
