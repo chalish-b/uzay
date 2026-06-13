@@ -66,6 +66,7 @@
 
 ## 2D
 
+- Function plotting is still weird, especially for steep stuff like log(x), sqrt(x), 1/x etc around x=0.
 - A construction to display an area between two functions. A logical extension of area under construction.
 - Documentation: Non-existent for 2D, and missing a lot of the new features and stuff for 2D/3D
 - Adding limits to the zoom and pan in the camera
