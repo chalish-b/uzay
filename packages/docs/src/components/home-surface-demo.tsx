@@ -1,14 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import katex from "katex";
 import { Scene3D, curvePoint, tangentLine, vec2, vec3 } from "uzay";
 import { Scene3DView, useAtomState } from "uzay/react";
+import { Tex } from "./tex";
 
-const SURFACE_LATEX = katex.renderToString(
-  String.raw`f(x, z) = \sin(x)\,e^{-z^2/20}`,
-  { throwOnError: false },
-);
+const SURFACE_LATEX = String.raw`f(x, z) = \sin(x)\,e^{-z^2/20}`;
 
 const X_RANGE: [number, number] = [-5.5, 5.5];
 const Z_RANGE: [number, number] = [-5.5, 5.5];
@@ -157,9 +154,9 @@ export default function HomeSurfaceDemo() {
     <div className="w-full overflow-hidden rounded-2xl border border-fd-border bg-fd-card">
       <div className="relative h-110 bg-[#0c0c0f]">
         <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
-        <div
+        <Tex
+          tex={SURFACE_LATEX}
           className="pointer-events-none absolute left-3 top-3 rounded bg-neutral-900/[0.2] px-2 py-1 text-base text-slate-50 shadow-lg"
-          dangerouslySetInnerHTML={{ __html: SURFACE_LATEX }}
         />
         <p className="pointer-events-none absolute bottom-3 left-3 text-sm text-white/40">
           Drag the point to explore the tangent

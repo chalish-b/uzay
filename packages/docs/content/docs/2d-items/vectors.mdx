@@ -4,6 +4,7 @@ description: 2D vector arrows
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
+import Vectors2DDemo from "@/components/demos/vectors-2d-demo";
 
 ## What is a Vector2D?
 
@@ -13,6 +14,10 @@ A `Vector2D` renders as an arrow in the plane, defined by an origin point and a 
 - Visualizing tangents and normals
 - Drawing basis vectors
 - Creating interactive direction handles
+
+<Vectors2DDemo />
+
+Two draggable `vector2d` arrows are chained tip to tail: the second's `origin` is the first's `vector` atom. The indigo resultant takes a derived atom for `a + b`, so it follows every drag, and the faint helper edges close the parallelogram.
 
 ## Basic Usage
 

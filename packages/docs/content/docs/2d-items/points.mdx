@@ -4,6 +4,7 @@ description: 2D point items
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
+import Points2DDemo from "@/components/demos/points-2d-demo";
 
 ## What is a Point2D?
 
@@ -13,6 +14,10 @@ A `Point2D` renders as a filled dot at a position in the plane. Points are the m
 - Representing vertices of shapes
 - Creating interactive handles
 - Tracing positions along curves and functions
+
+<Points2DDemo />
+
+The pink `point2d` is draggable, with an `overlay2d` reading its live `coords`. The teal `point2d` takes a derived atom that negates those coordinates, so it mirrors the first across the origin without being draggable itself.
 
 ## Basic Usage
 

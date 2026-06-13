@@ -3,6 +3,8 @@ title: Parametric Curves
 description: 2D curves defined by parametric equations
 ---
 
+import Parametric2DDemo from "@/components/demos/parametric-2d-demo";
+
 ## What is a Parametric Curve?
 
 A parametric curve is defined by a function that maps a parameter $t$ to a point in the plane:
@@ -12,6 +14,10 @@ $$
 $$
 
 Instead of defining $y$ as a function of $x$, you define each coordinate independently as a function of the parameter. This allows for curves that loop back on themselves, such as circles and spirals, which a [function graph](/docs/2d-items/functions) cannot draw.
+
+<Parametric2DDemo />
+
+This is a Lissajous figure $x = \sin(kt),\ y = \sin((k+1)t)$ drawn by a `parametricfunction2d`. The curve's `f` is a derived atom that reads `k` from the slider, so changing the frequency rebuilds the function and the whole woven shape reshapes live.
 
 ## Basic Usage
 

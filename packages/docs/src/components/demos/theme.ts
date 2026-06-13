@@ -27,9 +27,20 @@ export type DemoTokens = {
 // template string: `${overlayStyles.label} mt-2`. Add variants as demos need
 // them, not in advance.
 export const overlayStyles = {
-  // Floating value readout attached to a scene item.
+  // Floating value readout attached to a scene item. The chip (background +
+  // border) sets it apart from the 3D canvas behind it.
   label:
     "pointer-events-none rounded-md border border-fd-border bg-fd-popover/90 px-2 py-1 text-xs text-fd-popover-foreground shadow-lg",
+
+  // The 2D counterpart. On a flat board a floating chip reads as glued on top;
+  // these labels should feel drawn onto the board itself. So no background or
+  // border, just a soft glow that lifts the text clear of the grid lines (a
+  // light halo in light mode, a dark one in dark mode). Pair it with a text
+  // size and an fd-* color at the call site.
+  boardLabel:
+    "pointer-events-none " +
+    "[text-shadow:0_1px_0_rgba(255,255,255,0.9),0_0_5px_rgba(255,255,255,0.9)] " +
+    "dark:[text-shadow:0_1px_2px_black,0_0_6px_black]",
 };
 
 export const demoTokens: Record<DemoMode, DemoTokens> = {

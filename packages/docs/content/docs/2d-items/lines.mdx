@@ -3,6 +3,8 @@ title: Lines
 description: 2D line segments
 ---
 
+import Lines2DDemo from "@/components/demos/lines-2d-demo";
+
 ## What is a Line2D?
 
 A `Line2D` renders as a straight segment between two points in the plane. Lines are useful for:
@@ -11,6 +13,10 @@ A `Line2D` renders as a straight segment between two points in the plane. Lines 
 - Drawing edges of shapes
 - Construction and guide lines
 - Chords, secants, and tangents
+
+<Lines2DDemo />
+
+Two `point2d` handles drive the segment: their `coords` atoms are passed straight into the `line2d` as `start` and `end`, so the line tracks both drags. The `overlay2d` at the midpoint recomputes the distance between them live.
 
 ## Basic Usage
 
