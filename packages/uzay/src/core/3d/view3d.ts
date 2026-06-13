@@ -723,6 +723,10 @@ export class View3D {
       // Disable orbit controls during drag
       this.threeOrbitControls.enabled = false;
 
+      // Capture the pointer so the drag keeps receiving move/up events even when
+      // the cursor passes over overlay DOM elements or leaves the canvas.
+      this.threeRenderer.domElement.setPointerCapture(event.pointerId);
+
       this.dragState = {
         itemId: hit.itemId,
         constraint,
@@ -901,13 +905,10 @@ export class View3D {
   };
 
   onPointerLeave = (_event: PointerEvent) => {
-    // Clean up drag state if pointer leaves canvas
-    if (this.dragState) {
-      this.dragState = null;
-      this.threeOrbitControls.enabled = true;
-    }
+    // Only clears idle hover state. An active drag holds pointer capture and
+    // runs until pointerup, so the cursor leaving the canvas leaves it intact.
+    if (this.dragState) return;
 
-    // Clear hover state
     this.hoveredItemId = null;
     this.pointerDownInfo = null;
     this.updateCursor();

@@ -58,7 +58,6 @@
 
 ## 2D
 
-- When dragging a point or panning around, the cursor going over another item, or going outside the canvas, should not stop the pan. It's just bad UX imo. It should continue even outside the board until we release the mouse button.
 - Function plotting is still weird, especially for steep stuff like log(x), sqrt(x), 1/x etc around x=0.
 - A construction to display an area between two functions. A logical extension of area under construction.
 - Adding limits to the zoom and pan in the camera

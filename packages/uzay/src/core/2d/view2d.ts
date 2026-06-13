@@ -452,6 +452,9 @@ export class View2D {
         const snapshot = item.getItemSnapshot();
         const constraint = this.getItemDragConstraint(snapshot);
         if (constraint && constraint !== "none") {
+          // Capture the pointer so the drag keeps receiving move/up events even
+          // when the cursor passes over overlay DOM elements or leaves the canvas.
+          this.threeRenderer.domElement.setPointerCapture(event.pointerId);
           this.dragState = {
             itemId: hit.itemId,
             constraint,
@@ -477,6 +480,8 @@ export class View2D {
     // Empty space (or non-draggable item): start panning if camera allows it.
     const camSnap = this.activeCam.getItemSnapshot();
     if (camSnap.enablePan) {
+      // Capture the pointer so panning continues past the canvas edge and over overlays.
+      this.threeRenderer.domElement.setPointerCapture(event.pointerId);
       this.panState = {
         lastClientX: event.clientX,
         lastClientY: event.clientY,
@@ -622,8 +627,10 @@ export class View2D {
   };
 
   onPointerLeave = () => {
-    if (this.dragState) this.dragState = null;
-    if (this.panState) this.panState = null;
+    // Only clears idle hover state. An active drag or pan holds pointer capture
+    // and runs until pointerup, so the cursor leaving the canvas leaves it intact.
+    if (this.dragState || this.panState) return;
+
     this.hoveredItemId = null;
     this.pointerDownInfo = null;
     this.updateCursor();
