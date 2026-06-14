@@ -1,0 +1,136 @@
+---
+title: Function Point 2D
+description: Draggable point that rides the graph of y = f(x)
+---
+
+import FunctionPoint2DDemo from "@/components/demos/function-point-2d-demo";
+
+## What is a Function Point 2D?
+
+`functionPoint2D` creates a point pinned to the graph of an ordinary function $y = f(x)$. It is the ergonomic special case of [curvePoint2D](/docs/constructions/curve-point-2d) for plain functions, and the one to reach for in most 2D work. It takes the same `f` as [function2d](/docs/2d-items/functions), so you drop a handle onto a curve using the exact function you plotted. Useful for:
+
+- Letting the reader pick a value of $x$ by dragging along a curve
+- Driving readouts, tangents, or other items reactively from $x$ and $f(x)$
+- Marking a moving point of interest on a plotted function
+
+<FunctionPoint2DDemo />
+
+The accent point is a `functionPoint2D` riding the `function2d` behind it. Drag it and it slides along the graph; the `overlay2d` reads the construction's `x` atom and $f(x)$ live.
+
+## Basic Usage
+
+```typescript
+import { Scene2D, functionPoint2D } from "uzay";
+
+const f = (x: number) => Math.sin(x);
+
+scene.create("function2d", {
+  f,
+  domain: "infinite",
+  samples: 200,
+  color: "dodgerblue",
+});
+
+const p = functionPoint2D(scene, {
+  f,
+  x: 1,
+  color: "gold",
+});
+```
+
+The point appears on the curve at $x = 1$ and can be dragged along it. Pair it with a `function2d` set to `domain: "infinite"` so the curve is always drawn wherever the point is dragged.
+
+## Bounds
+
+By default the point is unbounded: it slides anywhere along the graph. Pass a `domain` to confine $x$ to a sub-interval, for instance a function defined only on part of the line:
+
+```typescript
+const p = functionPoint2D(scene, {
+  f,
+  domain: [-3, 3],
+  x: 0,
+});
+```
+
+The point now clamps at $x = -3$ and $x = 3$ and cannot be dragged past them.
+
+## Reading and Setting x
+
+The returned `x` atom is writable. Read the current value, set it externally, or subscribe to changes:
+
+```typescript
+const p = functionPoint2D(scene, { f, x: 0 });
+
+// Read
+console.log(p.x.get());
+
+// Set externally (e.g. from a slider)
+p.x.set(2);
+
+// Subscribe to changes
+p.x.sub((value) => console.log("x is now", value));
+```
+
+## Examples
+
+### Coordinate Readout
+
+Show the current position with an [overlay](/docs/2d-items/overlays):
+
+```typescript
+const p = functionPoint2D(scene, { f, x: 1, color: "gold" });
+
+scene.create("overlay2d", {
+  position: p.point.coords,
+  content: scene.atom((get) => {
+    const x = get(p.x);
+    return `f(${x.toFixed(2)}) = ${f(x).toFixed(2)}`;
+  }),
+  anchor: "bottom-left",
+  offset: vec2(8, -8),
+});
+```
+
+Drag the point along the curve and the label follows.
+
+## Customizing the Point
+
+The returned `point` is a regular [Point2D](/docs/2d-items/points), so you can adjust any of its properties:
+
+```typescript
+const { point } = functionPoint2D(scene, { f, x: 0 });
+
+point.radius.set(8);
+point.color.set("lime");
+```
+
+## Cleanup
+
+Call `dispose()` to remove the point from the scene:
+
+```typescript
+p.dispose();
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(x: number) => number` | (required) | The function whose graph the point rides |
+| `domain` | `[number, number]` | unbounded | Clamps $x$ to `[min, max]`; omit for free dragging |
+| `x` | `WritableInput<number>` | `0` | The parameter. A plain value the construction owns, or a writable atom you own to control and share it across points. |
+| `color` | `string` | `"white"` | CSS color string |
+
+All options accept a plain value or an atom. `x` is the construction's state: a plain value (the construction owns it) or a writable atom (you own it, to control and share it).
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `point` | `Point2D` | The point item on the curve |
+| `x` | `BoundAtom<number>` | Writable atom for the current $x$ value |
+| `dispose` | `() => void` | Removes the point from the scene |

@@ -1,6 +1,6 @@
 import type { Scene3D } from "../scene3d";
-import type { AtomLikeInput } from "../../shared/atom-wrapper";
-import { ensureAtom } from "../../shared/atom-wrapper";
+import type { AtomLikeInput, WritableInput } from "../../shared/atom-wrapper";
+import { ensureAtom, ensureWritableAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
 import { Vec3 as Vec3Utils, vec3, type Vec3 } from "../../shared/types/vec3";
 
@@ -10,7 +10,10 @@ type CurvePointOptions = {
   f: AtomLikeInput<ParametricFunc>;
   tStart?: AtomLikeInput<number>;
   tEnd?: AtomLikeInput<number>;
-  initialT?: number;
+  // The parameter, controlled or uncontrolled. A number (or omitted) seeds an
+  // atom the construction owns; a writable atom hands ownership to the caller,
+  // so the same one can drive several points at once. Returned as `t`.
+  t?: WritableInput<number>;
   color?: AtomLikeInput<Color>;
 };
 
@@ -77,7 +80,7 @@ export function curvePoint(scene: Scene3D, options: CurvePointOptions) {
   const tEndAtom = ensureAtom(scene.atom, options.tEnd ?? 1);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
 
-  const tAtom = scene.atom(options.initialT ?? 0);
+  const tAtom = ensureWritableAtom(scene.atom, options.t ?? 0);
 
   const coordsAtom = scene.atom((get) => get(fAtom)(get(tAtom)));
 

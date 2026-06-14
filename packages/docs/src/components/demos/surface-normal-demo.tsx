@@ -58,7 +58,7 @@ export default function SurfaceNormalDemo() {
       f,
       xRange: X_RANGE,
       zRange: Z_RANGE,
-      initialXZ: vec2(1, 1),
+      xz: vec2(1, 1),
       color: t("accent"),
     });
     sp.point.radius.set(3);

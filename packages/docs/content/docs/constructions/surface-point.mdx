@@ -36,7 +36,7 @@ const sp = surfacePoint(scene, {
   f,
   xRange: [-5, 5],
   zRange: [-5, 5],
-  initialXZ: vec2(1, 1),
+  xz: vec2(1, 1),
   color: "yellow",
 });
 ```
@@ -48,7 +48,7 @@ The point appears on the surface at $(x, z) = (1, 1)$ and can be dragged across 
 The position on the surface is represented as a `Vec2` in the $(x, z)$ parameter space. The returned `xz` atom is writable:
 
 ```typescript
-const sp = surfacePoint(scene, { f, initialXZ: vec2(0, 0) });
+const sp = surfacePoint(scene, { f, xz: vec2(0, 0) });
 
 // Read
 const pos = sp.xz.get(); // { x: 0, y: 0 } (Vec2 where y maps to the z axis)
@@ -75,7 +75,7 @@ const sp = surfacePoint(scene, {
   f,
   xRange: [-5, 5],
   zRange: [-5, 5],
-  initialXZ: vec2(1, 1),
+  xz: vec2(1, 1),
   color: "yellow",
 });
 
@@ -91,7 +91,7 @@ Drag the point and the normal vector follows.
 ### Coordinate Readout
 
 ```typescript
-const sp = surfacePoint(scene, { f, initialXZ: vec2(0, 0) });
+const sp = surfacePoint(scene, { f, xz: vec2(0, 0) });
 
 scene.create("overlay3d", {
   position: sp.point.coords,
@@ -115,7 +115,7 @@ Because it uses the camera ray rather than projecting onto a fixed plane, draggi
 The returned `point` is a regular `Point3D`:
 
 ```typescript
-const sp = surfacePoint(scene, { f, initialXZ: vec2(0, 0) });
+const sp = surfacePoint(scene, { f, xz: vec2(0, 0) });
 
 sp.point.radius.set(4);
 sp.point.color.set("gold");
@@ -132,10 +132,10 @@ sp.point.color.set("gold");
 | `f` | `(x: number, z: number) => number` | (required) | The surface height function |
 | `xRange` | `[number, number]` | `[-5, 5]` | Bounds for the x parameter during dragging |
 | `zRange` | `[number, number]` | `[-5, 5]` | Bounds for the z parameter during dragging |
-| `initialXZ` | `Vec2` | `vec2(0, 0)` | Initial position in the $(x, z)$ parameter space |
+| `xz` | `WritableInput<Vec2>` | `vec2(0, 0)` | The parameter. A plain value the construction owns, or a writable atom you own to control and share it across points. |
 | `color` | `string` | `"white"` | CSS color string |
 
-All options except `initialXZ` accept either a plain value or an atom.
+All options accept a plain value or an atom. `xz` is the construction's state: a plain value (the construction owns it) or a writable atom (you own it, to control and share it).
 
 ### Returned Handle
 

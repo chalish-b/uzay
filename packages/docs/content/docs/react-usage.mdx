@@ -180,7 +180,7 @@ function createMyScene() {
   const f = (x: number, z: number) => Math.sin(x) * Math.cos(z);
   scene.create("surface3d", { f, xRange: [-5, 5], zRange: [-5, 5], color: "steelblue" });
 
-  const sp = surfacePoint(scene, { f, initialXZ: vec2(1, 1), color: "gold" });
+  const sp = surfacePoint(scene, { f, xz: vec2(1, 1), color: "gold" });
   surfaceNormal(scene, { f, xz: sp.xz, color: "tomato" });
 
   return { scene, camera, xz: sp.xz };

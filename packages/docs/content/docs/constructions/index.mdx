@@ -39,7 +39,7 @@ const tAtom = scene.atom(0.5);
 tangentLine(scene, { f, t: tAtom, color: "yellow" });
 ```
 
-Some options only accept plain values. These are options for state that the construction manages internally, like `initialT` in `curvePoint` or `initialXZ` in `surfacePoint`. The construction creates its own writable atom from this initial value and returns it in the handle. You can't pass an atom for these because the construction needs to own and write to that state (for example, updating `t` during drag).
+A few options are the construction's own **state**: the parameter it reads and writes and returns in the handle, like `t` in `curvePoint` or `xz` in `surfacePoint`. Pass a plain value and the construction owns that atom (uncontrolled). Pass a *writable* atom and you own it: the construction reads and writes it, and you can hand the same one to several constructions so dragging any of them drives the rest (controlled). A read-only atom is rejected here, since the construction needs to write.
 
 ### The returned handle
 
@@ -63,19 +63,27 @@ tangent.tangent.sub((dir) => console.log("tangent direction:", dir));
 tangent.dispose();
 ```
 
-### Owned state
+### State: owned or shared
 
-The writable atoms that a construction creates internally are returned in the handle. For example, `curvePoint` owns a `t` atom that it updates during drag, and you get full access to it:
+A construction's state parameter is returned in the handle either way. Pass a plain value and the construction owns the atom; read or set it through the handle:
 
 ```typescript
-// You can destructure to only get what you need
 const { t } = curvePoint(scene, {
   f: myFunc,
-  initialT: 0.5,
+  t: 0.5, // a plain value: the construction owns this atom
 });
 
-t.get();       // Read the current value
-t.set(0.8);   // Set it externally
+t.get();    // Read the current value
+t.set(0.8); // Set it externally
+```
+
+Pass a writable atom instead and you own it. Hand the same one to several constructions and they stay in lockstep, since each drives it on drag:
+
+```typescript
+const x = scene.atom(1);
+
+functionPoint2D(scene, { f, x }); // both ride their own curve,
+functionPoint2D(scene, { f: fPrime, x }); // both controlled by the same x
 ```
 
 ## Composing constructions
@@ -85,7 +93,7 @@ Constructions compose naturally because they expose their items and atoms. You c
 ```typescript
 const sp = surfacePoint(scene, {
   f: (x, z) => Math.sin(x) * Math.cos(z),
-  initialXZ: vec2(1, 1),
+  xz: vec2(1, 1),
 });
 
 // Feed the surface point's xz atom into a surface normal
@@ -136,7 +144,7 @@ function dropLine(scene, options) {
 }
 ```
 
-The conventions described on this page (options as `AtomLikeInput`, returning a handle with items and `dispose()`) are what the library's built-in constructions follow. Your own constructions can follow the same pattern, or do something entirely different. There are no rules enforced by the engine.
+The conventions described on this page (read inputs as `AtomLikeInput`, state as `WritableInput`, returning a handle with items and `dispose()`) are what the library's built-in constructions follow. Your own constructions can follow the same pattern, or do something entirely different. There are no rules enforced by the engine.
 
 ## Available Constructions
 
@@ -147,6 +155,7 @@ The conventions described on this page (options as `AtomLikeInput`, returning a 
 | [surfacePoint](/docs/constructions/surface-point) | 3D | Draggable point constrained to a surface |
 | [surfaceNormal](/docs/constructions/surface-normal) | 3D | Normal vector at a point on a surface |
 | [curvePoint2D](/docs/constructions/curve-point-2d) | 2D | Draggable point constrained to a 2D parametric curve |
+| [functionPoint2D](/docs/constructions/function-point-2d) | 2D | Draggable point that rides the graph of y = f(x) |
 | [functionArea2D](/docs/constructions/function-area-2d) | 2D | Filled area under a 2D function over an interval |
 
 <Cards>
@@ -155,5 +164,6 @@ The conventions described on this page (options as `AtomLikeInput`, returning a 
   <Card title="Surface Point" href="/docs/constructions/surface-point" />
   <Card title="Surface Normal" href="/docs/constructions/surface-normal" />
   <Card title="Curve Point 2D" href="/docs/constructions/curve-point-2d" />
+  <Card title="Function Point 2D" href="/docs/constructions/function-point-2d" />
   <Card title="Function Area 2D" href="/docs/constructions/function-area-2d" />
 </Cards>

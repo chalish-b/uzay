@@ -102,34 +102,36 @@ This mirrors how item definitions mark function-valued fields with `atomize: "va
 
 The rule of thumb: if you'd need more than ~8-10 options to cover everything, you're exposing too much. Keep the options object small, let item handles be the escape hatch for fine-tuning.
 
-### Plain values vs. `AtomLikeInput`
+### Read inputs vs. writable state
 
-Most options should be `AtomLikeInput<T>` so the user can pass either a plain value or an atom. But some options should only accept a plain value. The deciding factor is **who owns the state**.
+Two kinds of option, split by **who reads and who writes**.
 
-If the construction only reads a value, it should be `AtomLikeInput<T>`. The user might want it reactive. `ensureAtom` normalizes it, and the construction reads it through `get()` in derived atoms.
+**Read inputs** are values the construction only consumes: `f`, `tStart`, `color`. Type them `AtomLikeInput<T>` so the user can pass a plain value or any atom, including a derived one (the construction never writes back). Normalize with `ensureAtom`, then read through `get()` in derived atoms.
 
-If the construction needs to write to a value (e.g. updating a parameter during drag, toggling an internal flag), the construction must own the atom. Accept a plain initial value for the option, create a writable atom internally, and return it in the handle. The user gets full read/write access to the returned atom.
+**Writable state** is the construction's own parameter, the thing it reads *and* writes and returns in the handle: a curve point's `t`, a surface point's `xz`. Type it `WritableInput<T>` (which is `T | WritableBoundAtom<T>`) and resolve it with `ensureWritableAtom`:
 
-Don't accept `AtomLikeInput<T>` for state the construction writes to. If the user passes a derived atom, writing fails. If they pass a writable atom, you'd need a runtime check, and the type system gets messy. More importantly, it conflates two roles: the option is no longer just an input, it's shared mutable state with unclear ownership.
+- Pass a plain value and the construction creates and owns the atom (**uncontrolled**), seeded from that value.
+- Pass a writable atom and the caller owns it; the construction reads and writes it (**controlled**). The same atom can be handed to several constructions, so dragging any one drives them all.
+
+A read-only atom is rejected at the call site by the type, so there is no runtime writability check and no silent-write surprise. This is React's controlled/uncontrolled split: a plain value is `defaultValue`, a writable atom is `value`.
 
 ```ts
 type CurvePointOptions = {
-  f: AtomLikeInput<ParametricFunc>;   // read-only input, accepts atom
-  tStart?: AtomLikeInput<number>;     // read-only input, accepts atom
-  tEnd?: AtomLikeInput<number>;       // read-only input, accepts atom
-  initialT?: number;                  // construction writes to t, so plain value
-  color?: AtomLikeInput<Color>;       // read-only input, accepts atom
+  f: AtomLikeInput<ParametricFunc>;   // read input, accepts any atom
+  tStart?: AtomLikeInput<number>;     // read input, accepts any atom
+  tEnd?: AtomLikeInput<number>;       // read input, accepts any atom
+  t?: WritableInput<number>;          // writable state: owned (value) or shared (atom)
+  color?: AtomLikeInput<Color>;       // read input, accepts any atom
 };
 
-// The construction creates and owns the t atom, returns it for external access
 function curvePoint(scene, options) {
-  const tAtom = scene.atom(options.initialT ?? 0);
+  const tAtom = ensureWritableAtom(scene.atom, options.t ?? 0);
   // ...
   return { point, t: tAtom, dispose };
 }
 ```
 
-This is similar to React's controlled vs. uncontrolled pattern. `AtomLikeInput` fields are like controlled props: the user owns the value and the construction follows. Plain initial values are like `defaultValue`: the user sets the starting state, the construction takes ownership from there.
+`ensureWritableAtom` is the writable counterpart of `ensureAtom`: a writable atom passes through unchanged (so the shared case just works), a plain value is wrapped in a new writable primitive atom the construction owns. Both helpers are public, so user-written constructions resolve their state the same way, with no internal machinery.
 
 ### Fields not exposed as options
 
@@ -159,11 +161,13 @@ A construction returns a handle with:
 
 ### Atom ownership and writability
 
-There are two kinds of atoms in a construction:
+Three kinds of atoms in a construction:
 
-**User-passed atoms** (from `AtomLikeInput` options) go through `ensureAtom`, which erases writability at the type level. The construction can only read them. This is intentional: the construction is a consumer of its inputs, not an owner. The user controls these atoms from outside. The construction never writes back to them.
+**Read inputs** (from `AtomLikeInput` options) go through `ensureAtom`, which erases writability at the type level. The construction only reads them and never writes back. The user controls them from outside.
 
-**Construction-owned atoms** are created internally with `scene.atom()`. These are the atoms for state that the construction manages itself, including state initialized from plain-value options (see "Plain values vs. `AtomLikeInput`" above). They can be either derived (read-only) or writable. If the construction returns a writable atom, the user can call `.set()` on it to control the construction's behavior from outside. The reactive graph propagates the change through the construction's derived atoms, updating items automatically.
+**Writable state** (from `WritableInput` options) goes through `ensureWritableAtom`. When the user passes a plain value the construction owns the atom; when they pass a writable atom the caller owns it and the construction drives it. Either way it is returned in the handle, and `.set()` from anywhere propagates through the construction's derived atoms, updating items automatically.
+
+**Derived atoms** are created internally with `scene.atom((get) => ...)`. These are read-only computed values, like a tangent direction or an area. Return the ones a user would plausibly read or bind to; keep internal wiring atoms private.
 
 ```ts
 function someConstruction(scene, options) {
@@ -189,29 +193,13 @@ function someConstruction(scene, options) {
 
 ---
 
-## Known tension: writability through constructions
+## Open case: writing back through derived atoms
 
-`ensureAtom` erases writability at the type level. This means constructions can only read from their inputs, never write back. This is intentional (see "Plain values vs. `AtomLikeInput`" above), but it creates friction when a construction creates an internal derived atom that the user wants to make interactive.
+Controlled inputs (above) cover the common need: sharing a writable parameter across constructions, like one `t` driving several curve points. The case they do not cover is writing back through a *derived* atom to a consumed input.
 
-### The problem
+Consider a `dropLine(scene, { coords })` that derives a ground point from `coords` (a read input). If you want the ground dot draggable, writing back up to `coords`, the construction cannot express it: `coords` came in through `ensureAtom` (read-only), and the derived ground atom is not writable. Constructions fix the reactive topology at creation time, so you cannot rewire which atoms drive which items after the fact.
 
-Consider a hypothetical `dropLine(scene, { coords })` construction that creates a ground projection point. Internally it derives `groundAtom` (read-only) from `coords`. If the user wants the ground dot to be draggable (writing back to the source coords), they're stuck:
-
-1. The ground dot has a read-only coords atom, so the engine disables dragging.
-2. The caller can't swap the atom on the item after creation (`.set()` changes the value, not the atom).
-3. Even if the caller has writable access to the source (e.g. `sp.xz`), they can't wire the ground dot's drag to it because the dot's coords are read-only.
-
-The fundamental issue: constructions fix the reactive topology at creation time. You can fine-tune cosmetic properties after the fact (colors, sizes), but not the reactive wiring (which atoms drive which items, and whether writes propagate).
-
-### Possible solutions (none implemented yet)
-
-**Runtime writability check (preferred direction):** The construction makes internal derived atoms writable, with the write function attempting to write back to the source atom. At runtime, if the source is writable, drag works. If not, drag is disabled or throws a clear error. This matches how the engine already handles writability (points with derived coords just aren't draggable). The type-safety gap is narrow: the caller knows whether they passed a writable atom, so the behavior is predictable.
-
-**Callback (`onWrite`):** The construction accepts an optional callback for write-through. Works, but leaky: the caller has to understand the construction's internal structure to wire things correctly, which defeats the purpose of the abstraction.
-
-**Preserve writability through `ensureAtom`:** Tempting but too complex. Every construction's internal derived atoms would need to decide whether to propagate writes, and the type signatures get complicated.
-
-For now, when a user needs custom write-through behavior, the recommendation is to wire things manually using primitives rather than fighting the construction's read-only topology. If the same pattern recurs across multiple constructions, that's a signal to revisit this decision.
+The structural fix is usually to own the source at the caller and pass it as the writable state of whatever writes it, rather than deriving-then-writing-back inside one construction. When that does not fit, the open direction is a runtime-writability check on the derived atom: make it writable, and write back to the source if the source is writable, the way items already disable drag on a derived `coords`. That is not implemented; for now, wire those cases with primitives. If the pattern recurs, that's the signal to revisit it.
 
 ---
 
@@ -220,8 +208,8 @@ For now, when a user needs custom write-through behavior, the recommendation is 
 | Aspect | Convention | Rationale |
 |---|---|---|
 | Function shape | `construction(scene, options)` | Standalone for tree-shaking, third-party parity |
-| Read-only options | `AtomLikeInput<T>` per field | Plain values or atoms; construction only reads, never writes back |
-| Owned-state options | Plain initial value (e.g. `initialT?: number`) | Construction writes to this state; own the atom, return it in the handle |
+| Read inputs | `AtomLikeInput<T>` per field, resolved with `ensureAtom` | Plain value or any atom (including derived); construction only reads, never writes back |
+| Writable state | `WritableInput<T>` per field, resolved with `ensureWritableAtom` | Plain value: construction owns it (uncontrolled). Writable atom: caller owns and shares it (controlled). Returned in the handle. |
 | Function-valued fields | `ensureAtom(scene.atom, value, "value")` | Prevents Jotai from misinterpreting functions as derived atoms |
 | Required vs optional | Math inputs required, style optional with defaults | Users always have a specific function/point/direction |
 | Style granularity | One `color` for the whole construction, not per-sub-item | Keep options small, use item handles for fine-tuning |

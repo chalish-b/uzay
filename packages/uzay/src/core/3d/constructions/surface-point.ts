@@ -1,6 +1,6 @@
 import type { Scene3D } from "../scene3d";
-import type { AtomLikeInput } from "../../shared/atom-wrapper";
-import { ensureAtom } from "../../shared/atom-wrapper";
+import type { AtomLikeInput, WritableInput } from "../../shared/atom-wrapper";
+import { ensureAtom, ensureWritableAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
 import { Vec3 as Vec3Utils, vec3, type Vec3 } from "../../shared/types/vec3";
 import { vec2, type Vec2 } from "../../shared/types/vec2";
@@ -11,7 +11,10 @@ type SurfacePointOptions = {
   f: AtomLikeInput<SurfaceFunc>;
   xRange?: AtomLikeInput<[number, number]>;
   zRange?: AtomLikeInput<[number, number]>;
-  initialXZ?: Vec2;
+  // The (x, z) parameter, controlled or uncontrolled. A Vec2 (or omitted) seeds
+  // an atom the construction owns; a writable atom hands ownership to the caller,
+  // so the same one can drive several points at once. Returned as `xz`.
+  xz?: WritableInput<Vec2>;
   color?: AtomLikeInput<Color>;
 };
 
@@ -92,7 +95,7 @@ export function surfacePoint(scene: Scene3D, options: SurfacePointOptions) {
   const zRangeAtom = ensureAtom(scene.atom, options.zRange ?? [-5, 5] as [number, number]);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
 
-  const xzAtom = scene.atom(options.initialXZ ?? vec2(0, 0));
+  const xzAtom = ensureWritableAtom(scene.atom, options.xz ?? vec2(0, 0));
 
   const coordsAtom = scene.atom((get) => {
     const xz = get(xzAtom);

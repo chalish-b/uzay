@@ -34,8 +34,8 @@ export type { Function2D } from "./core/2d/items/function2d"
 export type { Overlay2D } from "./core/2d/items/overlay2d"
 
 // Atom types and utilities
-export type { BoundAtom, SceneAtom, AtomLikeInput } from "./core/shared/atom-wrapper"
-export { ensureAtom } from "./core/shared/atom-wrapper"
+export type { BoundAtom, SceneAtom, AtomLikeInput, WritableInput, WritableBoundAtom } from "./core/shared/atom-wrapper"
+export { ensureAtom, ensureWritableAtom, isBoundAtom } from "./core/shared/atom-wrapper"
 
 // Item types
 export type { ItemKind, ItemId, ItemOptions, ItemInstance, ItemSnapshot } from "./core/3d/types/item-registry"
@@ -50,4 +50,4 @@ export type { ItemTags } from "./core/shared/types/tags"
 
 // Constructions
 export { tangentLine, curvePoint, surfacePoint, surfaceNormal } from "./core/3d/constructions"
-export { curvePoint2D, functionArea2D } from "./core/2d/constructions"
+export { curvePoint2D, functionPoint2D, functionArea2D } from "./core/2d/constructions"

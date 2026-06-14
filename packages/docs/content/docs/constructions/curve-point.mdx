@@ -36,7 +36,7 @@ const p = curvePoint(scene, {
   f,
   tStart: 0,
   tEnd: Math.PI * 4,
-  initialT: 1.0,
+  t: 1.0,
   color: "gold",
 });
 ```
@@ -48,7 +48,7 @@ The point appears on the curve at $t = 1$ and can be dragged along it.
 The returned `t` atom is writable. You can read the current value, set it externally, or subscribe to changes:
 
 ```typescript
-const p = curvePoint(scene, { f, initialT: 0 });
+const p = curvePoint(scene, { f, t: 0 });
 
 // Read
 console.log(p.t.get());
@@ -73,7 +73,7 @@ const p = curvePoint(scene, {
   f,
   tStart: 0,
   tEnd: Math.PI * 4,
-  initialT: 1.0,
+  t: 1.0,
 });
 
 const tl = tangentLine(scene, {
@@ -91,7 +91,7 @@ Drag the point along the helix and the tangent line updates in real time.
 Show the current position using an overlay:
 
 ```typescript
-const p = curvePoint(scene, { f, initialT: 0, color: "gold" });
+const p = curvePoint(scene, { f, t: 0, color: "gold" });
 
 scene.create("overlay3d", {
   position: p.point.coords,
@@ -109,7 +109,7 @@ scene.create("overlay3d", {
 The returned `point` is a regular `Point3D`, so you can adjust any of its properties:
 
 ```typescript
-const { point } = curvePoint(scene, { f, initialT: 0 });
+const { point } = curvePoint(scene, { f, t: 0 });
 
 point.radius.set(4);
 point.color.set("lime");
@@ -134,10 +134,10 @@ p.dispose();
 | `f` | `(t: number) => Vec3` | (required) | The parametric function defining the curve |
 | `tStart` | `number` | `0` | Start of the parameter range |
 | `tEnd` | `number` | `1` | End of the parameter range |
-| `initialT` | `number` | `0` | Initial value of the $t$ parameter |
+| `t` | `WritableInput<number>` | `0` | The parameter. A plain value the construction owns, or a writable atom you own to control and share it across points. |
 | `color` | `string` | `"white"` | CSS color string |
 
-All options except `initialT` accept either a plain value or an atom.
+All options accept a plain value or an atom. `t` is the construction's state: a plain value (the construction owns it) or a writable atom (you own it, to control and share it).
 
 ### Returned Handle
 

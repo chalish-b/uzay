@@ -152,7 +152,9 @@ export function createSceneAtom(store: Store) {
 export type SceneAtomFunction = ReturnType<typeof createSceneAtom>;
 
 export type SceneAtom<T> = BoundAtom<Atom<T>>;
-type WritableBoundAtom<V> = BoundAtom<WritableAtom<V, [V], unknown>>;
+// A writable scene atom, e.g. the result of scene.atom(0). Pass the same one to
+// several constructions to share a single value across them.
+export type WritableBoundAtom<V> = BoundAtom<WritableAtom<V, [V], unknown>>;
 
 // Use a symbol brand so the rest of the codebase can reliably recognize
 // scene-bound atoms without repeating fragile Jotai duck-typing checks.
@@ -207,4 +209,24 @@ export function ensureAtom<V>(
     return sceneAtom(value, { mode: "value" }) as BoundAtom<Atom<V>>;
   }
   return sceneAtom(value) as BoundAtom<Atom<V>>;
+}
+
+// The writable counterpart of AtomLikeInput, for a construction's own state
+// (the parameter it reads, writes, and returns). A plain value means the
+// construction owns the atom (uncontrolled); a writable atom means the caller
+// owns it and the construction drives it (controlled), so the same atom can be
+// shared across several constructions. A read-only atom is rejected at the call
+// site, so no runtime writability check is needed.
+export type WritableInput<V> = V | WritableBoundAtom<V>;
+
+// Resolve a WritableInput to a writable BoundAtom: the writable counterpart of
+// ensureAtom. A writable atom passes through unchanged, so two constructions
+// handed the same one share it; a plain value is wrapped in a new writable
+// primitive atom the construction owns.
+export function ensureWritableAtom<V>(
+  sceneAtom: SceneAtomFunction,
+  value: WritableInput<V>
+): WritableBoundAtom<V> {
+  if (isBoundAtom(value)) return value as WritableBoundAtom<V>;
+  return sceneAtom(value) as WritableBoundAtom<V>;
 }

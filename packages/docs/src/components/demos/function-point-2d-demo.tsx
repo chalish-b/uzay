@@ -1,27 +1,22 @@
 "use client";
 
-import { curvePoint2D, vec2 } from "uzay";
+import { functionPoint2D, vec2 } from "uzay";
 import { Scene2DView } from "uzay/react";
 import { DemoFrame } from "./demo-frame";
 import { overlayStyles } from "./theme";
 import { useDemoScene2D } from "./use-demo-scene";
 
-// A limaçon r = 1 + 2cos(t): a closed curve with an inner loop, the kind of
-// shape only a parametric curve can draw. The same curve drives the graph and
-// the constrained point.
-function f(t: number) {
-  const r = 1 + 2 * Math.cos(t);
-  return vec2(r * Math.cos(t), r * Math.sin(t));
+// An ordinary function graph, the everyday 2D case functionPoint2D is for. The
+// same f drives the drawn curve and the handle riding it.
+function f(x: number) {
+  return Math.sin(x);
 }
 
-const T_START = 0;
-const T_END = Math.PI * 2;
-
-export default function CurvePoint2DDemo() {
+export default function FunctionPoint2DDemo() {
   const { scene, camera } = useDemoScene2D((scene, t) => {
     const camera = scene.create("camera2d", {
-      center: vec2(1.2, 0),
-      zoom: 2.2,
+      center: vec2(0, 0),
+      zoom: 2,
     });
 
     scene.create("grid2d", {
@@ -44,31 +39,33 @@ export default function CurvePoint2DDemo() {
       arrows: true,
     });
 
-    scene.create("parametricfunction2d", {
+    // domain "infinite" refills the curve across the viewport, so the handle has
+    // graph to ride however far it is dragged.
+    scene.create("function2d", {
       f,
-      tStart: T_START,
-      tEnd: T_END,
+      domain: "infinite",
       samples: 200,
       color: t("primary"),
       thickness: 2.5,
       pointerEvents: "none",
     });
 
-    // The construction: a point pinned to the curve. Dragging it only ever
-    // moves t, so the point snaps to the nearest spot on the curve.
-    const p = curvePoint2D(scene, {
+    // The construction: a point pinned to the graph of f, dragged with the same
+    // function that drew the curve. No bounds, so it slides anywhere along it.
+    const p = functionPoint2D(scene, {
       f,
-      tStart: T_START,
-      tEnd: T_END,
-      t: 1,
+      x: 1,
       color: t("accent"),
     });
     p.point.radius.set(6);
 
-    // The construction's payload is the t atom; show it live next to the point.
+    // The payload is the x atom; read it and f(x) live next to the point.
     scene.create("overlay2d", {
       position: p.point.coords,
-      content: scene.atom((get) => `t = ${get(p.t).toFixed(2)}`),
+      content: scene.atom((get) => {
+        const x = get(p.x);
+        return `f(${x.toFixed(2)}) = ${f(x).toFixed(2)}`;
+      }),
       format: "latex",
       anchor: "bottom-left",
       offset: vec2(10, -10),
@@ -81,7 +78,7 @@ export default function CurvePoint2DDemo() {
   return (
     <DemoFrame
       hint="Drag the point along the curve"
-      sourceFile="curve-point-2d-demo.tsx"
+      sourceFile="function-point-2d-demo.tsx"
     >
       <Scene2DView
         scene={scene}

@@ -59,7 +59,7 @@ export default function CurvePointDemo() {
       f: helix,
       tStart: T_START,
       tEnd: T_END,
-      initialT: 1.0,
+      t: 1.0,
       color: t("accent"),
     });
     p.point.radius.set(3);

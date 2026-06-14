@@ -1,6 +1,6 @@
 import type { Scene2D } from "../scene2d";
-import type { AtomLikeInput } from "../../shared/atom-wrapper";
-import { ensureAtom } from "../../shared/atom-wrapper";
+import type { AtomLikeInput, WritableInput } from "../../shared/atom-wrapper";
+import { ensureAtom, ensureWritableAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
 import { type Vec2 } from "../../shared/types/vec2";
 
@@ -8,9 +8,16 @@ type ParametricFunc = (t: number) => Vec2;
 
 type CurvePoint2DOptions = {
   f: AtomLikeInput<ParametricFunc>;
+  // The parameter range the handle is confined to. Both default to the whole
+  // real line, so an unbounded curve is draggable end to end with no opt-in.
+  // Set them to pin the handle to a sub-range, e.g. a curve with real endpoints
+  // like a Bézier on [0, 1].
   tStart?: AtomLikeInput<number>;
   tEnd?: AtomLikeInput<number>;
-  initialT?: number;
+  // The parameter, controlled or uncontrolled. A number (or omitted) seeds an
+  // atom the construction owns; a writable atom hands ownership to the caller,
+  // so the same one can drive several points at once. Returned as `t`.
+  t?: WritableInput<number>;
   color?: AtomLikeInput<Color>;
 };
 
@@ -61,11 +68,11 @@ function findNearestTToPoint(
 
 export function curvePoint2D(scene: Scene2D, options: CurvePoint2DOptions) {
   const fAtom = ensureAtom(scene.atom, options.f, "value");
-  const tStartAtom = ensureAtom(scene.atom, options.tStart ?? 0);
-  const tEndAtom = ensureAtom(scene.atom, options.tEnd ?? 1);
+  const tStartAtom = ensureAtom(scene.atom, options.tStart ?? -Infinity);
+  const tEndAtom = ensureAtom(scene.atom, options.tEnd ?? Infinity);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
 
-  const tAtom = scene.atom(options.initialT ?? 0);
+  const tAtom = ensureWritableAtom(scene.atom, options.t ?? 0);
 
   const coordsAtom = scene.atom((get) => get(fAtom)(get(tAtom)));
 

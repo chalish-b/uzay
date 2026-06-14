@@ -13,6 +13,8 @@ import CurvePoint2DDemo from "@/components/demos/curve-point-2d-demo";
 - Driving other items or readouts reactively from a parameter $t$
 - Building interactive plane visualizations where $t$ needs to be adjustable
 
+For an ordinary function graph $y = f(x)$, reach for [functionPoint2D](/docs/constructions/function-point-2d) instead: it takes the same `f` as `function2d` and is unbounded by default, which is the common 2D case.
+
 <CurvePoint2DDemo />
 
 The accent point is a `curvePoint2D` bound to the limaçon `parametricfunction2d` behind it. Drag it anywhere and it snaps to the nearest spot on the curve; the `overlay2d` reads the construction's `t` atom live.
@@ -38,7 +40,7 @@ const p = curvePoint2D(scene, {
   f,
   tStart: 0,
   tEnd: Math.PI * 2,
-  initialT: 1.0,
+  t: 1.0,
   color: "gold",
 });
 ```
@@ -50,7 +52,7 @@ The point appears on the curve at $t = 1$ and can be dragged along it.
 The returned `t` atom is writable. Read the current value, set it externally, or subscribe to changes:
 
 ```typescript
-const p = curvePoint2D(scene, { f, initialT: 0 });
+const p = curvePoint2D(scene, { f, t: 0 });
 
 // Read
 console.log(p.t.get());
@@ -69,7 +71,7 @@ p.t.sub((value) => console.log("t is now", value));
 Show the current position with an [overlay](/docs/2d-items/overlays):
 
 ```typescript
-const p = curvePoint2D(scene, { f, initialT: 0, color: "gold" });
+const p = curvePoint2D(scene, { f, t: 0, color: "gold" });
 
 scene.create("overlay2d", {
   position: p.point.coords,
@@ -89,7 +91,7 @@ Drag the point along the curve and the label follows.
 The returned `point` is a regular [Point2D](/docs/2d-items/points), so you can adjust any of its properties:
 
 ```typescript
-const { point } = curvePoint2D(scene, { f, initialT: 0 });
+const { point } = curvePoint2D(scene, { f, t: 0 });
 
 point.radius.set(8);
 point.color.set("lime");
@@ -112,12 +114,12 @@ p.dispose();
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `f` | `(t: number) => Vec2` | (required) | The parametric function defining the curve |
-| `tStart` | `number` | `0` | Start of the parameter range |
-| `tEnd` | `number` | `1` | End of the parameter range |
-| `initialT` | `number` | `0` | Initial value of the $t$ parameter |
+| `tStart` | `number` | `-Infinity` | Start of the parameter range; unbounded by default |
+| `tEnd` | `number` | `Infinity` | End of the parameter range; unbounded by default |
+| `t` | `WritableInput<number>` | `0` | The parameter. A plain value the construction owns, or a writable atom you own to control and share it across points. |
 | `color` | `string` | `"white"` | CSS color string |
 
-All options except `initialT` accept either a plain value or an atom.
+All options accept a plain value or an atom. `t` is the construction's state: a plain value (the construction owns it) or a writable atom (you own it, to control and share it).
 
 ### Returned Handle
 

@@ -106,7 +106,7 @@ function createScene() {
     f: sliceCurve,
     tStart: X_RANGE[0],
     tEnd: X_RANGE[1],
-    initialT: 2.5,
+    t: 2.5,
     color: WHITE,
   });
   point.point.radius.set(3);

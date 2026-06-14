@@ -224,7 +224,7 @@ function createDerivativeScene(initialTheme: DemoTheme) {
     f: (x: number) => vec2(x, f(x)),
     tStart: xMin,
     tEnd: xMax,
-    initialT: a + initialH,
+    t: a + initialH,
     color: scene.atom((get) => get(themeAtom).scene.accent),
   });
   pointB.point.radius.set(6);

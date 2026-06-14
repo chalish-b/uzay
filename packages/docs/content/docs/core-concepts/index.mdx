@@ -61,7 +61,7 @@ const line = scene.create("line3d", {
 **Constructions** are reusable functions that compose items into higher-level mathematical objects. A tangent line, a draggable point on a curve, a surface normal: these are all constructions built from the same primitives you have access to.
 
 ```typescript
-const p = curvePoint(scene, { f: myFunc, initialT: 0.5 });
+const p = curvePoint(scene, { f: myFunc, t: 0.5 });
 const tl = tangentLine(scene, { f: myFunc, t: p.t });
 ```
 

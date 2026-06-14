@@ -130,7 +130,7 @@ function createScene() {
     f: curveF,
     tStart: -6,
     tEnd: 6,
-    initialT: 0.5,
+    t: 0.5,
     color: "orange",
   });
   stuck.point.radius.set(5);
