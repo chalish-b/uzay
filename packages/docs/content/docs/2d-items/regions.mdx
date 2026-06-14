@@ -97,7 +97,7 @@ Drag any handle and the filled triangle reshapes with it.
 
 ### Area Under a Curve
 
-To shade the area between a [function](/docs/2d-items/functions) and a baseline without sampling the curve yourself, use the [functionArea2D](/docs/constructions/function-area-2d) construction. It builds a `Region2D` for you, splitting it into separate lobes where the curve crosses the baseline.
+To shade the area between a [function](/docs/2d-items/functions) and a baseline without sampling the curve yourself, use the [functionArea2D](/docs/constructions/function-area-2d) construction. It builds the regions for you, splitting at every baseline crossing so the lobes above and below the axis can be colored apart.
 
 ## Updating Properties
 

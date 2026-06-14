@@ -13,7 +13,7 @@ The construction only creates the filled region. It does not create the function
 
 <FunctionAreaDemo />
 
-The fill is a `functionArea2D` under a `function2d`, with two `point2d` handles driving its `a` and `b`. The integral readout in the `overlay2d` reads the construction's `signedArea` atom, so it always matches the drawn region: drag a bound past a root and watch the lobe below the axis pull the value down.
+The fill is a `functionArea2D` under a `function2d`, with two `point2d` handles driving its `a` and `b`. Lobes above the baseline are tinted differently from lobes below it (via `colorBelow`), so the positive and negative parts of the signed area read apart at a glance. The integral readout in the `overlay2d` reads the construction's `signedArea` atom, so it always matches the drawn region: drag a bound past a root and watch the lobe below the axis pull the value down.
 
 ## Basic Usage
 
@@ -107,12 +107,31 @@ const area = functionArea2D(scene, {
 });
 ```
 
-For lower-level item controls, use the returned `region` item:
+For lower-level item controls, use the returned `regionAbove` and `regionBelow` items:
 
 ```typescript
-area.region.visible.set(false);
-area.region.pointerEvents.set("auto");
+area.regionAbove.pointerEvents.set("auto");
+area.regionBelow.visible.set(false);
 ```
+
+## Coloring the Two Sides
+
+Where the curve crosses the baseline, the region splits into lobes above and below it. By default both sides share the same fill. Pass `colorBelow` (and optionally `strokeColorBelow`) to tint the lobes under the baseline differently, which is handy for showing that a definite integral subtracts the area below the axis:
+
+```typescript
+const area = functionArea2D(scene, {
+  f,
+  a: -2,
+  b: 2,
+  color: "mediumseagreen", // lobes above the baseline
+  colorBelow: "tomato", // lobes below it
+  strokeColor: "mediumseagreen",
+  strokeColorBelow: "tomato",
+  strokeOpacity: 0.6,
+});
+```
+
+Internally each side is its own `region2d`, so the two colors are real item properties rather than a per-polygon trick. When `colorBelow` is omitted it falls back to `color`, and the side with no lobes simply renders nothing.
 
 ## Reading the Area
 
@@ -143,7 +162,7 @@ area.polygons.sub((polygons) => {
 });
 ```
 
-This is mainly useful when you want to inspect or reuse the sampled boundary. It is not needed for normal styling.
+This is mainly useful when you want to inspect or reuse the sampled boundary. It is not needed for normal styling. The `abovePolygons` and `belowPolygons` atoms give the same lobes already split by side, which is what the two regions draw.
 
 ## Cleanup
 
@@ -166,11 +185,13 @@ area.dispose();
 | `b` | `number` | (required) | End of the x interval |
 | `baseline` | `number` | `0` | Y value that closes the region |
 | `samples` | `number` | `128` | Number of segments used to sample the function |
-| `color` | `string` | `"white"` | Fill color |
-| `opacity` | `number` | `0.35` | Fill opacity |
-| `strokeColor` | `string` | `"white"` | Stroke color |
-| `strokeOpacity` | `number` | `0` | Stroke opacity |
-| `strokeThickness` | `number` | `1` | Stroke thickness |
+| `color` | `string` | `"white"` | Fill color for lobes above the baseline |
+| `colorBelow` | `string` | `color` | Fill color for lobes below the baseline |
+| `opacity` | `number` | `0.35` | Fill opacity (both sides) |
+| `strokeColor` | `string` | `"white"` | Stroke color for lobes above the baseline |
+| `strokeColorBelow` | `string` | `strokeColor` | Stroke color for lobes below the baseline |
+| `strokeOpacity` | `number` | `0` | Stroke opacity (both sides) |
+| `strokeThickness` | `number` | `1` | Stroke thickness (both sides) |
 
 All options accept either a plain value or an atom.
 
@@ -178,8 +199,11 @@ All options accept either a plain value or an atom.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `region` | `Region2D` | The filled region item |
-| `polygons` | `BoundAtom<Vec2[][]>` | Derived atom containing the sampled polygons, one per lobe |
+| `regionAbove` | `Region2D` | The filled region for lobes above the baseline |
+| `regionBelow` | `Region2D` | The filled region for lobes below the baseline |
+| `polygons` | `BoundAtom<Vec2[][]>` | Derived atom containing every sampled polygon, one per lobe |
+| `abovePolygons` | `BoundAtom<Vec2[][]>` | The lobes above the baseline |
+| `belowPolygons` | `BoundAtom<Vec2[][]>` | The lobes below the baseline |
 | `signedArea` | `BoundAtom<number>` | Area of the region, lobes below the baseline counted as negative |
 | `absoluteArea` | `BoundAtom<number>` | Area of the region, all lobes counted as positive |
-| `dispose` | `() => void` | Removes the region from the scene |
+| `dispose` | `() => void` | Removes both regions from the scene |

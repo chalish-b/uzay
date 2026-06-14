@@ -31,7 +31,10 @@ function buildFillGeometry(points: Region2DPoints): THREE.ShapeGeometry {
     shapes.push(shape);
   }
 
-  if (shapes.length === 0) return new THREE.ShapeGeometry();
+  // Pass an explicit empty array: ShapeGeometry() with no argument falls back
+  // to a built-in placeholder triangle, so an empty region would draw a stray
+  // shape at the origin instead of nothing.
+  if (shapes.length === 0) return new THREE.ShapeGeometry([]);
   return new THREE.ShapeGeometry(shapes);
 }
 

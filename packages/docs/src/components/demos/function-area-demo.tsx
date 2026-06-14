@@ -54,7 +54,9 @@ export default function FunctionAreaDemo() {
     const aAtom = scene.atom((get) => get(aCoords).x);
     const bAtom = scene.atom((get) => get(bCoords).x);
 
-    // The construction: the filled region between f and the baseline.
+    // The construction: the filled region between f and the baseline. colorBelow
+    // tints the lobes under the axis differently, so the negative part of the
+    // signed area reads at a glance.
     const area = functionArea2D(scene, {
       f,
       a: aAtom,
@@ -62,7 +64,9 @@ export default function FunctionAreaDemo() {
       baseline: 0,
       samples: 160,
       color: t("secondary"),
+      colorBelow: t("accent"),
       strokeColor: t("secondary"),
+      strokeColorBelow: t("accent"),
       strokeOpacity: 0.6,
       strokeThickness: 1.5,
     });
