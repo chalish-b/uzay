@@ -1,38 +1,39 @@
-import { useMemo, type ReactNode } from "react";
-import { Scene2D, vec2, type Color } from "uzay";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Scene2D, vec2, angleMark2D } from "uzay";
 import { Scene2DView, useAtomValue } from "uzay/react";
 
-// circle2d sandbox.
+// angleMark2D sandbox.
 //
-// One circle whose every field is wired to a control. The center rides a
-// draggable handle point, so dragging the handle moves the circle (reactive
-// center); radius/fill/stroke/visibility are sliders, swatches, and toggles.
-// Outline-only is the default look: raise fill opacity to shade the disk.
+// A vertex with two draggable arms and the angle mark between them. `sweep`
+// picks which of the two angles the mark draws: "minor"/"major" choose by size,
+// "ccw"/"cw" hold a turn direction so the arc grows past 180° without swapping
+// sides. `squareRightAngle` toggles the 90° corner square. Both are
+// creation-time options, so changing them rebuilds the mark; radius stays
+// reactive through its atom.
 
-const FILL_COLORS = ["#4f9cf9", "#ef4444", "#22c55e", "#eab308", "#ffffff"];
-const STROKE_COLORS = ["#ffffff", "#4f9cf9", "#ef4444", "#22c55e", "#eab308"];
-
-const RAD = Math.PI / 180;
 const DEG = 180 / Math.PI;
 
+const SWEEPS = ["minor", "major", "ccw", "cw"] as const;
+type Sweep = (typeof SWEEPS)[number];
+
 const CHECKLIST = [
-  "Drag the orange handle: the whole circle follows (center is reactive)",
-  "Center X/Y sliders move it too, and track the handle as you drag",
-  "Radius slider: grows/shrinks smoothly, stays round even when large",
-  "θ end below 360°: stroke becomes an open arc (no closing back round)",
-  "With an arc and fill opacity > 0: the fill is a sector (pizza wedge)",
-  "θ start/end together sweep the arc around; small arcs stay smooth",
-  "Fill opacity > 0: the disk (daire) shades in; 0 = outline only (çember)",
-  "Stroke thickness 0 OR stroke opacity 0: outline vanishes, fill remains",
-  "Fill opacity 0 AND stroke off: nothing renders at all",
-  "Fill / stroke swatches recolor the two parts independently",
-  "Visible off: the whole circle hides; on: returns with current settings",
+  "Drag either arm: the marked angle and the readout follow",
+  "minor: stays on the smaller angle, snaps sides as an arm crosses the other",
+  "major: marks the larger angle, readout exceeds 180°; minor + major = 360°",
+  "ccw / cw: drag an arm all the way around; the arc grows 0→360° unbroken",
+  "ccw vs cw mark opposite sides for the same arms",
+  "Line the arms up at 90°: the corner square appears (square on)",
+  "square off: 90° keeps the arc, no square",
+  "major suppresses the square (a major angle is never 90°)",
+  "Radius slider resizes the mark without rebuilding it",
 ];
+
+type AngleMark = ReturnType<typeof angleMark2D>;
 
 function buildScene() {
   const scene = new Scene2D();
 
-  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 1.0 });
+  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 1.4 });
 
   scene.create("grid2d", {
     rangeX: true,
@@ -51,28 +52,80 @@ function buildScene() {
     arrows: true,
   });
 
-  // Draggable handle that owns the center coordinate. Passing its coords atom as
-  // the circle's `center` binds the two: drag the handle, the circle follows.
-  const handle = scene.create("point2d", {
+  const radiusAtom = scene.atom(0.8);
+
+  const vertex = scene.create("point2d", {
     coords: vec2(0, 0),
     draggable: "xy",
     color: "#ffb547",
+    radius: 6,
+  });
+  const armA = scene.create("point2d", {
+    coords: vec2(2.6, 0),
+    draggable: "xy",
+    color: "#4f9cf9",
+    radius: 7,
+  });
+  const armB = scene.create("point2d", {
+    coords: vec2(1.2, 2.3),
+    draggable: "xy",
+    color: "#4f9cf9",
     radius: 7,
   });
 
-  const circle = scene.create("circle2d", {
-    center: handle.coords,
-    radius: 2.5,
-    thetaStart: 0,
-    thetaEnd: Math.PI * 2,
-    color: "#4f9cf9",
-    opacity: 0,
-    strokeColor: "#ffffff",
-    strokeOpacity: 1,
-    strokeThickness: 2,
+  scene.create("line2d", {
+    start: vertex.coords,
+    end: armA.coords,
+    color: "#cccccc",
+    thickness: 2.5,
+    pointerEvents: "none",
+  });
+  scene.create("line2d", {
+    start: vertex.coords,
+    end: armB.coords,
+    color: "#cccccc",
+    thickness: 2.5,
+    pointerEvents: "none",
   });
 
-  return { scene, camera, handle, circle };
+  return { scene, camera, vertex, armA, armB, radiusAtom };
+}
+
+function AngleReadout({ mark }: { mark: AngleMark }) {
+  const radians = useAtomValue(mark.measure);
+  return (
+    <span style={{ color: "#cfe3ff", fontVariantNumeric: "tabular-nums" }}>
+      {(radians * DEG).toFixed(1)}°
+    </span>
+  );
+}
+
+function Toggle({
+  label,
+  on,
+  onClick,
+}: {
+  label: string;
+  on: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        padding: "5px 0",
+        border: "1px solid #444",
+        borderRadius: 4,
+        backgroundColor: on ? "#264d2a" : "#4d2626",
+        color: "#ddd",
+        fontSize: 11,
+        cursor: "pointer",
+      }}
+    >
+      {label}: {String(on)}
+    </button>
+  );
 }
 
 function SliderRow({
@@ -106,57 +159,28 @@ function SliderRow({
   );
 }
 
-function SwatchRow({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: Color;
-  options: string[];
-  onChange: (c: string) => void;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ color: "#999", fontSize: 11 }}>{label}</span>
-      <div style={{ display: "flex", gap: 4 }}>
-        {options.map((c) => (
-          <button
-            key={c}
-            onClick={() => onChange(c)}
-            title={c}
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 4,
-              cursor: "pointer",
-              border: value === c ? "2px solid #fff" : "1px solid #444",
-              backgroundColor: c,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const num = { color: "#cfe3ff", fontVariantNumeric: "tabular-nums" } as const;
-
 export default function Demo1() {
-  const { scene, camera, handle, circle } = useMemo(buildScene, []);
+  const { scene, camera, vertex, armA, armB, radiusAtom } = useMemo(buildScene, []);
 
-  const center = useAtomValue(handle.coords);
-  const radius = useAtomValue(circle.radius);
-  const thetaStart = useAtomValue(circle.thetaStart);
-  const thetaEnd = useAtomValue(circle.thetaEnd);
-  const fillColor = useAtomValue(circle.color);
-  const fillOpacity = useAtomValue(circle.opacity);
-  const strokeColor = useAtomValue(circle.strokeColor);
-  const strokeOpacity = useAtomValue(circle.strokeOpacity);
-  const strokeThickness = useAtomValue(circle.strokeThickness);
-  const visible = useAtomValue(circle.visible);
-  const pointerEvents = useAtomValue(circle.pointerEvents);
+  const [sweep, setSweep] = useState<Sweep>("minor");
+  const [squareRightAngle, setSquareRightAngle] = useState(true);
+  const [mark, setMark] = useState<AngleMark | null>(null);
+  const radius = useAtomValue(radiusAtom);
+
+  useEffect(() => {
+    const next = angleMark2D(scene, {
+      vertex: vertex.coords,
+      a: armA.coords,
+      b: armB.coords,
+      radius: radiusAtom,
+      color: "#a78bfa",
+      thickness: 2.5,
+      sweep,
+      squareRightAngle,
+    });
+    setMark(next);
+    return () => next.dispose();
+  }, [scene, vertex, armA, armB, radiusAtom, sweep, squareRightAngle]);
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -175,7 +199,7 @@ export default function Demo1() {
           flexDirection: "column",
           gap: 10,
           padding: 14,
-          width: 340,
+          width: 320,
           backgroundColor: "rgba(20, 20, 20, 0.9)",
           border: "1px solid #2a2a2a",
           borderRadius: 8,
@@ -184,121 +208,56 @@ export default function Demo1() {
           fontSize: 13,
         }}
       >
-        <div style={{ fontWeight: 600 }}>circle2d</div>
-
-        <SliderRow
-          label={<>center.x = <span style={num}>{center.x.toFixed(2)}</span></>}
-          value={center.x}
-          min={-6}
-          max={6}
-          step={0.1}
-          onChange={(x) => handle.coords.set(vec2(x, center.y))}
-        />
-        <SliderRow
-          label={<>center.y = <span style={num}>{center.y.toFixed(2)}</span></>}
-          value={center.y}
-          min={-6}
-          max={6}
-          step={0.1}
-          onChange={(y) => handle.coords.set(vec2(center.x, y))}
-        />
-        <SliderRow
-          label={<>radius = <span style={num}>{radius.toFixed(2)}</span></>}
-          value={radius}
-          min={0.1}
-          max={5}
-          step={0.05}
-          onChange={(r) => circle.radius.set(r)}
-        />
-        <SliderRow
-          label={<>θ start = <span style={num}>{(thetaStart * DEG).toFixed(0)}°</span></>}
-          value={thetaStart * DEG}
-          min={0}
-          max={360}
-          step={1}
-          onChange={(d) => circle.thetaStart.set(d * RAD)}
-        />
-        <SliderRow
-          label={<>θ end = <span style={num}>{(thetaEnd * DEG).toFixed(0)}°</span></>}
-          value={thetaEnd * DEG}
-          min={0}
-          max={360}
-          step={1}
-          onChange={(d) => circle.thetaEnd.set(d * RAD)}
-        />
-
-        <SliderRow
-          label={<>fill opacity = <span style={num}>{fillOpacity.toFixed(2)}</span></>}
-          value={fillOpacity}
-          min={0}
-          max={1}
-          step={0.05}
-          onChange={(o) => circle.opacity.set(o)}
-        />
-        <SwatchRow
-          label="fill color"
-          value={fillColor}
-          options={FILL_COLORS}
-          onChange={(c) => circle.color.set(c)}
-        />
-
-        <SliderRow
-          label={<>stroke opacity = <span style={num}>{strokeOpacity.toFixed(2)}</span></>}
-          value={strokeOpacity}
-          min={0}
-          max={1}
-          step={0.05}
-          onChange={(o) => circle.strokeOpacity.set(o)}
-        />
-        <SliderRow
-          label={<>stroke thickness = <span style={num}>{strokeThickness.toFixed(1)}</span></>}
-          value={strokeThickness}
-          min={0}
-          max={8}
-          step={0.5}
-          onChange={(t) => circle.strokeThickness.set(t)}
-        />
-        <SwatchRow
-          label="stroke color"
-          value={strokeColor}
-          options={STROKE_COLORS}
-          onChange={(c) => circle.strokeColor.set(c)}
-        />
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => circle.visible.set(!visible)}
-            style={{
-              flex: 1,
-              padding: "5px 0",
-              border: "1px solid #444",
-              borderRadius: 4,
-              backgroundColor: visible ? "#264d2a" : "#4d2626",
-              color: "#ddd",
-              fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
-            visible: {String(visible)}
-          </button>
-          <button
-            onClick={() =>
-              circle.pointerEvents.set(pointerEvents === "auto" ? "none" : "auto")
-            }
-            style={{
-              flex: 1,
-              padding: "5px 0",
-              border: "1px solid #444",
-              borderRadius: 4,
-              backgroundColor: "#262626",
-              color: "#ddd",
-              fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
-            pointerEvents: {pointerEvents}
-          </button>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 600 }}>angleMark2D</span>
+          <span>∠ = {mark ? <AngleReadout mark={mark} /> : "—"}</span>
         </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ color: "#999", fontSize: 11 }}>sweep</span>
+          <div style={{ display: "flex", gap: 4 }}>
+            {SWEEPS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSweep(s)}
+                style={{
+                  flex: 1,
+                  padding: "5px 0",
+                  border: sweep === s ? "1px solid #a78bfa" : "1px solid #444",
+                  borderRadius: 4,
+                  backgroundColor: sweep === s ? "#2e2640" : "#262626",
+                  color: "#ddd",
+                  fontSize: 11,
+                  cursor: "pointer",
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Toggle
+          label="square"
+          on={squareRightAngle}
+          onClick={() => setSquareRightAngle((v) => !v)}
+        />
+
+        <SliderRow
+          label={
+            <>
+              radius ={" "}
+              <span style={{ color: "#cfe3ff", fontVariantNumeric: "tabular-nums" }}>
+                {radius.toFixed(2)}
+              </span>
+            </>
+          }
+          value={radius}
+          min={0.2}
+          max={2}
+          step={0.05}
+          onChange={(r) => radiusAtom.set(r)}
+        />
 
         <ul
           style={{

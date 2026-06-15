@@ -17,18 +17,28 @@ type AngleMark2DOptions = {
   // Show a right-angle square (instead of the arc) when the angle is 90°. On by
   // default; set false to keep the arc at every angle.
   squareRightAngle?: boolean;
+  // Which of the two angles between the arms the mark sweeps, from a to b:
+  //  - "minor" (default): the smaller angle, 0–180°.
+  //  - "major": the larger angle, 180–360°.
+  //  - "ccw" / "cw": a fixed counterclockwise or clockwise sweep, 0–360°. Unlike
+  //    "minor"/"major", which always pick by size, these hold one side as b
+  //    travels around the vertex, so the mark grows continuously through 180°.
+  sweep?: "minor" | "major" | "ccw" | "cw";
 };
 
 // How close to 90° counts as a right angle. ±0.5° so the square appears exactly
 // when a degree readout rounded with toFixed(0) reads "90".
 const RIGHT_ANGLE_TOL_DEG = 0.5;
 
+const TAU = 2 * Math.PI;
+
 /**
  * A small mark for the angle at `vertex` between the arms to `a` and `b`. A bare
- * arc (a circle2d) sweeping the non-reflex angle, which by convention becomes
- * the right-angle square whenever the angle is 90° (pass `squareRightAngle:
- * false` to keep the arc). The measured angle is returned as `measure`, in
- * radians, so a readout and the mark share one source of truth.
+ * arc (a circle2d) sweeping the angle chosen by `sweep` (the smaller angle by
+ * default), which by convention becomes the right-angle square whenever that
+ * angle is 90° (pass `squareRightAngle: false` to keep the arc). The measured
+ * angle is returned as `measure`, in radians, so a readout and the mark share
+ * one source of truth.
  */
 export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
   const vertexAtom = ensureAtom(scene.atom, options.vertex);
@@ -37,16 +47,35 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
   const radiusAtom = ensureAtom(scene.atom, options.radius ?? 0.4);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
   const thicknessAtom = ensureAtom(scene.atom, options.thickness ?? 2);
+  const sweep = options.sweep ?? "minor";
 
-  // Direction to arm a, and the signed short-way sweep from a to b. Sweeping by
-  // this delta marks the non-reflex angle whichever side b falls on.
+  // Direction to arm a, and the signed sweep from a to b that lands on b's
+  // direction either way: positive sweeps counterclockwise, negative clockwise.
+  // "minor"/"major" pick the shorter/longer of the two arcs by size; "ccw"/"cw"
+  // commit to a turn direction, so the sweep passes through 180° unbroken.
   const sweepAtom = scene.atom((get) => {
     const v = get(vertexAtom);
     const a = get(aAtom);
     const b = get(bAtom);
     const start = Math.atan2(a.y - v.y, a.x - v.x);
-    let delta = Math.atan2(b.y - v.y, b.x - v.x) - start;
-    delta = (((delta + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+    const raw = Math.atan2(b.y - v.y, b.x - v.x) - start;
+    // Short signed arc in (-π, π], and the full counterclockwise arc in [0, 2π).
+    const minor = ((((raw + Math.PI) % TAU) + TAU) % TAU) - Math.PI;
+    const ccw = ((raw % TAU) + TAU) % TAU;
+    let delta;
+    switch (sweep) {
+      case "major":
+        delta = minor === 0 ? 0 : minor - Math.sign(minor) * TAU;
+        break;
+      case "ccw":
+        delta = ccw;
+        break;
+      case "cw":
+        delta = ccw === 0 ? 0 : ccw - TAU;
+        break;
+      default:
+        delta = minor;
+    }
     return { start, delta };
   });
 
@@ -54,7 +83,8 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
 
   // The arc and square coexist and trade visibility as the angle crosses 90° (an
   // item's kind is fixed at creation, so a single item can't morph between them).
-  const squareRightAngle = options.squareRightAngle !== false;
+  // "major" can never measure 90°, so it has no square; the other modes can.
+  const squareRightAngle = options.squareRightAngle !== false && sweep !== "major";
   const rightAngle = squareRightAngle
     ? scene.atom((get) => Math.abs((get(measure) * 180) / Math.PI - 90) < RIGHT_ANGLE_TOL_DEG)
     : null;

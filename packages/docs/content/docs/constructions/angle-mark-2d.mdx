@@ -7,7 +7,7 @@ import AngleMark2DDemo from "@/components/demos/angle-mark-2d-demo";
 
 ## What is Angle Mark 2D?
 
-`angleMark2D` draws the little arc that marks an angle: given a `vertex` and the two points its arms point at, it renders a small arc between them and computes the angle's measure. It always marks the non-reflex angle, the short way between the arms. It is useful for labelling angles in geometry figures, triangles, and circle diagrams.
+`angleMark2D` draws the little arc that marks an angle: given a `vertex` and the two points its arms point at, it renders a small arc between them and computes the angle's measure. By default it marks the smaller angle, the short way between the arms; the `sweep` option chooses a different one. It is useful for labelling angles in geometry figures, triangles, and circle diagrams.
 
 The construction only draws the mark. It does not draw the arms, the vertex, or any label. Those are scene-specific choices you build with regular items, passing the same points into the construction.
 
@@ -73,7 +73,28 @@ scene.create("overlay2d", {
 });
 ```
 
-Because it always reports the non-reflex angle, `measure` ranges from `0` to `π`.
+By default `measure` reports the smaller angle, so it ranges from `0` to `π`. With other `sweep` modes it covers the angle actually drawn, up to `2π`.
+
+## Choosing Which Angle: `sweep`
+
+Two arms always cut the plane into two angles that sum to 360°. The `sweep` option decides which one the mark draws:
+
+| `sweep` | Marks | Range |
+|---------|-------|-------|
+| `"minor"` (default) | The smaller angle | `0°`–`180°` |
+| `"major"` | The larger angle | `180°`–`360°` |
+| `"ccw"` | A counterclockwise sweep from `a` to `b` | `0°`–`360°` |
+| `"cw"` | A clockwise sweep from `a` to `b` | `0°`–`360°` |
+
+```typescript
+angleMark2D(scene, { vertex, a, b, sweep: "major" });
+```
+
+`"minor"` and `"major"` pick by size, so as an arm swings past the straight-angle line the mark jumps to the other side, the one that is now smaller (or larger). For a static figure that is usually what you want.
+
+`"ccw"` and `"cw"` instead commit to a turn direction. As an arm travels around the vertex the mark stays on one side and grows continuously from 0° through 180° to 360°, without ever swapping sides. Reach for these when the angle is animated or dragged through a straight angle and you want the arc to follow smoothly. `"ccw"` and `"cw"` mark opposite sides of the same pair of arms.
+
+Since a major angle is never 90°, the right-angle square does not apply when `sweep` is `"major"`.
 
 ## Right Angles
 
@@ -128,6 +149,7 @@ mark.dispose();
 | `color` | `string` | `"white"` | Stroke color |
 | `thickness` | `number` | `2` | Stroke width |
 | `squareRightAngle` | `boolean` | `true` | Show a right-angle square (instead of the arc) whenever the angle is 90°; set false to keep the arc |
+| `sweep` | `"minor" \| "major" \| "ccw" \| "cw"` | `"minor"` | Which of the two angles the mark draws: smaller, larger, or a fixed counterclockwise/clockwise sweep |
 
 All options accept either a plain value or an atom.
 
@@ -136,5 +158,5 @@ All options accept either a plain value or an atom.
 | Field | Type | Description |
 |-------|------|-------------|
 | `mark` | `Circle2D` | The arc, as a `circle2d` |
-| `measure` | `BoundAtom<number>` | The angle's measure in radians, from `0` to `π` |
+| `measure` | `BoundAtom<number>` | The marked angle's measure in radians: `0` to `π` by default, up to `2π` with other `sweep` modes |
 | `dispose` | `() => void` | Removes the mark from the scene |
