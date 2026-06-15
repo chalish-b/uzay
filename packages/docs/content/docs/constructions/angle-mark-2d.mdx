@@ -75,6 +75,15 @@ scene.create("overlay2d", {
 
 Because it always reports the non-reflex angle, `measure` ranges from `0` to `π`.
 
+## Right Angles
+
+By convention a right angle is marked with a square, so that happens on its own: whenever the angle is 90° the mark draws the square (with `radius` as its side) instead of the arc, and reverts to the arc otherwise. This is reactive, so an angle dragged through 90° picks up the square right at the corner and drops it again. Pass `squareRightAngle: false` to keep the arc at every angle.
+
+```typescript
+// Squares automatically at 90°; opt out to always show the arc:
+angleMark2D(scene, { vertex, a, b, squareRightAngle: false });
+```
+
 ## Styling
 
 `radius` sets the size of the arc in world units; `color` and `thickness` style its stroke:
@@ -115,9 +124,10 @@ mark.dispose();
 | `vertex` | `Vec2` | (required) | The angle's vertex |
 | `a` | `Vec2` | (required) | A point the first arm points at |
 | `b` | `Vec2` | (required) | A point the second arm points at |
-| `radius` | `number` | `0.4` | Radius of the arc, in world units |
-| `color` | `string` | `"white"` | Arc stroke color |
-| `thickness` | `number` | `2` | Arc stroke width |
+| `radius` | `number` | `0.4` | Size of the mark in world units: the arc radius, or the square's side |
+| `color` | `string` | `"white"` | Stroke color |
+| `thickness` | `number` | `2` | Stroke width |
+| `squareRightAngle` | `boolean` | `true` | Show a right-angle square (instead of the arc) whenever the angle is 90°; set false to keep the arc |
 
 All options accept either a plain value or an atom.
 
