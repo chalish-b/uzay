@@ -7,11 +7,12 @@ import Circle2DDemo from "@/components/demos/circle-2d-demo";
 
 ## What is a Circle2D?
 
-A `Circle2D` renders a circle from a center and a radius. It can draw the outline (the circle itself), the filled disk, or both. Circles are useful for:
+A `Circle2D` renders a circle from a center and a radius. It can draw the outline (the circle itself), the filled disk, or both, and with an angular span it draws an arc or a sector instead of the whole circle. Circles are useful for:
 
 - Drawing a circle around a center, such as in circle geometry
 - Marking a radius of influence or a neighborhood around a point
 - Shading a disk as a filled region
+- Drawing an arc, or a sector (a pizza slice), with `thetaStart` and `thetaEnd`
 
 <Circle2DDemo />
 
@@ -69,6 +70,38 @@ scene.create("circle2d", {
 
 To draw a solid disk with no outline, raise `opacity` and leave the stroke off.
 
+## Arcs and Sectors
+
+`thetaStart` and `thetaEnd` set the angular span, in radians, measured counterclockwise from the positive x-axis. They default to a full turn (`0` to `2π`). Give them a smaller span and the circle becomes an arc: the **stroke draws just the arc curve**, and the **fill draws the sector** (the pizza slice from the center).
+
+```typescript
+// A 90° arc outline, from 3 o'clock up to 12 o'clock.
+scene.create("circle2d", {
+  center: vec2(0, 0),
+  radius: 2,
+  thetaStart: 0,
+  thetaEnd: Math.PI / 2,
+  strokeColor: "dodgerblue",
+});
+```
+
+Raise `opacity` to fill the sector instead of (or alongside) drawing the arc:
+
+```typescript
+// A shaded quarter-disk sector.
+scene.create("circle2d", {
+  center: vec2(0, 0),
+  radius: 2,
+  thetaStart: 0,
+  thetaEnd: Math.PI / 2,
+  color: "gold",
+  opacity: 0.35,
+  strokeOpacity: 0,
+});
+```
+
+For a marked angle between two arms, reach for the [angleMark2D](/docs/constructions/angle-mark-2d) construction, which wraps a circle2d arc and computes the angle for you.
+
 ## Examples
 
 ### Reactive Center and Radius
@@ -92,15 +125,15 @@ scene.create("circle2d", {
 
 Drag the handle and the circle follows; write to `radius` and it resizes.
 
-### Arcs, Ellipses, and Spirals
+### Ellipses and Spirals
 
-`circle2d` draws full circles. For an arc, an ellipse, or any other round curve, use a [parametric curve](/docs/2d-items/parametric), which lets you set the parameter range and both coordinates yourself:
+`circle2d` covers circles, arcs, and sectors. For an ellipse, a spiral, or any other non-circular curve, use a [parametric curve](/docs/2d-items/parametric), which lets you set both coordinates as functions of the parameter:
 
 ```typescript
 scene.create("parametricfunction2d", {
-  f: (t) => vec2(Math.cos(t), Math.sin(t)),
+  f: (t) => vec2(2 * Math.cos(t), Math.sin(t)), // an ellipse
   tStart: 0,
-  tEnd: Math.PI, // a half circle
+  tEnd: Math.PI * 2,
   color: "dodgerblue",
 });
 ```
@@ -129,6 +162,8 @@ circle.strokeColor.set("seagreen");
 |----------|------|---------|-------------|
 | `center` | `Vec2` | `(0, 0)` | Center of the circle |
 | `radius` | `number` | `1` | Radius of the circle |
+| `thetaStart` | `number` | `0` | Start of the angular span, in radians |
+| `thetaEnd` | `number` | `2π` | End of the angular span, in radians (a smaller span gives an arc / sector) |
 | `color` | `string` | `"white"` | Fill color |
 | `opacity` | `number` | `0` | Fill opacity (0 hides the disk) |
 | `strokeColor` | `string` | `"white"` | Outline color |
@@ -145,6 +180,8 @@ circle.strokeColor.set("seagreen");
 | `id` | `string` | Unique identifier |
 | `center` | `BoundAtom<Vec2>` | Center atom |
 | `radius` | `BoundAtom<number>` | Radius atom |
+| `thetaStart` | `BoundAtom<number>` | Span start atom (radians) |
+| `thetaEnd` | `BoundAtom<number>` | Span end atom (radians) |
 | `color` | `BoundAtom<string>` | Fill color atom |
 | `opacity` | `BoundAtom<number>` | Fill opacity atom |
 | `strokeColor` | `BoundAtom<string>` | Stroke color atom |

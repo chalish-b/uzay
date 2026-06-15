@@ -7,18 +7,42 @@ import type { Circle2DStrokeObject, ItemRenderer, ThreeSceneTypes } from "./shar
 import { Z_REGION, Z_REGION_STROKE } from "./shared";
 import { checkedColor } from "../../shared/types/colors";
 
-// Tessellation of both the disk fill and the outline polyline. High enough that
-// a viewport-filling circle reads as smooth, cheap enough to rebuild on drag.
-const SEGMENTS = 128;
+// Tessellation of a full circle's disk fill and outline polyline. High enough
+// that a viewport-filling circle reads as smooth, cheap enough to rebuild on
+// drag. An arc uses a slice of this, proportional to its span.
+const FULL_SEGMENTS = 128;
 
-function buildFillGeometry(radius: number): THREE.CircleGeometry {
-  return new THREE.CircleGeometry(radius, SEGMENTS);
+function arcSegments(thetaStart: number, thetaEnd: number): number {
+  const frac = Math.min(1, Math.abs(thetaEnd - thetaStart) / (Math.PI * 2));
+  return Math.max(2, Math.ceil(FULL_SEGMENTS * frac));
 }
 
-function buildStrokeGeometry(radius: number): LineGeometry {
+function buildFillGeometry(
+  radius: number,
+  thetaStart: number,
+  thetaEnd: number
+): THREE.CircleGeometry {
+  // A full span gives the whole disk; a partial span gives the sector wedge,
+  // since CircleGeometry fans out from the center vertex.
+  return new THREE.CircleGeometry(
+    radius,
+    arcSegments(thetaStart, thetaEnd),
+    thetaStart,
+    thetaEnd - thetaStart
+  );
+}
+
+function buildStrokeGeometry(
+  radius: number,
+  thetaStart: number,
+  thetaEnd: number
+): LineGeometry {
+  // Just the arc curve from thetaStart to thetaEnd. A full span closes on
+  // itself into the whole ring; a partial span leaves the arc open.
+  const segments = arcSegments(thetaStart, thetaEnd);
   const positions: number[] = [];
-  for (let i = 0; i <= SEGMENTS; i++) {
-    const theta = (i / SEGMENTS) * Math.PI * 2;
+  for (let i = 0; i <= segments; i++) {
+    const theta = thetaStart + (thetaEnd - thetaStart) * (i / segments);
     positions.push(Math.cos(theta) * radius, Math.sin(theta) * radius, 0);
   }
   const geometry = new LineGeometry();
@@ -33,7 +57,7 @@ function shouldShowStroke(item: ItemSnapshot<"circle2d">): boolean {
 function createStroke(item: ItemSnapshot<"circle2d">): Circle2DStrokeObject | null {
   if (!shouldShowStroke(item)) return null;
 
-  const geometry = buildStrokeGeometry(item.radius);
+  const geometry = buildStrokeGeometry(item.radius, item.thetaStart, item.thetaEnd);
   const material = new LineMaterial({
     color: checkedColor(item.strokeColor, "Circle2D.strokeColor"),
     linewidth: item.strokeThickness,
@@ -62,7 +86,7 @@ export const circle2dRenderer: ItemRenderer<"circle2d"> = {
     item: ItemSnapshot<"circle2d">,
     threeScene: THREE.Object3D
   ): ThreeSceneTypes["circle2d"] {
-    const geometry = buildFillGeometry(item.radius);
+    const geometry = buildFillGeometry(item.radius, item.thetaStart, item.thetaEnd);
     const material = new THREE.MeshBasicMaterial({
       color: checkedColor(item.color, "Circle2D.color"),
       opacity: item.opacity,
@@ -91,7 +115,7 @@ export const circle2dRenderer: ItemRenderer<"circle2d"> = {
     obj.mesh.position.set(item.center.x, item.center.y, Z_REGION);
 
     obj.geometry.dispose();
-    obj.geometry = buildFillGeometry(item.radius);
+    obj.geometry = buildFillGeometry(item.radius, item.thetaStart, item.thetaEnd);
     obj.mesh.geometry = obj.geometry;
 
     disposeStroke(obj.stroke, threeScene);

@@ -12,10 +12,16 @@ import { Scene2DView, useAtomValue } from "uzay/react";
 const FILL_COLORS = ["#4f9cf9", "#ef4444", "#22c55e", "#eab308", "#ffffff"];
 const STROKE_COLORS = ["#ffffff", "#4f9cf9", "#ef4444", "#22c55e", "#eab308"];
 
+const RAD = Math.PI / 180;
+const DEG = 180 / Math.PI;
+
 const CHECKLIST = [
   "Drag the orange handle: the whole circle follows (center is reactive)",
   "Center X/Y sliders move it too, and track the handle as you drag",
   "Radius slider: grows/shrinks smoothly, stays round even when large",
+  "θ end below 360°: stroke becomes an open arc (no closing back round)",
+  "With an arc and fill opacity > 0: the fill is a sector (pizza wedge)",
+  "θ start/end together sweep the arc around; small arcs stay smooth",
   "Fill opacity > 0: the disk (daire) shades in; 0 = outline only (çember)",
   "Stroke thickness 0 OR stroke opacity 0: outline vanishes, fill remains",
   "Fill opacity 0 AND stroke off: nothing renders at all",
@@ -57,6 +63,8 @@ function buildScene() {
   const circle = scene.create("circle2d", {
     center: handle.coords,
     radius: 2.5,
+    thetaStart: 0,
+    thetaEnd: Math.PI * 2,
     color: "#4f9cf9",
     opacity: 0,
     strokeColor: "#ffffff",
@@ -140,6 +148,8 @@ export default function Demo1() {
 
   const center = useAtomValue(handle.coords);
   const radius = useAtomValue(circle.radius);
+  const thetaStart = useAtomValue(circle.thetaStart);
+  const thetaEnd = useAtomValue(circle.thetaEnd);
   const fillColor = useAtomValue(circle.color);
   const fillOpacity = useAtomValue(circle.opacity);
   const strokeColor = useAtomValue(circle.strokeColor);
@@ -199,6 +209,22 @@ export default function Demo1() {
           max={5}
           step={0.05}
           onChange={(r) => circle.radius.set(r)}
+        />
+        <SliderRow
+          label={<>θ start = <span style={num}>{(thetaStart * DEG).toFixed(0)}°</span></>}
+          value={thetaStart * DEG}
+          min={0}
+          max={360}
+          step={1}
+          onChange={(d) => circle.thetaStart.set(d * RAD)}
+        />
+        <SliderRow
+          label={<>θ end = <span style={num}>{(thetaEnd * DEG).toFixed(0)}°</span></>}
+          value={thetaEnd * DEG}
+          min={0}
+          max={360}
+          step={1}
+          onChange={(d) => circle.thetaEnd.set(d * RAD)}
         />
 
         <SliderRow

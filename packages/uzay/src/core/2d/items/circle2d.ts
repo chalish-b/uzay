@@ -14,6 +14,11 @@ export type Circle2DFields = {
   tags: ItemTags;
   center: Vec2;
   radius: number;
+  // Angular span, in radians. The full circle by default; set a sub-span to get
+  // an arc. The stroke then draws only the arc curve, and the fill only the
+  // sector (the wedge from the center).
+  thetaStart: number;
+  thetaEnd: number;
   color: Color;
   opacity: number;
   strokeColor: Color;
@@ -30,6 +35,8 @@ export const circle2dDefinition = defineItem2D({
     tags: field<ItemTags>(() => []),
     center: field<Vec2>(() => vec2(0, 0)),
     radius: field(1),
+    thetaStart: field(0),
+    thetaEnd: field(Math.PI * 2),
     // Outline by default: the çember (curve) is the common case, the filled
     // daire the exception. Raise opacity to shade the disk.
     color: field<Color>("white"),

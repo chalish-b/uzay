@@ -1,0 +1,130 @@
+---
+title: Angle Mark 2D
+description: A small arc marking the angle between two arms at a vertex
+---
+
+import AngleMark2DDemo from "@/components/demos/angle-mark-2d-demo";
+
+## What is Angle Mark 2D?
+
+`angleMark2D` draws the little arc that marks an angle: given a `vertex` and the two points its arms point at, it renders a small arc between them and computes the angle's measure. It always marks the non-reflex angle, the short way between the arms. It is useful for labelling angles in geometry figures, triangles, and circle diagrams.
+
+The construction only draws the mark. It does not draw the arms, the vertex, or any label. Those are scene-specific choices you build with regular items, passing the same points into the construction.
+
+<AngleMark2DDemo />
+
+The mark is an `angleMark2D` at a fixed vertex, with two draggable `point2d` arms driving its `a` and `b`. The readout reads the construction's `measure` atom (converted to degrees), so it always matches the drawn arc: drag an arm and both move together.
+
+## Basic Usage
+
+```typescript
+import { Scene2D, angleMark2D, vec2 } from "uzay";
+
+const scene = new Scene2D();
+
+scene.create("camera2d", { center: vec2(0, 0), zoom: 1.5 });
+
+const vertex = vec2(0, 0);
+const a = vec2(2, 0);
+const b = vec2(1, 2);
+
+// Draw the arms yourself.
+scene.create("line2d", { start: vertex, end: a });
+scene.create("line2d", { start: vertex, end: b });
+
+// Mark the angle between them.
+const mark = angleMark2D(scene, { vertex, a, b, radius: 0.5, color: "gold" });
+```
+
+Under the hood the mark is a [circle2d](/docs/2d-items/circles) arc centered at the vertex, so it is a bare arc with no fill.
+
+## Reactive Arms
+
+The vertex and arms can be atoms, so the mark follows points you control. They are read-only as far as the construction is concerned: it never writes them, it only draws the angle they form.
+
+```typescript
+const a = scene.create("point2d", { coords: vec2(2, 0), color: "gold" });
+const b = scene.create("point2d", { coords: vec2(1, 2), color: "gold" });
+
+angleMark2D(scene, {
+  vertex: vec2(0, 0),
+  a: a.coords,
+  b: b.coords,
+});
+```
+
+Drag either point and the mark sweeps to match.
+
+## Reading the Measure
+
+The construction returns the angle as `measure`, a derived atom in **radians**. It is the same value used to draw the arc, so a readout built from it always matches the picture:
+
+```typescript
+const mark = angleMark2D(scene, { vertex, a, b });
+
+scene.create("overlay2d", {
+  position: vertex,
+  content: scene.atom((get) => {
+    const deg = (get(mark.measure) * 180) / Math.PI;
+    return `${deg.toFixed(1)}^\\circ`;
+  }),
+  format: "latex",
+  offset: vec2(0, -24),
+});
+```
+
+Because it always reports the non-reflex angle, `measure` ranges from `0` to `π`.
+
+## Styling
+
+`radius` sets the size of the arc in world units; `color` and `thickness` style its stroke:
+
+```typescript
+angleMark2D(scene, {
+  vertex,
+  a,
+  b,
+  radius: 0.8,
+  color: "tomato",
+  thickness: 3,
+});
+```
+
+For lower-level control, the returned `mark` is the underlying `circle2d`:
+
+```typescript
+mark.mark.strokeOpacity.set(0.6);
+```
+
+## Cleanup
+
+Call `dispose()` to remove the mark from the scene:
+
+```typescript
+mark.dispose();
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `vertex` | `Vec2` | (required) | The angle's vertex |
+| `a` | `Vec2` | (required) | A point the first arm points at |
+| `b` | `Vec2` | (required) | A point the second arm points at |
+| `radius` | `number` | `0.4` | Radius of the arc, in world units |
+| `color` | `string` | `"white"` | Arc stroke color |
+| `thickness` | `number` | `2` | Arc stroke width |
+
+All options accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mark` | `Circle2D` | The arc, as a `circle2d` |
+| `measure` | `BoundAtom<number>` | The angle's measure in radians, from `0` to `π` |
+| `dispose` | `() => void` | Removes the mark from the scene |
