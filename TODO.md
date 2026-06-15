@@ -58,6 +58,8 @@
 
 ## 2D
 
+- Make angle mark construction be a square for right angles (with an option to turn it off I guess).
+- Some kind of construction like circlePoint2D to add a point on a circle
 - Function plotting is still weird, especially for steep stuff like log(x), sqrt(x), 1/x etc around x=0.
 - A construction to display an area between two functions. A logical extension of area under construction.
 - Adding limits to the zoom and pan in the camera
