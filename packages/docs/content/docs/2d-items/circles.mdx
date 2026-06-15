@@ -1,0 +1,155 @@
+---
+title: Circles
+description: Circles and disks in the plane
+---
+
+import Circle2DDemo from "@/components/demos/circle-2d-demo";
+
+## What is a Circle2D?
+
+A `Circle2D` renders a circle from a center and a radius. It can draw the outline (the circle itself), the filled disk, or both. Circles are useful for:
+
+- Drawing a circle around a center, such as in circle geometry
+- Marking a radius of influence or a neighborhood around a point
+- Shading a disk as a filled region
+
+<Circle2DDemo />
+
+A `circle2d` whose `center` is bound to a draggable `point2d`, so dragging the handle moves the circle while the slider sets its `radius`.
+
+## Basic Usage
+
+Pass a `center` and a `radius`:
+
+```typescript
+scene.create("circle2d", {
+  center: vec2(0, 0),
+  radius: 2,
+  strokeColor: "dodgerblue",
+});
+```
+
+By default a circle is drawn as an outline only. The fill is off (`opacity` is `0`) and the outline is on, since the curve is the common case.
+
+## Outline and Fill
+
+A circle has two parts you can style independently: the outline (stroke) and the disk (fill).
+
+### Outline
+
+`strokeColor`, `strokeOpacity`, and `strokeThickness` control the outline:
+
+```typescript
+scene.create("circle2d", {
+  center: vec2(0, 0),
+  radius: 2,
+  strokeColor: "white",
+  strokeOpacity: 1,
+  strokeThickness: 3,
+});
+```
+
+Setting `strokeThickness` or `strokeOpacity` to `0` hides the outline.
+
+### Fill
+
+`color` and `opacity` control the filled disk. Raise `opacity` above `0` to shade it:
+
+```typescript
+scene.create("circle2d", {
+  center: vec2(0, 0),
+  radius: 2,
+  color: "dodgerblue",
+  opacity: 0.3,
+  strokeColor: "dodgerblue",
+  strokeOpacity: 1,
+  strokeThickness: 2,
+});
+```
+
+To draw a solid disk with no outline, raise `opacity` and leave the stroke off.
+
+## Examples
+
+### Reactive Center and Radius
+
+Drive the center and radius from atoms so the circle follows a draggable handle and a slider:
+
+```typescript
+const handle = scene.create("point2d", {
+  coords: vec2(0, 0),
+  color: "gold",
+});
+
+const radius = scene.atom(2);
+
+scene.create("circle2d", {
+  center: handle.coords,
+  radius,
+  strokeColor: "gold",
+});
+```
+
+Drag the handle and the circle follows; write to `radius` and it resizes.
+
+### Arcs, Ellipses, and Spirals
+
+`circle2d` draws full circles. For an arc, an ellipse, or any other round curve, use a [parametric curve](/docs/2d-items/parametric), which lets you set the parameter range and both coordinates yourself:
+
+```typescript
+scene.create("parametricfunction2d", {
+  f: (t) => vec2(Math.cos(t), Math.sin(t)),
+  tStart: 0,
+  tEnd: Math.PI, // a half circle
+  color: "dodgerblue",
+});
+```
+
+## Updating Properties
+
+```typescript
+const circle = scene.create("circle2d", {
+  center: vec2(0, 0),
+  radius: 1,
+});
+
+circle.center.set(vec2(2, 1));
+circle.radius.set(3);
+circle.opacity.set(0.3); // shade the disk
+circle.strokeColor.set("seagreen");
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `center` | `Vec2` | `(0, 0)` | Center of the circle |
+| `radius` | `number` | `1` | Radius of the circle |
+| `color` | `string` | `"white"` | Fill color |
+| `opacity` | `number` | `0` | Fill opacity (0 hides the disk) |
+| `strokeColor` | `string` | `"white"` | Outline color |
+| `strokeOpacity` | `number` | `1` | Outline opacity (0 hides the outline) |
+| `strokeThickness` | `number` | `2` | Outline width |
+| `visible` | `boolean` | `true` | Whether the circle is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the circle receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `center` | `BoundAtom<Vec2>` | Center atom |
+| `radius` | `BoundAtom<number>` | Radius atom |
+| `color` | `BoundAtom<string>` | Fill color atom |
+| `opacity` | `BoundAtom<number>` | Fill opacity atom |
+| `strokeColor` | `BoundAtom<string>` | Stroke color atom |
+| `strokeOpacity` | `BoundAtom<number>` | Stroke opacity atom |
+| `strokeThickness` | `BoundAtom<number>` | Stroke width atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

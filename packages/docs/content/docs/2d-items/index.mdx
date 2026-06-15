@@ -7,7 +7,7 @@ description: Visual primitives for a Scene2D
 
 Creating, updating, and removing items follows the same pattern for every kind. If you haven't seen it yet, read [Items](/docs/core-concepts/items) for the shared mechanics. Working in space instead? See [3D Items](/docs/3d-items).
 
-Most 2D items mirror a [3D counterpart](/docs/3d-items) with the same name and a `Vec2` in place of `Vec3`. Two items are specific to the plane: [Function2D](/docs/2d-items/functions) for graphs of $y = f(x)$, and [Region2D](/docs/2d-items/regions) for filled polygons.
+Most 2D items mirror a [3D counterpart](/docs/3d-items) with the same name and a `Vec2` in place of `Vec3`. A few items are specific to the plane: [Function2D](/docs/2d-items/functions) for graphs of $y = f(x)$, [Region2D](/docs/2d-items/regions) for filled polygons, and [Circle2D](/docs/2d-items/circles) for circles and disks.
 
 ## Available Items
 
@@ -16,9 +16,10 @@ Most 2D items mirror a [3D counterpart](/docs/3d-items) with the same name and a
 | [Point2D](/docs/2d-items/points) | A dot at a position in the plane | Markers, vertices, handles |
 | [Line2D](/docs/2d-items/lines) | A segment between two points | Connections, edges, chords |
 | [Vector2D](/docs/2d-items/vectors) | An arrow with origin and direction | Forces, gradients, basis vectors |
-| [ParametricFunction2D](/docs/2d-items/parametric) | A curve from a parametric equation | Circles, spirals, loops |
+| [ParametricFunction2D](/docs/2d-items/parametric) | A curve from a parametric equation | Arcs, spirals, loops |
 | [Function2D](/docs/2d-items/functions) | A graph of $y = f(x)$ | Plotting functions |
 | [Region2D](/docs/2d-items/regions) | A filled polygon | Shaded areas, domains |
+| [Circle2D](/docs/2d-items/circles) | A circle or filled disk | Circle geometry, neighborhoods |
 | [Overlay2D](/docs/2d-items/overlays) | An HTML or LaTeX label anchored to a position | Labels, equations, annotations |
 | [Axes2D](/docs/2d-items/axes) | Coordinate axes | Reference, orientation |
 | [Grid2D](/docs/2d-items/grid) | A reference grid | Graph-paper backdrop |
@@ -31,6 +32,7 @@ Most 2D items mirror a [3D counterpart](/docs/3d-items) with the same name and a
   <Card title="Parametric Curves" href="/docs/2d-items/parametric" />
   <Card title="Functions" href="/docs/2d-items/functions" />
   <Card title="Regions" href="/docs/2d-items/regions" />
+  <Card title="Circles" href="/docs/2d-items/circles" />
   <Card title="Overlays" href="/docs/2d-items/overlays" />
   <Card title="Axes" href="/docs/2d-items/axes" />
   <Card title="Grid" href="/docs/2d-items/grid" />

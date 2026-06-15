@@ -5,6 +5,7 @@ import { axes2dDefinition } from "../items/axes2d";
 import { line2dDefinition } from "../items/line2d";
 import { vector2dDefinition } from "../items/vector2d";
 import { region2dDefinition } from "../items/region2d";
+import { circle2dDefinition } from "../items/circle2d";
 import { parametricFunction2dDefinition } from "../items/parametric-function2d";
 import { function2dDefinition } from "../items/function2d";
 import { overlay2dDefinition } from "../items/overlay2d";
@@ -25,6 +26,7 @@ export const itemDefinitions = {
   line2d: line2dDefinition,
   vector2d: vector2dDefinition,
   region2d: region2dDefinition,
+  circle2d: circle2dDefinition,
   parametricfunction2d: parametricFunction2dDefinition,
   function2d: function2dDefinition,
   overlay2d: overlay2dDefinition,

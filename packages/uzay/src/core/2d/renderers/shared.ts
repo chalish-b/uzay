@@ -64,6 +64,13 @@ export type ThreeSceneTypes = {
     mesh: THREE.Mesh<THREE.ShapeGeometry, THREE.MeshBasicMaterial>;
     strokes: Region2DStrokeObject[];
   };
+  circle2d: {
+    kind: "circle2d";
+    geometry: THREE.CircleGeometry;
+    material: THREE.MeshBasicMaterial;
+    mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+    stroke: Circle2DStrokeObject | null;
+  };
   parametricfunction2d: {
     kind: "parametricfunction2d";
     geometry: LineGeometry;
@@ -86,6 +93,13 @@ export type ThreeSceneTypes = {
 
 // One stroke loop per region polygon.
 export type Region2DStrokeObject = {
+  geometry: LineGeometry;
+  material: LineMaterial;
+  mesh: Line2;
+};
+
+// The çember outline ring, when the circle's stroke is shown.
+export type Circle2DStrokeObject = {
   geometry: LineGeometry;
   material: LineMaterial;
   mesh: Line2;
