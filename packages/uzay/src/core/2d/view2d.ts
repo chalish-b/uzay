@@ -101,6 +101,10 @@ export class View2D {
     this.threeRenderer.domElement.style.width = "100%";
     this.threeRenderer.domElement.style.height = "100%";
     this.threeRenderer.domElement.style.display = "block";
+    // Hand all touch gestures to our pointer handlers. Without this the browser
+    // treats finger drags as page scroll/zoom and cancels the pointer mid-gesture,
+    // breaking pan and point dragging on touchscreens.
+    this.threeRenderer.domElement.style.touchAction = "none";
 
     const existingCanvas = containerElem.querySelector("canvas");
     if (existingCanvas) {
@@ -124,6 +128,7 @@ export class View2D {
     canvas.addEventListener("pointerdown", this.onPointerDown);
     canvas.addEventListener("pointermove", this.onPointerMove);
     canvas.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("pointercancel", this.onPointerCancel);
     canvas.addEventListener("pointerleave", this.onPointerLeave);
     canvas.addEventListener("wheel", this.onWheel, { passive: false });
 
@@ -626,6 +631,34 @@ export class View2D {
     this.pointerDownInfo = null;
   };
 
+  onPointerCancel = (event: PointerEvent) => {
+    // The browser took the pointer away mid-gesture (e.g. a system touch
+    // gesture). Finalize an active drag at its last position and drop pan state
+    // so nothing is left dangling. No click is fired for a cancelled pointer.
+    if (this.dragState) {
+      const item = this.scene.items.get(this.dragState.itemId);
+      if (item) {
+        this.dispatchEvent("drag", {
+          type: "drag",
+          phase: "end",
+          itemId: this.dragState.itemId,
+          itemKind: item.kind,
+          screenPosition: { x: event.clientX, y: event.clientY },
+          startWorldPosition: this.dragState.startWorldPosition,
+          worldPosition: this.dragState.lastWorldPosition,
+          delta: Vec2.subtract(
+            this.dragState.lastWorldPosition,
+            this.dragState.startWorldPosition
+          ),
+        });
+      }
+      this.dragState = null;
+    }
+    this.panState = null;
+    this.pointerDownInfo = null;
+    this.updateCursor();
+  };
+
   onPointerLeave = () => {
     // Only clears idle hover state. An active drag or pan holds pointer capture
     // and runs until pointerup, so the cursor leaving the canvas leaves it intact.
@@ -686,6 +719,7 @@ export class View2D {
     canvas.removeEventListener("pointerdown", this.onPointerDown);
     canvas.removeEventListener("pointermove", this.onPointerMove);
     canvas.removeEventListener("pointerup", this.onPointerUp);
+    canvas.removeEventListener("pointercancel", this.onPointerCancel);
     canvas.removeEventListener("pointerleave", this.onPointerLeave);
     canvas.removeEventListener("wheel", this.onWheel);
 

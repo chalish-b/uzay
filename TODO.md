@@ -53,7 +53,6 @@
 
   ## Bugs
 
-- Mobile experience is fucking ass right now, can't even drag anything. Fix it ASAP.
 - Explicitly typed atoms (`scene.atom<T>()`) don't get autocomplete. The type checking still works, but for things like string types, it would be nice if it provided autocomplete.
 - This whole thing with Vec3 type and Vec3 namespace is bad. We need to import Vec3 namespace as Vec3Utils just for this and causes confusions.
 
