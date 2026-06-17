@@ -52,6 +52,7 @@ export class View2D {
   pointer = new THREE.Vector2();
 
   dragState: {
+    pointerId: number;
     itemId: ItemId;
     constraint: PointDraggableDir2D;
     startWorldPosition: Vec2;
@@ -59,9 +60,22 @@ export class View2D {
   } | null = null;
 
   panState: {
+    pointerId: number;
     lastClientX: number;
     lastClientY: number;
   } | null = null;
+
+  // Two-finger gesture: zoom by the change in finger distance and pan by the
+  // movement of their midpoint, both centered on that midpoint.
+  pinchState: {
+    lastDistance: number;
+    lastMidX: number;
+    lastMidY: number;
+  } | null = null;
+
+  // Live pointer positions in client coords, keyed by pointerId. Drives the
+  // pinch math and the two-finger to one-finger pan handoff.
+  activePointers: Map<number, { x: number; y: number }> = new Map();
 
   pointerDownInfo: {
     itemId: ItemId | null;
@@ -343,8 +357,8 @@ export class View2D {
 
   // ========== Coord conversions ==========
 
-  // Convert pointer event coords to Three.js NDC, then unproject to a world Vec2.
-  screenToWorld(event: PointerEvent | WheelEvent): Vec2 {
+  // Convert client coords to Three.js NDC, then unproject to a world Vec2.
+  screenToWorld(event: { clientX: number; clientY: number }): Vec2 {
     const rect = this.threeRenderer.domElement.getBoundingClientRect();
     const ndcX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     const ndcY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -423,11 +437,7 @@ export class View2D {
 
   updateCursor(): void {
     const canvas = this.threeRenderer.domElement;
-    if (this.dragState) {
-      canvas.style.cursor = "grabbing";
-      return;
-    }
-    if (this.panState) {
+    if (this.dragState || this.panState || this.pinchState) {
       canvas.style.cursor = "grabbing";
       return;
     }
@@ -443,6 +453,17 @@ export class View2D {
   // ========== Pointer / Wheel Handlers ==========
 
   onPointerDown = (event: PointerEvent) => {
+    this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    // Second finger arrives: start a two-finger zoom + pan, unless a point drag
+    // is already underway. A drag owns the gesture, so extra fingers are ignored.
+    if (this.activePointers.size === 2 && !this.dragState) {
+      this.beginPinch();
+      return;
+    }
+    // Already in a multi-finger gesture (or dragging an item): ignore further pointers.
+    if (this.activePointers.size >= 2) return;
+
     const hit = this.raycastItem(event);
 
     this.pointerDownInfo = {
@@ -461,6 +482,7 @@ export class View2D {
           // when the cursor passes over overlay DOM elements or leaves the canvas.
           this.threeRenderer.domElement.setPointerCapture(event.pointerId);
           this.dragState = {
+            pointerId: event.pointerId,
             itemId: hit.itemId,
             constraint,
             startWorldPosition: hit.worldPosition,
@@ -488,6 +510,7 @@ export class View2D {
       // Capture the pointer so panning continues past the canvas edge and over overlays.
       this.threeRenderer.domElement.setPointerCapture(event.pointerId);
       this.panState = {
+        pointerId: event.pointerId,
         lastClientX: event.clientX,
         lastClientY: event.clientY,
       };
@@ -496,7 +519,18 @@ export class View2D {
   };
 
   onPointerMove = (event: PointerEvent) => {
+    if (this.activePointers.has(event.pointerId)) {
+      this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+
+    if (this.pinchState) {
+      this.updatePinch();
+      return;
+    }
+
     if (this.dragState) {
+      // Only the finger that started the drag drives it; ignore the rest.
+      if (event.pointerId !== this.dragState.pointerId) return;
       const item = this.scene.items.get(this.dragState.itemId);
       if (!item) {
         this.dragState = null;
@@ -520,17 +554,12 @@ export class View2D {
     }
 
     if (this.panState) {
-      // Convert pixel delta to world delta using the current ortho frustum.
+      if (event.pointerId !== this.panState.pointerId) return;
       const dxPx = event.clientX - this.panState.lastClientX;
       const dyPx = event.clientY - this.panState.lastClientY;
       this.panState.lastClientX = event.clientX;
       this.panState.lastClientY = event.clientY;
-
-      const worldPerPixel = this.worldPerPixel();
-      const dWorldX = -dxPx * worldPerPixel;
-      const dWorldY = dyPx * worldPerPixel; // y flipped: screen-y down = world-y down for our convention
-      const current = this.activeCam.center.get();
-      setBoundAtomIfWritable(this.activeCam.center, vec2(current.x + dWorldX, current.y + dWorldY));
+      this.panByPixels(dxPx, dyPx);
       return;
     }
 
@@ -583,7 +612,16 @@ export class View2D {
   };
 
   onPointerUp = (event: PointerEvent) => {
-    if (this.dragState) {
+    this.activePointers.delete(event.pointerId);
+
+    if (this.pinchState) {
+      // A pinch is never a click, and the remaining fingers settle the gesture.
+      this.settlePinchAfterPointerLoss();
+      this.pointerDownInfo = null;
+      return;
+    }
+
+    if (this.dragState && event.pointerId === this.dragState.pointerId) {
       const item = this.scene.items.get(this.dragState.itemId);
       if (item) {
         const worldPos = this.screenToWorld(event);
@@ -602,7 +640,7 @@ export class View2D {
       this.updateCursor();
     }
 
-    if (this.panState) {
+    if (this.panState && event.pointerId === this.panState.pointerId) {
       this.panState = null;
       this.updateCursor();
     }
@@ -633,9 +671,17 @@ export class View2D {
 
   onPointerCancel = (event: PointerEvent) => {
     // The browser took the pointer away mid-gesture (e.g. a system touch
-    // gesture). Finalize an active drag at its last position and drop pan state
+    // gesture). Finalize an active drag at its last position and settle pan/pinch
     // so nothing is left dangling. No click is fired for a cancelled pointer.
-    if (this.dragState) {
+    this.activePointers.delete(event.pointerId);
+
+    if (this.pinchState) {
+      this.settlePinchAfterPointerLoss();
+      this.pointerDownInfo = null;
+      return;
+    }
+
+    if (this.dragState && event.pointerId === this.dragState.pointerId) {
       const item = this.scene.items.get(this.dragState.itemId);
       if (item) {
         this.dispatchEvent("drag", {
@@ -654,15 +700,18 @@ export class View2D {
       }
       this.dragState = null;
     }
-    this.panState = null;
+    if (this.panState && event.pointerId === this.panState.pointerId) {
+      this.panState = null;
+    }
     this.pointerDownInfo = null;
     this.updateCursor();
   };
 
   onPointerLeave = () => {
-    // Only clears idle hover state. An active drag or pan holds pointer capture
-    // and runs until pointerup, so the cursor leaving the canvas leaves it intact.
-    if (this.dragState || this.panState) return;
+    // Only clears idle hover state. An active drag, pan, or pinch holds pointer
+    // capture and runs until pointerup, so the cursor leaving the canvas leaves
+    // it intact.
+    if (this.dragState || this.panState || this.pinchState) return;
 
     this.hoveredItemId = null;
     this.pointerDownInfo = null;
@@ -675,29 +724,9 @@ export class View2D {
 
     event.preventDefault();
 
-    // Cursor world position before zoom.
-    const cursorBefore = this.screenToWorld(event);
-
     // Multiplicative zoom: deltaY > 0 is "wheel down" / "zoom out" in browser convention.
     const factor = Math.pow(WHEEL_ZOOM_FACTOR, -event.deltaY);
-    const newZoom = Math.max(0.001, camSnap.zoom * factor);
-    setBoundAtomIfWritable(this.activeCam.zoom, newZoom);
-
-    // Manually sync the threeCamera so we can compute the post-zoom cursor world
-    // position before the next render frame. Without this, cursorAfter would be
-    // computed from the stale projection matrix.
-    this.threeCamera.zoom = newZoom;
-    this.threeCamera.updateProjectionMatrix();
-
-    const cursorAfter = this.screenToWorld(event);
-
-    // Shift center so the cursor's world position is preserved across the zoom.
-    const center = this.activeCam.center.get();
-    const adjusted = vec2(
-      center.x + (cursorBefore.x - cursorAfter.x),
-      center.y + (cursorBefore.y - cursorAfter.y)
-    );
-    setBoundAtomIfWritable(this.activeCam.center, adjusted);
+    this.zoomAroundScreenPoint(event.clientX, event.clientY, factor);
   };
 
   // Pixels-to-world conversion based on the current threeCamera frustum + zoom.
@@ -705,6 +734,116 @@ export class View2D {
     const rect = this.threeRenderer.domElement.getBoundingClientRect();
     const worldHeight = (this.threeCamera.top - this.threeCamera.bottom) / this.threeCamera.zoom;
     return worldHeight / rect.height;
+  }
+
+  // Pan the camera by a pixel delta, converting to world units via the current
+  // frustum + zoom. screen-x right shifts content right; screen-y down shifts
+  // content down.
+  panByPixels(dxPx: number, dyPx: number) {
+    const worldPerPixel = this.worldPerPixel();
+    const current = this.activeCam.center.get();
+    setBoundAtomIfWritable(
+      this.activeCam.center,
+      vec2(current.x - dxPx * worldPerPixel, current.y + dyPx * worldPerPixel)
+    );
+  }
+
+  // Zoom by `factor` while keeping the world point under the given client coords
+  // fixed on screen. Shared by wheel zoom and two-finger pinch.
+  zoomAroundScreenPoint(clientX: number, clientY: number, factor: number) {
+    const point = { clientX, clientY };
+    const before = this.screenToWorld(point);
+
+    const newZoom = Math.max(0.001, this.activeCam.zoom.get() * factor);
+    setBoundAtomIfWritable(this.activeCam.zoom, newZoom);
+
+    // Sync the threeCamera so the post-zoom unprojection uses the new matrix.
+    // Without this, `after` would be computed from the stale projection matrix.
+    this.threeCamera.zoom = newZoom;
+    this.threeCamera.updateProjectionMatrix();
+
+    const after = this.screenToWorld(point);
+
+    const center = this.activeCam.center.get();
+    setBoundAtomIfWritable(
+      this.activeCam.center,
+      vec2(center.x + (before.x - after.x), center.y + (before.y - after.y))
+    );
+  }
+
+  // ========== Two-finger pinch ==========
+
+  // Begin a pinch from the two active pointers. A two-finger gesture supersedes
+  // single-finger pan and can never resolve to a click.
+  beginPinch() {
+    const camSnap = this.activeCam.getItemSnapshot();
+    if (!camSnap.enablePan && !camSnap.enableZoom) return;
+    if (this.activePointers.size < 2) return;
+
+    // Capture both fingers so the gesture survives one straying over an overlay.
+    for (const id of this.activePointers.keys()) {
+      this.threeRenderer.domElement.setPointerCapture(id);
+    }
+
+    this.panState = null;
+    this.pointerDownInfo = null;
+    this.seedPinch();
+    this.updateCursor();
+  }
+
+  // (Re)seed the pinch reference distance + midpoint from the first two active
+  // pointers. Called on start and whenever the finger set changes mid-gesture.
+  seedPinch() {
+    const pts = [...this.activePointers.values()];
+    if (pts.length < 2) return;
+    const [a, b] = pts;
+    this.pinchState = {
+      lastDistance: Math.hypot(a.x - b.x, a.y - b.y),
+      lastMidX: (a.x + b.x) / 2,
+      lastMidY: (a.y + b.y) / 2,
+    };
+  }
+
+  updatePinch() {
+    if (!this.pinchState) return;
+    const pts = [...this.activePointers.values()];
+    if (pts.length < 2) return;
+    const [a, b] = pts;
+
+    const camSnap = this.activeCam.getItemSnapshot();
+    const distance = Math.hypot(a.x - b.x, a.y - b.y);
+    const midX = (a.x + b.x) / 2;
+    const midY = (a.y + b.y) / 2;
+
+    // Zoom by how much the fingers spread or pinched, holding the midpoint fixed.
+    if (camSnap.enableZoom && this.pinchState.lastDistance > 0 && distance > 0) {
+      this.zoomAroundScreenPoint(midX, midY, distance / this.pinchState.lastDistance);
+    }
+
+    // Pan by how far the midpoint moved.
+    if (camSnap.enablePan) {
+      this.panByPixels(midX - this.pinchState.lastMidX, midY - this.pinchState.lastMidY);
+    }
+
+    this.pinchState.lastDistance = distance;
+    this.pinchState.lastMidX = midX;
+    this.pinchState.lastMidY = midY;
+  }
+
+  // A pinch pointer went up or was cancelled. Continue with the remaining fingers
+  // if two+ are left, hand back to single-finger pan if exactly one remains, or
+  // end the gesture.
+  settlePinchAfterPointerLoss() {
+    if (this.activePointers.size >= 2) {
+      this.seedPinch();
+      return;
+    }
+    this.pinchState = null;
+    if (this.activePointers.size === 1 && this.activeCam.getItemSnapshot().enablePan) {
+      const [[id, pos]] = this.activePointers.entries();
+      this.panState = { pointerId: id, lastClientX: pos.x, lastClientY: pos.y };
+    }
+    this.updateCursor();
   }
 
   dispose() {
@@ -725,6 +864,8 @@ export class View2D {
 
     this.dragState = null;
     this.panState = null;
+    this.pinchState = null;
+    this.activePointers.clear();
     this.pointerDownInfo = null;
     this.hoveredItemId = null;
 
