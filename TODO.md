@@ -53,12 +53,14 @@
 
   ## Bugs
 
+- Mobile experience is fucking ass right now, can't even drag anything. Fix it ASAP.
 - Explicitly typed atoms (`scene.atom<T>()`) don't get autocomplete. The type checking still works, but for things like string types, it would be nice if it provided autocomplete.
 - This whole thing with Vec3 type and Vec3 namespace is bad. We need to import Vec3 namespace as Vec3Utils just for this and causes confusions.
 
 ## 2D
 
-- Make angle mark construction be a square for right angles (with an option to turn it off I guess).
+- Some kind of tick marks support on lines and angle markers to show that their lengths are equal.
+  - Idk what the right API would be though. Maybe just add it as an option directly to the line / angle itself, or should it be a construction?
 - Some kind of construction like circlePoint2D to add a point on a circle
 - Function plotting is still weird, especially for steep stuff like log(x), sqrt(x), 1/x etc around x=0.
 - A construction to display an area between two functions. A logical extension of area under construction.
@@ -67,3 +69,6 @@
 - Add some anti aliasing to the lines and functions
 - Zooming into a function plot makes the point look not on the function. We need an adaptive function sampling approach I guess.
   - As a hack though, we can put limits on zoom levels
+- Random idea: SVG renderer
+  - Obviously not feasible in 3D but might be interesting for 2D.
+  - Can be live, but also can have a static method like "renderToStaticSvg" or something to capture the _current_ state of the scene and create an SVG. Could be good for static diagrams that don't require interactivity.

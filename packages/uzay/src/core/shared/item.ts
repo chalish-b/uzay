@@ -17,7 +17,7 @@ import type {
   ItemDefinitionState,
   RuntimeFields,
 } from "./item-definition";
-import type { ItemId } from "./types/ids";
+import { generateId, type ItemId } from "./types/ids";
 import type {
   AnyEventMap,
   InteractionEventType,
@@ -35,7 +35,7 @@ export abstract class BaseItem<
   EventMap extends AnyEventMap = AnyEventMap,
 > {
   abstract kind: K;
-  id: ItemId = crypto.randomUUID();
+  id: ItemId = generateId();
   isDirty: boolean = false;
   // Bumped on every field change. Views compare it against the version they
   // last applied (held in their previous snapshot) to decide what to redraw,
