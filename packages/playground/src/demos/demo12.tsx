@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import katex from "katex";
-import { Scene2D, curvePoint2D, functionArea2D, vec2 } from "uzay";
-import { Scene2DView, useAtomValue } from "uzay/react";
+import { Scene2D, Scene3D, curvePoint2D, functionArea2D, vec2, vec3 } from "uzay";
+import { Scene2DView, Scene3DView, useAtomValue } from "uzay/react";
 
 const a = 1.4;
 const initialH = 1.8;
@@ -617,6 +617,88 @@ function createIntegralScene(initialTheme: DemoTheme) {
   };
 }
 
+// Touch-scroll test: a 2D scene whose camera has panning disabled. Drag-to-pan
+// is off; dragging the point and pinch-zoom stay on.
+function createPanDisabledScene(initialTheme: DemoTheme) {
+  const scene = new Scene2D();
+  const themeAtom = scene.atom(initialTheme);
+
+  const camera = scene.create("camera2d", {
+    center: vec2(0, 0),
+    zoom: 1.5,
+    enablePan: false,
+    enableZoom: true,
+  });
+
+  scene.create("grid2d", {
+    rangeX: true,
+    rangeY: true,
+    gap: "auto",
+    color: scene.atom((get) => get(themeAtom).scene.grid),
+    opacity: scene.atom((get) => get(themeAtom).scene.gridOpacity),
+  });
+
+  scene.create("axes2d", {
+    x: true,
+    y: true,
+    color: scene.atom((get) => get(themeAtom).scene.axes),
+    thickness: 1.1,
+    tickmarks: true,
+    tickStep: "auto",
+    arrows: true,
+  });
+
+  scene.create("point2d", {
+    coords: vec2(1.4, 1.0),
+    color: scene.atom((get) => get(themeAtom).scene.accent),
+    radius: 7,
+    draggable: "xy",
+  });
+
+  return { scene, camera, themeAtom };
+}
+
+// Touch-scroll test: a 3D scene whose camera has orbiting disabled. One-finger
+// orbit is off; two-finger pan/zoom stay on.
+function createOrbitDisabledScene(initialTheme: DemoTheme) {
+  const scene = new Scene3D();
+  const themeAtom = scene.atom(initialTheme);
+
+  const camera = scene.create("camera3d", {
+    position: vec3(7, 5, 7),
+    lookAt: vec3(0, 0, 0),
+    fov: 55,
+    enableOrbit: false,
+    enablePan: true,
+    enableZoom: true,
+  });
+
+  scene.create("axes3d", {
+    x: [-5, 5],
+    y: [-5, 5],
+    z: [-5, 5],
+    thickness: 0.7,
+    color: scene.atom((get) => get(themeAtom).scene.axes),
+  });
+
+  scene.create("grid3d", {
+    plane: "xz",
+    range1: [-5, 5],
+    range2: [-5, 5],
+    thickness: 2,
+    color: scene.atom((get) => get(themeAtom).scene.grid),
+    opacity: scene.atom((get) => get(themeAtom).scene.gridOpacity),
+  });
+
+  scene.create("sphere3d", {
+    center: vec3(0, 1.6, 0),
+    radius: 1.6,
+    color: scene.atom((get) => get(themeAtom).scene.accent),
+  });
+
+  return { scene, camera, themeAtom };
+}
+
 function EmbeddedScene({
   children,
   theme,
@@ -729,6 +811,40 @@ function SecantDerivativeEmbed({ theme }: { theme: DemoTheme }) {
   );
 }
 
+function PanDisabledEmbed({ theme }: { theme: DemoTheme }) {
+  const { scene, camera, themeAtom } = useMemo(
+    () => createPanDisabledScene(theme),
+    [],
+  );
+
+  useEffect(() => {
+    themeAtom.set(theme);
+  }, [theme, themeAtom]);
+
+  return (
+    <EmbeddedScene theme={theme} height={360}>
+      <Scene2DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
+    </EmbeddedScene>
+  );
+}
+
+function OrbitDisabledEmbed({ theme }: { theme: DemoTheme }) {
+  const { scene, camera, themeAtom } = useMemo(
+    () => createOrbitDisabledScene(theme),
+    [],
+  );
+
+  useEffect(() => {
+    themeAtom.set(theme);
+  }, [theme, themeAtom]);
+
+  return (
+    <EmbeddedScene theme={theme} height={360}>
+      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
+    </EmbeddedScene>
+  );
+}
+
 export default function Demo12() {
   const [themeMode, setThemeMode] = useState<DemoThemeMode>("light");
   const theme = demoThemes[themeMode];
@@ -805,6 +921,28 @@ export default function Demo12() {
         <p>
           The shaded region is built from sampled points on the curve, then closed back down to
           the x-axis. The value shown inside the region is recomputed from the same interval.
+        </p>
+
+        <h2>Touch scrolling test</h2>
+        <p>
+          On a touchscreen, try to scroll the page by dragging up and down directly over each
+          figure below. The 2D figure has panning disabled, and the 3D figure has orbiting
+          disabled, so a one-finger drag has nothing to do inside the scene.
+        </p>
+
+        <PanDisabledEmbed theme={theme} />
+
+        <p>
+          The point above is still draggable, and a two-finger gesture still zooms (and, in 3D,
+          pans). The question is whether a one-finger drag over empty space lets the page scroll
+          past the figure, or gets swallowed.
+        </p>
+
+        <OrbitDisabledEmbed theme={theme} />
+
+        <p>
+          Same question for 3D: with orbiting off, does a one-finger drag over the scene scroll
+          the article, or does it stick?
         </p>
       </article>
     </main>
