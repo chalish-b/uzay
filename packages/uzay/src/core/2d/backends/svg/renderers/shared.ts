@@ -1,6 +1,9 @@
 import type { ItemKind } from "../../../types/item-registry";
 import type { ItemRenderer2D } from "../../../backend";
-import type { Color } from "../../../../shared/types/colors";
+import {
+  warnIfRgbaColor,
+  type Color,
+} from "../../../../shared/types/colors";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -96,7 +99,11 @@ export function setAttrs(
   }
 }
 
+// SVG could technically honor rgba() alpha, but colors follow the same
+// contract on every backend: no alpha in the color, transparency through the
+// item's opacity field. Warn like the three backend does.
 export function cssColor(color: Color): string {
+  warnIfRgbaColor(color, "An item color");
   return typeof color === "number"
     ? `#${color.toString(16).padStart(6, "0")}`
     : color;

@@ -207,6 +207,20 @@ const view = new View2D(scene, camera.id, container);
 
 The only difference in feel is the controls: instead of orbiting, a `View2D` pans when you drag the background and zooms when you scroll. See [Camera2D](/docs/2d-items/camera) for framing and [2D Items](/docs/2d-items) for what you can place in the scene.
 
+### Render backends
+
+A 2D view can draw with one of two renderers: the default `"threejs"` backend (a WebGL canvas) or the `"svg"` backend, which renders the scene as SVG elements. The scene code is identical either way. Items, constructions, reactivity, and interactions (dragging, clicking, hovering, pan and zoom) all behave the same, so switching backends never requires touching the scene:
+
+```typescript
+const view = new View2D(scene, camera.id, container, { renderer: "svg" });
+```
+
+Or with React:
+
+```tsx
+<Scene2DView scene={scene} camera={camera} renderer="svg" />
+```
+
 ---
 
 ## API Reference
@@ -232,4 +246,6 @@ The only difference in feel is the controls: instead of orbiting, a `View2D` pan
 ### Scene2D and View2D
 
 `Scene2D` and `View2D` are the planar counterparts. They expose the same methods and constructor as the 3D versions: `new View2D(scene, cameraId, container)` renders a 2D scene, and `view.changeActiveCam(cameraId)` switches the active [Camera2D](/docs/2d-items/camera).
+
+`View2D` also accepts an options object as a fourth argument: `new View2D(scene, cameraId, container, { renderer: "threejs" | "svg" })`. See [Render backends](#render-backends).
 

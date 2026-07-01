@@ -43,6 +43,8 @@ function App() {
 
 The scene construction is identical to vanilla JS. The only React-specific part is `Scene3DView`, which handles the rendering lifecycle.
 
+`Scene2DView` works the same way for 2D scenes. It additionally takes an optional `renderer` prop (`"threejs"` or `"svg"`) that picks the [render backend](/docs/core-concepts/scenes-views#render-backends); the scene behaves identically on both.
+
 ## Connecting UI Controls
 
 When your scene has atoms that should be controllable from React UI (sliders, buttons, toggles), use `useAtomState` and `useAtomValue` to bridge them.
@@ -407,6 +409,7 @@ The scene builder encapsulates all the math and item creation. The React compone
 | Component | Description |
 |-----------|-------------|
 | `Scene3DView` | Mounts a scene into the DOM with an explicit camera, manages View3D lifecycle |
+| `Scene2DView` | The 2D counterpart; also takes an optional `renderer` prop (`"threejs"` or `"svg"`) selecting the [render backend](/docs/core-concepts/scenes-views#render-backends) |
 
 ### Hooks
 

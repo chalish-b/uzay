@@ -18,8 +18,8 @@ export function warnIfRgbaColor(
 
   console.warn(
     `[Uzay] ${context} received an rgba() color. ` +
-      `Three.js colors do not include alpha; use rgb() or another ColorRepresentation ` +
-      `for color, and use the item's opacity field for transparency.`
+      `Item colors do not carry alpha on any render backend; use rgb() or a hex ` +
+      `value for color, and use the item's opacity field for transparency.`
   );
 }
 
