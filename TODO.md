@@ -19,6 +19,7 @@
   - Just allow the user to pass MessPhongMaterialParameters (or some kind of atomized version of it?). This includes shader as well so they can write their own shaders if they want.
 - Vectors fields
   - I think making a vector field a special (separate) item is more useful and performant (so that we can have a single geometry for it all, if that's possible)
+  - It can either be a set of arrows, or continuous lines (to show things like fields and flow)
   - The arrow heads are kind of a problem though if we're going with the 2D Line approach. We can use a texture or something, or maybe a custom shader
 - Groups
   - Items can be added to groups instead of the scene. The group has a coordinate. The child items' coordinates are relative to the group
@@ -60,9 +61,10 @@
 
 - Some kind of tick marks support on lines and angle markers to show that their lengths are equal.
   - Idk what the right API would be though. Maybe just add it as an option directly to the line / angle itself, or should it be a construction?
+  - A workaround can just be an overlay for now, but that wouldn't work with rotation.
 - Some kind of construction like circlePoint2D to add a point on a circle
 - Function plotting is still weird, especially for steep stuff like log(x), sqrt(x), 1/x etc around x=0.
-- A construction to display an area between two functions. A logical extension of area under construction.
+- A construction to display an area _between_ two functions. A logical extension of area under construction.
 - Adding limits to the zoom and pan in the camera
 - Hit testing lines in 2D might be an issue
 - Add some anti aliasing to the lines and functions
