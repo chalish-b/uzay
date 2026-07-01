@@ -2,10 +2,10 @@ import * as THREE from "three";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { Circle2DStrokeObject, ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_REGION, Z_REGION_STROKE } from "./shared";
-import { checkedColor } from "../../shared/types/colors";
+import { checkedColor } from "../../../../shared/types/colors";
 
 // Tessellation of a full circle's disk fill and outline polyline. High enough
 // that a viewport-filling circle reads as smooth, cheap enough to rebuild on

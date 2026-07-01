@@ -1,35 +1,21 @@
 import * as THREE from "three";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_DEFAULT } from "./shared";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { checkedColor } from "../../shared/types/colors";
-
-const MIN_SAMPLES = 8;
-
-function sampleCurve(
-  f: (t: number) => { x: number; y: number },
-  tStart: number,
-  tEnd: number,
-  samples: number
-): number[] {
-  const sampleCount = Math.round(Math.max(samples, MIN_SAMPLES));
-  const positions = new Array(sampleCount * 3);
-  const span = tEnd - tStart;
-  for (let i = 0; i < sampleCount; i++) {
-    const t = tStart + (span * i) / (sampleCount - 1);
-    const p = f(t);
-    positions[i * 3] = p.x;
-    positions[i * 3 + 1] = p.y;
-    positions[i * 3 + 2] = Z_DEFAULT;
-  }
-  return positions;
-}
+import { checkedColor } from "../../../../shared/types/colors";
+import { sampleParametricPoints } from "../../../math/parametric-sampling";
 
 function buildGeometry(item: ItemSnapshot<"parametricfunction2d">): LineGeometry {
-  const positions = sampleCurve(item.f, item.tStart, item.tEnd, item.samples);
+  const points = sampleParametricPoints(item);
+  const positions = new Array<number>(points.length * 3);
+  for (let i = 0; i < points.length; i++) {
+    positions[i * 3] = points[i].x;
+    positions[i * 3 + 1] = points[i].y;
+    positions[i * 3 + 2] = Z_DEFAULT;
+  }
   const geom = new LineGeometry();
   geom.setPositions(positions);
   return geom;

@@ -1,54 +1,17 @@
 import * as THREE from "three";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_GRID } from "./shared";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { checkedColor } from "../../shared/types/colors";
-import type { Viewport2D } from "../types/view-context";
-import { getNiceStep } from "../types/nice-step";
-
-type GridRange = boolean | [number, number];
-type Bounds = readonly [number, number];
-
-function getResolvedGridBounds(
-  item: ItemSnapshot<"grid2d">,
-  viewport: Viewport2D | null
-): { x: Bounds | null; y: Bounds | null } {
-  const normalize = (bounds: Bounds): Bounds =>
-    bounds[0] <= bounds[1] ? bounds : [bounds[1], bounds[0]];
-
-  const resolve = (
-    range: GridRange,
-    viewportBounds: Bounds | null
-  ): Bounds | null => {
-    if (Array.isArray(range)) return normalize(range);
-    if (range === true) return viewportBounds ? normalize(viewportBounds) : null;
-    return null;
-  };
-
-  const xViewportBounds: Bounds | null = viewport
-    ? [viewport.visibleWorldBounds.left, viewport.visibleWorldBounds.right]
-    : null;
-  const yViewportBounds: Bounds | null = viewport
-    ? [viewport.visibleWorldBounds.bottom, viewport.visibleWorldBounds.top]
-    : null;
-
-  return {
-    x: resolve(item.rangeX, xViewportBounds),
-    y: resolve(item.rangeY, yViewportBounds),
-  };
-}
-
-function getGap(
-  gap: ItemSnapshot<"grid2d">["gap"],
-  viewport: Viewport2D | null
-): number {
-  if (gap !== "auto") return gap;
-  if (!viewport || viewport.worldPerPixel <= 0) return 1;
-  return getNiceStep(viewport.worldPerPixel);
-}
+import { checkedColor } from "../../../../shared/types/colors";
+import type { Viewport2D } from "../../../types/view-context";
+import {
+  buildGridLines,
+  getGridGap,
+  getResolvedGridBounds,
+} from "../../../math/grid-math";
 
 // Build the line-segment vertex buffer for a 2D grid covering the resolved
 // rangeX × rangeY at the requested gap. `true` ranges are viewport-backed when
@@ -58,20 +21,15 @@ function buildGridGeometry(
   viewport: Viewport2D | null = null
 ): LineSegmentsGeometry {
   const positions: number[] = [];
-  const { x: xBounds, y: yBounds } = getResolvedGridBounds(item, viewport);
-  const gap = getGap(item.gap, viewport);
+  const lines = buildGridLines(item, viewport);
 
-  if (xBounds && yBounds && gap > 0) {
-    const [x0, x1] = xBounds;
-    const [y0, y1] = yBounds;
-
-    const firstX = Math.ceil(x0 / gap) * gap;
-    for (let x = firstX; x <= x1 + 1e-9; x += gap) {
+  if (lines) {
+    const [x0, x1] = lines.xBounds;
+    const [y0, y1] = lines.yBounds;
+    for (const x of lines.xs) {
       positions.push(x, y0, Z_GRID, x, y1, Z_GRID);
     }
-
-    const firstY = Math.ceil(y0 / gap) * gap;
-    for (let y = firstY; y <= y1 + 1e-9; y += gap) {
+    for (const y of lines.ys) {
       positions.push(x0, y, Z_GRID, x1, y, Z_GRID);
     }
   }
@@ -117,7 +75,7 @@ export const grid2dRenderer: ItemRenderer<"grid2d"> = {
   layout(item: ItemSnapshot<"grid2d">, obj: ThreeSceneTypes["grid2d"], ctx): void {
     if (item.rangeX !== true && item.rangeY !== true && item.gap !== "auto") return;
     const { x, y } = getResolvedGridBounds(item, ctx.viewport);
-    const gap = getGap(item.gap, ctx.viewport);
+    const gap = getGridGap(item.gap, ctx.viewport);
     const layoutKey = JSON.stringify({ x, y, gap });
     if (layoutKey === obj.layoutKey) return;
     obj.geometry.dispose();

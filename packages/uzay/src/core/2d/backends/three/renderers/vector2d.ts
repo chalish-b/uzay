@@ -1,12 +1,12 @@
 import * as THREE from "three";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_DEFAULT } from "./shared";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
-import { checkedColor } from "../../shared/types/colors";
+import { getWorldPerPixel, chainOnBeforeRender } from "../screen-space";
+import { checkedColor } from "../../../../shared/types/colors";
 
 // Layout: shaft and head share a Group whose +x axis points along the vector
 // (group.rotation.z = atan2(vector.y, vector.x)). The shaft runs from the

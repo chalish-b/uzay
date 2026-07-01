@@ -1,11 +1,11 @@
 import * as THREE from "three";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_DEFAULT } from "./shared";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { checkedColor } from "../../shared/types/colors";
+import { checkedColor } from "../../../../shared/types/colors";
 
 function buildLineGeometry(
   start: { x: number; y: number },

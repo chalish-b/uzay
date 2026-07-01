@@ -5,8 +5,8 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import type { ItemKind, ItemSnapshot } from "../types/item-registry";
-import type { ViewLayoutContext2D } from "../types/view-context";
+import type { ItemKind } from "../../../types/item-registry";
+import type { ItemRenderer2D } from "../../../backend";
 
 // Stacking offsets so 2D items don't z-fight on the z=0 plane.
 // Higher z draws on top.
@@ -131,13 +131,10 @@ export type Axes2DLabelObject = {
 
 export type ThreeSceneObject<K extends ItemKind = ItemKind> = ThreeSceneTypes[K];
 
-// `threeScene` is the item's own container in the scene graph (a per-item
-// group the view owns), not the root scene. Renderers only ever add/remove
-// their objects on it, which lets the view toggle camera-scoped visibility on
-// the whole item without touching the item's own `visible` field.
-export type ItemRenderer<K extends ItemKind> = {
-  create(item: ItemSnapshot<K>, threeScene: THREE.Object3D): ThreeSceneTypes[K];
-  update(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K], threeScene: THREE.Object3D): void;
-  layout?(item: ItemSnapshot<K>, obj: ThreeSceneTypes[K], ctx: ViewLayoutContext2D): void;
-  dispose?(obj: ThreeSceneTypes[K], threeScene: THREE.Object3D): void;
-};
+// The three.js instantiation of the shared renderer contract: objects are
+// three meshes/materials, the container is a THREE.Object3D group.
+export type ItemRenderer<K extends ItemKind> = ItemRenderer2D<
+  K,
+  ThreeSceneTypes,
+  THREE.Object3D
+>;

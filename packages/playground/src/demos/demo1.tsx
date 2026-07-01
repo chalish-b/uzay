@@ -1,39 +1,31 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Scene2D, vec2, angleMark2D } from "uzay";
-import { Scene2DView, useAtomValue } from "uzay/react";
+import { useMemo } from "react";
+import { Scene2D, vec2 } from "uzay";
+import { Scene2DView } from "uzay/react";
 
-// angleMark2D sandbox.
+// SVG backend sandbox.
 //
-// A vertex with two draggable arms and the angle mark between them. `sweep`
-// picks which of the two angles the mark draws: "minor"/"major" choose by size,
-// "ccw"/"cw" hold a turn direction so the arc grows past 180° without swapping
-// sides. `squareRightAngle` toggles the 90° corner square. Both are
-// creation-time options, so changing them rebuilds the mark; radius stays
-// reactive through its atom.
-
-const DEG = 180 / Math.PI;
-
-const SWEEPS = ["minor", "major", "ccw", "cw"] as const;
-type Sweep = (typeof SWEEPS)[number];
+// One shared Scene2D rendered twice, side by side: the three.js backend on
+// the left, the SVG backend on the right. Both views bind the same camera
+// item, so pan/zoom in either stays mirrored, and every item atom drives both
+// canvases at once. The scene exercises every 2D item kind.
 
 const CHECKLIST = [
-  "Drag either arm: the marked angle and the readout follow",
-  "minor: stays on the smaller angle, snaps sides as an arm crosses the other",
-  "major: marks the larger angle, readout exceeds 180°; minor + major = 360°",
-  "ccw / cw: drag an arm all the way around; the arc grows 0→360° unbroken",
-  "ccw vs cw mark opposite sides for the same arms",
-  "Line the arms up at 90°: the corner square appears (square on)",
-  "square off: 90° keeps the arc, no square",
-  "major suppresses the square (a major angle is never 90°)",
-  "Radius slider resizes the mark without rebuilding it",
+  "Both panes show the same picture (colors, thicknesses, stacking order)",
+  "Grid sits under the region, curves above it, points on top in both",
+  "Drag the amber point: line, vector, and LaTeX readout follow in BOTH panes",
+  "Pan/zoom in either pane: the other mirrors it exactly",
+  "Zoom out: grid re-steps, axes ticks/labels re-step, sine keeps resampling",
+  "Zoom in hard: point radius, arrowheads, tick lengths stay pixel-sized",
+  "Axis tick labels look identical (same font, same offsets) in both panes",
+  "1/x curve: the discontinuity at x=0 stays an actual gap, no vertical wall",
+  "Hover the amber point: grab cursor in both panes; drag works in both",
+  "Full circle vs arc wedge render alike (fill + outline) in both panes",
 ];
-
-type AngleMark = ReturnType<typeof angleMark2D>;
 
 function buildScene() {
   const scene = new Scene2D();
 
-  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 1.4 });
+  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 1.2 });
 
   scene.create("grid2d", {
     rangeX: true,
@@ -50,226 +42,172 @@ function buildScene() {
     tickmarks: true,
     tickStep: "auto",
     arrows: true,
+    labels: true,
   });
 
-  const radiusAtom = scene.atom(0.8);
+  // Infinite domain: resamples against the viewport in both backends.
+  scene.create("function2d", {
+    f: (x: number) => Math.sin(x) * 1.5,
+    domain: "infinite",
+    color: "#4f9cf9",
+    thickness: 3,
+  });
 
-  const vertex = scene.create("point2d", {
-    coords: vec2(0, 0),
+  // Declared discontinuity: the gap at x = 0 must not get bridged.
+  scene.create("function2d", {
+    f: (x: number) => 1 / x,
+    domain: [-6, 6],
+    discontinuities: [0],
+    samples: 400,
+    color: "#f97583",
+    thickness: 2,
+  });
+
+  scene.create("parametricfunction2d", {
+    f: (t: number) => vec2(Math.cos(3 * t) * 0.8 - 3, Math.sin(2 * t) * 0.8 + 2.2),
+    tStart: 0,
+    tEnd: Math.PI * 2,
+    samples: 256,
+    color: "#34d399",
+    thickness: 2,
+  });
+
+  scene.create("region2d", {
+    points: [vec2(-4.5, -1), vec2(-2.5, -1), vec2(-3.5, -3)],
+    color: "#a78bfa",
+    opacity: 0.25,
+    strokeColor: "#a78bfa",
+    strokeThickness: 2,
+  });
+
+  // Full circle and a partial arc (fills as a wedge).
+  scene.create("circle2d", {
+    center: vec2(3.4, 2.4),
+    radius: 0.9,
+    color: "#f59e0b",
+    opacity: 0.15,
+    strokeColor: "#f59e0b",
+    strokeThickness: 2,
+  });
+  scene.create("circle2d", {
+    center: vec2(3.4, -2.2),
+    radius: 0.9,
+    thetaStart: Math.PI / 6,
+    thetaEnd: (Math.PI * 4) / 3,
+    color: "#f59e0b",
+    opacity: 0.25,
+    strokeColor: "#f59e0b",
+    strokeThickness: 2,
+  });
+
+  // The draggable driver: line, vector, and overlay all follow its coords.
+  const handle = scene.create("point2d", {
+    coords: vec2(1.5, 1.5),
     draggable: "xy",
     color: "#ffb547",
-    radius: 6,
-  });
-  const armA = scene.create("point2d", {
-    coords: vec2(2.6, 0),
-    draggable: "xy",
-    color: "#4f9cf9",
-    radius: 7,
-  });
-  const armB = scene.create("point2d", {
-    coords: vec2(1.2, 2.3),
-    draggable: "xy",
-    color: "#4f9cf9",
     radius: 7,
   });
 
   scene.create("line2d", {
-    start: vertex.coords,
-    end: armA.coords,
+    start: vec2(-1.5, -1.5),
+    end: handle.coords,
     color: "#cccccc",
-    thickness: 2.5,
-    pointerEvents: "none",
-  });
-  scene.create("line2d", {
-    start: vertex.coords,
-    end: armB.coords,
-    color: "#cccccc",
-    thickness: 2.5,
+    thickness: 2,
     pointerEvents: "none",
   });
 
-  return { scene, camera, vertex, armA, armB, radiusAtom };
+  scene.create("vector2d", {
+    origin: vec2(0, 0),
+    vector: handle.coords,
+    color: "#34d399",
+    thickness: 2.5,
+  });
+
+  scene.create("overlay2d", {
+    position: handle.coords,
+    content: scene.atom((get) => {
+      const p = get(handle.coords);
+      return `P = (${p.x.toFixed(2)},\\ ${p.y.toFixed(2)})`;
+    }),
+    format: "latex",
+    anchor: "bottom",
+    offset: vec2(0, -12),
+    style: "color: #ffd9a0; font-size: 13px;",
+    pointerEvents: "none",
+  });
+
+  return { scene, camera };
 }
 
-function AngleReadout({ mark }: { mark: AngleMark }) {
-  const radians = useAtomValue(mark.measure);
+function Pane({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <span style={{ color: "#cfe3ff", fontVariantNumeric: "tabular-nums" }}>
-      {(radians * DEG).toFixed(1)}°
-    </span>
-  );
-}
-
-function Toggle({
-  label,
-  on,
-  onClick,
-}: {
-  label: string;
-  on: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
+    <div
       style={{
         flex: 1,
-        padding: "5px 0",
-        border: "1px solid #444",
-        borderRadius: 4,
-        backgroundColor: on ? "#264d2a" : "#4d2626",
-        color: "#ddd",
-        fontSize: 11,
-        cursor: "pointer",
+        minWidth: 0,
+        position: "relative",
+        border: "1px solid #2a2a2a",
       }}
     >
-      {label}: {String(on)}
-    </button>
-  );
-}
-
-function SliderRow({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-}: {
-  label: ReactNode;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ color: "#999", fontSize: 11 }}>{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ width: "100%" }}
-      />
-    </label>
+      {children}
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          left: 10,
+          color: "#777",
+          fontSize: 12,
+          fontFamily: "system-ui, sans-serif",
+          pointerEvents: "none",
+          zIndex: 30,
+        }}
+      >
+        {label}
+      </div>
+    </div>
   );
 }
 
 export default function Demo1() {
-  const { scene, camera, vertex, armA, armB, radiusAtom } = useMemo(buildScene, []);
-
-  const [sweep, setSweep] = useState<Sweep>("minor");
-  const [squareRightAngle, setSquareRightAngle] = useState(true);
-  const [mark, setMark] = useState<AngleMark | null>(null);
-  const radius = useAtomValue(radiusAtom);
-
-  useEffect(() => {
-    const next = angleMark2D(scene, {
-      vertex: vertex.coords,
-      a: armA.coords,
-      b: armB.coords,
-      radius: radiusAtom,
-      color: "#a78bfa",
-      thickness: 2.5,
-      sweep,
-      squareRightAngle,
-    });
-    setMark(next);
-    return () => next.dispose();
-  }, [scene, vertex, armA, armB, radiusAtom, sweep, squareRightAngle]);
+  const { scene, camera } = useMemo(buildScene, []);
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative" }}>
-      <Scene2DView
-        scene={scene}
-        camera={camera}
-        style={{ width: "100%", height: "100%" }}
-      />
+    <div style={{ width: "100%", height: "100%", display: "flex", gap: 8, padding: 8 }}>
+      <Pane label="renderer: threejs">
+        <Scene2DView
+          scene={scene}
+          camera={camera}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </Pane>
+      <Pane label="renderer: svg">
+        <Scene2DView
+          scene={scene}
+          camera={camera}
+          renderer="svg"
+          style={{ width: "100%", height: "100%" }}
+        />
+      </Pane>
 
       <div
         style={{
           position: "absolute",
-          top: 16,
-          right: 16,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          padding: 14,
-          width: 320,
+          bottom: 16,
+          left: 16,
+          maxWidth: 380,
+          padding: "10px 14px",
           backgroundColor: "rgba(20, 20, 20, 0.9)",
           border: "1px solid #2a2a2a",
-          borderRadius: 8,
-          color: "#ddd",
+          borderRadius: 6,
+          color: "#999",
+          fontSize: 11,
           fontFamily: "system-ui, sans-serif",
-          fontSize: 13,
+          lineHeight: 1.5,
+          zIndex: 30,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600 }}>angleMark2D</span>
-          <span>∠ = {mark ? <AngleReadout mark={mark} /> : "—"}</span>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ color: "#999", fontSize: 11 }}>sweep</span>
-          <div style={{ display: "flex", gap: 4 }}>
-            {SWEEPS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSweep(s)}
-                style={{
-                  flex: 1,
-                  padding: "5px 0",
-                  border: sweep === s ? "1px solid #a78bfa" : "1px solid #444",
-                  borderRadius: 4,
-                  backgroundColor: sweep === s ? "#2e2640" : "#262626",
-                  color: "#ddd",
-                  fontSize: 11,
-                  cursor: "pointer",
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Toggle
-          label="square"
-          on={squareRightAngle}
-          onClick={() => setSquareRightAngle((v) => !v)}
-        />
-
-        <SliderRow
-          label={
-            <>
-              radius ={" "}
-              <span style={{ color: "#cfe3ff", fontVariantNumeric: "tabular-nums" }}>
-                {radius.toFixed(2)}
-              </span>
-            </>
-          }
-          value={radius}
-          min={0.2}
-          max={2}
-          step={0.05}
-          onChange={(r) => radiusAtom.set(r)}
-        />
-
-        <ul
-          style={{
-            margin: 0,
-            paddingLeft: 18,
-            color: "#777",
-            fontSize: 11,
-            lineHeight: 1.5,
-            borderTop: "1px solid #2a2a2a",
-            paddingTop: 8,
-          }}
-        >
+        <div style={{ color: "#ccc", marginBottom: 4 }}>Checklist</div>
+        <ul style={{ margin: 0, paddingLeft: 16 }}>
           {CHECKLIST.map((item) => (
             <li key={item}>{item}</li>
           ))}

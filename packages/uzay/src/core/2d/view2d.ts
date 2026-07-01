@@ -1,55 +1,67 @@
-import * as THREE from "three";
-import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import type { Camera2D, Camera2DFields } from "./items/camera2d";
 import type { Scene2D, SceneSnapshot } from "./scene2d";
 import { Vec2, vec2 } from "../shared/types/vec2";
 import { cameraShowsTags } from "../shared/types/tags";
-import type { ItemId, ItemSnapshot } from "./types/item-registry";
+import type { ItemId, ItemKind, ItemSnapshot } from "./types/item-registry";
 import {
   setBoundAtomIfWritable,
   type AtomLikeOptions,
 } from "../shared/atom-wrapper";
-import { getRenderer, type ThreeSceneObject } from "./renderers";
 import type {
   InteractionEvent,
   InteractionEventType,
 } from "./types/interaction-events";
 import type { PointDraggableDir2D } from "./types/axes";
-import type { ViewLayoutContext2D, Viewport2D } from "./types/view-context";
+import type { Viewport2D } from "./types/view-context";
+import { computeViewport2D } from "./viewport";
+import type {
+  AnyBackendSurface2D,
+  AnyViewBackend2D,
+  BackendObjectMap,
+  ItemRenderer2D,
+  Renderer2DKind,
+} from "./backend";
+import { threeBackend } from "./backends/three";
+import { svgBackend } from "./backends/svg";
 
-// Visible vertical extent (in world units) at zoom = 1. The horizontal extent
-// follows from canvas aspect ratio.
-const BASE_VERTICAL_HALF_SPAN = 5;
 const CLICK_THRESHOLD_PX = 5;
 const WHEEL_ZOOM_FACTOR = 1.001;
+
+export type View2DOptions = {
+  // Which render backend draws the scene. Defaults to "threejs".
+  renderer?: Renderer2DKind;
+};
+
+// The backends the string option resolves to. Types erase at this boundary
+// (see backend.ts); the view keeps kind/container pairs consistent at runtime.
+const backends: Record<Renderer2DKind, AnyViewBackend2D> = {
+  threejs: threeBackend as AnyViewBackend2D,
+  svg: svgBackend as AnyViewBackend2D,
+};
+
+function resolveBackend(kind: Renderer2DKind): AnyViewBackend2D {
+  const backend = backends[kind];
+  if (!backend) {
+    throw new Error(`[View2D] Unknown renderer backend: "${kind}"`);
+  }
+  return backend;
+}
 
 export class View2D {
   scene: Scene2D;
   activeCam: Camera2D<AtomLikeOptions<Camera2DFields>>;
   containerElem: HTMLElement;
 
-  threeScene: THREE.Scene;
-  threeCamera: THREE.OrthographicCamera;
-  threeRenderer: THREE.WebGLRenderer;
-  css2dRenderer: CSS2DRenderer;
+  surface: AnyBackendSurface2D;
   frameScheduled: boolean = false;
-  threeMeshes: Map<ItemId, ThreeSceneObject> = new Map();
-  // Each item's objects live under their own group so the active camera's
+  objects: Map<ItemId, BackendObjectMap[ItemKind]> = new Map();
+  // Each item's objects live under their own container so the active camera's
   // `visibleTags` can hide the whole item at once, independent of the item's
   // own `visible` field.
-  itemGroups: Map<ItemId, THREE.Group> = new Map();
+  containers: Map<ItemId, unknown> = new Map();
   unsubscribeSceneInvalidation: (() => void) | null = null;
 
   lastSceneSnapshot: SceneSnapshot = { itemSnapshots: new Map() };
-
-  // Cached camera snapshot used to skip redundant Three.js camera updates.
-  private _lastCameraSnapshot: ReturnType<
-    Camera2D<AtomLikeOptions<Camera2DFields>>["getItemSnapshot"]
-  > | null = null;
-
-  // Interaction system
-  raycaster = new THREE.Raycaster();
-  pointer = new THREE.Vector2();
 
   dragState: {
     pointerId: number;
@@ -85,73 +97,63 @@ export class View2D {
 
   hoveredItemId: ItemId | null = null;
 
-  sizer: ReturnType<typeof createResponsiveOrthoSizer>;
+  // Container size in CSS pixels, tracked by the view's ResizeObserver. The
+  // single size source for both the viewport math and renderer sizing.
+  sizePx = { width: 0, height: 0 };
+  private resizeObserver: ResizeObserver;
 
-  constructor(scene: Scene2D, activeCamId: ItemId, containerElem: HTMLElement) {
+  // The canvas/svg union carries identical pointer, wheel, capture, and style
+  // surfaces, but TypeScript drops the typed addEventListener overloads on
+  // the union; narrow once for listener wiring.
+  private get eventTarget(): HTMLElement {
+    return this.surface.eventTarget as HTMLElement;
+  }
+
+  constructor(
+    scene: Scene2D,
+    activeCamId: ItemId,
+    containerElem: HTMLElement,
+    options: View2DOptions = {}
+  ) {
     this.scene = scene;
     this.activeCam = scene.getCamera(activeCamId);
 
     this.containerElem = containerElem;
-    this.threeScene = new THREE.Scene();
-
-    // Initial frustum will be set by the sizer once we know the container size.
-    this.threeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
-    const camSnap = this.activeCam.getItemSnapshot();
-    this.threeCamera.position.set(camSnap.center.x, camSnap.center.y, 10);
-    this.threeCamera.lookAt(camSnap.center.x, camSnap.center.y, 0);
-    this.threeCamera.zoom = camSnap.zoom;
-    this.threeCamera.updateProjectionMatrix();
-
-    this.threeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    this.threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     const containerPosition = getComputedStyle(containerElem).position;
     if (containerPosition === "static") {
       containerElem.style.position = "relative";
     }
 
-    this.threeRenderer.domElement.style.position = "absolute";
-    this.threeRenderer.domElement.style.inset = "0";
-    this.threeRenderer.domElement.style.width = "100%";
-    this.threeRenderer.domElement.style.height = "100%";
-    this.threeRenderer.domElement.style.display = "block";
+    this.surface = resolveBackend(options.renderer ?? "threejs").mount(
+      containerElem
+    );
+
+    const target = this.eventTarget;
     // Hand all touch gestures to our pointer handlers. Without this the browser
     // treats finger drags as page scroll/zoom and cancels the pointer mid-gesture,
     // breaking pan and point dragging on touchscreens.
-    this.threeRenderer.domElement.style.touchAction = "none";
+    target.style.touchAction = "none";
+    target.addEventListener("pointerdown", this.onPointerDown);
+    target.addEventListener("pointermove", this.onPointerMove);
+    target.addEventListener("pointerup", this.onPointerUp);
+    target.addEventListener("pointercancel", this.onPointerCancel);
+    target.addEventListener("pointerleave", this.onPointerLeave);
+    target.addEventListener("wheel", this.onWheel, { passive: false });
 
-    const existingCanvas = containerElem.querySelector("canvas");
-    if (existingCanvas) {
-      console.warn(
-        `[View2D] Container already has a canvas element. This usually means a previous View2D was not disposed properly, which can cause rendering issues like overlapping scenes.\n\n` +
-        `To fix this, call view.dispose() in your cleanup function.`
-      );
-    }
-
-    containerElem.appendChild(this.threeRenderer.domElement);
-
-    this.css2dRenderer = new CSS2DRenderer();
-    this.css2dRenderer.domElement.style.position = "absolute";
-    this.css2dRenderer.domElement.style.inset = "0";
-    this.css2dRenderer.domElement.style.pointerEvents = "none";
-    containerElem.appendChild(this.css2dRenderer.domElement);
-
-    this._lastCameraSnapshot = camSnap;
-
-    const canvas = this.threeRenderer.domElement;
-    canvas.addEventListener("pointerdown", this.onPointerDown);
-    canvas.addEventListener("pointermove", this.onPointerMove);
-    canvas.addEventListener("pointerup", this.onPointerUp);
-    canvas.addEventListener("pointercancel", this.onPointerCancel);
-    canvas.addEventListener("pointerleave", this.onPointerLeave);
-    canvas.addEventListener("wheel", this.onWheel, { passive: false });
-
-    this.sizer = createResponsiveOrthoSizer({
-      container: containerElem,
-      renderer: this.threeRenderer,
-      camera: this.threeCamera,
-      onResize: () => this.requestRender(),
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      if (width > 0 && height > 0) {
+        this.sizePx = { width, height };
+        this.requestRender();
+      }
     });
+    this.resizeObserver.observe(containerElem);
+
+    const rect = containerElem.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      this.sizePx = { width: rect.width, height: rect.height };
+    }
 
     this.unsubscribeSceneInvalidation = scene.listenForSceneInvalidation(() => {
       this.onSceneChanged();
@@ -163,9 +165,19 @@ export class View2D {
 
   changeActiveCam(cameraId: ItemId) {
     this.activeCam = this.scene.getCamera(cameraId);
-    this._lastCameraSnapshot = null;
-    this.syncCameraToThree();
     this.requestRender();
+  }
+
+  // The registry lookup crosses the erased-type boundary: the runtime pairing
+  // of snapshot, object, and container is kept consistent by the maps above.
+  private getRendererFor(
+    kind: ItemKind
+  ): ItemRenderer2D<ItemKind, BackendObjectMap, unknown> {
+    return this.surface.renderers[kind] as ItemRenderer2D<
+      ItemKind,
+      BackendObjectMap,
+      unknown
+    >;
   }
 
   // ========== Reconciliation ==========
@@ -191,42 +203,39 @@ export class View2D {
       this.removeItem(id);
     }
 
-    this.syncCameraToThree();
-
     this.lastSceneSnapshot = newSceneSnapshot;
     this.requestRender();
     this.scene.renderComplete();
   }
 
   createItem(item: ItemSnapshot) {
-    const renderer = getRenderer(item.kind);
-    const group = new THREE.Group();
-    this.threeScene.add(group);
-    const obj = renderer.create(item, group);
-    this.threeMeshes.set(item.id, obj);
-    this.itemGroups.set(item.id, group);
+    const renderer = this.getRendererFor(item.kind);
+    const container = this.surface.createItemContainer(item.id, item.kind);
+    const obj = renderer.create(item, container);
+    this.objects.set(item.id, obj);
+    this.containers.set(item.id, container);
   }
 
   updateItem(item: ItemSnapshot) {
-    const obj = this.threeMeshes.get(item.id);
-    const group = this.itemGroups.get(item.id);
-    if (!obj || !group) return;
+    const obj = this.objects.get(item.id);
+    const container = this.containers.get(item.id);
+    if (!obj || container === undefined) return;
     if (obj.kind !== item.kind) return;
-    const renderer = getRenderer(item.kind);
-    renderer.update(item, obj, group);
+    const renderer = this.getRendererFor(item.kind);
+    renderer.update(item, obj, container);
   }
 
   removeItem(id: ItemId) {
-    const obj = this.threeMeshes.get(id);
-    const group = this.itemGroups.get(id);
-    if (!obj || !group) return;
-    const renderer = getRenderer(obj.kind);
+    const obj = this.objects.get(id);
+    const container = this.containers.get(id);
+    if (!obj || container === undefined) return;
+    const renderer = this.getRendererFor(obj.kind);
     if (renderer.dispose) {
-      renderer.dispose(obj, group);
+      renderer.dispose(obj, container);
     }
-    this.threeScene.remove(group);
-    this.threeMeshes.delete(id);
-    this.itemGroups.delete(id);
+    this.surface.removeItemContainer(id, container);
+    this.objects.delete(id);
+    this.containers.delete(id);
   }
 
   requestRender() {
@@ -238,112 +247,49 @@ export class View2D {
 
   _render() {
     this.frameScheduled = false;
-    this.sizer.applyIfNeeded();
+    if (this.sizePx.width > 0 && this.sizePx.height > 0) {
+      this.surface.resize(this.sizePx.width, this.sizePx.height);
+    }
     const viewport = this.getViewport2D();
+    this.surface.syncCamera(viewport);
     this.layoutViewDependentItems(viewport);
     this.applyCameraVisibility();
-    const size = this.threeRenderer.getSize(new THREE.Vector2());
-    this.css2dRenderer.setSize(size.x, size.y);
-    this.threeRenderer.render(this.threeScene, this.threeCamera);
-    this.css2dRenderer.render(this.threeScene, this.threeCamera);
-  }
-
-  // ========== Camera Sync ==========
-
-  syncCameraToThree() {
-    const snap = this.activeCam.getItemSnapshot();
-    const last = this._lastCameraSnapshot;
-
-    if (!last || snap.center.x !== last.center.x || snap.center.y !== last.center.y) {
-      this.threeCamera.position.set(snap.center.x, snap.center.y, 10);
-      this.threeCamera.lookAt(snap.center.x, snap.center.y, 0);
-    }
-    if (!last || snap.zoom !== last.zoom) {
-      this.threeCamera.zoom = snap.zoom;
-      this.threeCamera.updateProjectionMatrix();
-    }
-    this._lastCameraSnapshot = snap;
+    this.surface.present();
   }
 
   // ========== View-dependent layout ==========
 
   getViewport2D(): Viewport2D {
-    const size = this.threeRenderer.getSize(new THREE.Vector2());
-    const widthPx = size.x;
-    const heightPx = size.y;
-    const zoom = this.threeCamera.zoom;
-    const center = vec2(this.threeCamera.position.x, this.threeCamera.position.y);
-    const left = center.x + this.threeCamera.left / zoom;
-    const right = center.x + this.threeCamera.right / zoom;
-    const bottom = center.y + this.threeCamera.bottom / zoom;
-    const top = center.y + this.threeCamera.top / zoom;
-    const worldWidth = right - left;
-    const worldHeight = top - bottom;
-    const worldPerPixel = heightPx > 0 ? worldHeight / heightPx : 0;
-    const visibleWorldBounds = { left, right, bottom, top };
-
-    return {
-      widthPx,
-      heightPx,
-      center,
-      zoom,
-      worldPerPixel,
-      visibleWorldBounds,
-      worldToScreen: (point) => ({
-        x: worldWidth !== 0 ? ((point.x - left) / worldWidth) * widthPx : 0,
-        y: worldHeight !== 0 ? ((top - point.y) / worldHeight) * heightPx : 0,
-      }),
-      screenToWorld: (point) =>
-        vec2(
-          widthPx !== 0 ? left + (point.x / widthPx) * worldWidth : left,
-          heightPx !== 0 ? top - (point.y / heightPx) * worldHeight : top
-        ),
-    };
+    return computeViewport2D({
+      widthPx: this.sizePx.width,
+      heightPx: this.sizePx.height,
+      center: this.activeCam.center.get(),
+      zoom: this.activeCam.zoom.get(),
+    });
   }
 
   layoutViewDependentItems(viewport: Viewport2D): void {
-    const ctx: ViewLayoutContext2D = {
-      viewport,
-      // Replaced with the item's own group on each iteration below.
-      threeScene: this.threeScene,
-      camera: this.threeCamera,
-      renderer: this.threeRenderer,
-    };
-
-    for (const [id, obj] of this.threeMeshes.entries()) {
+    for (const [id, obj] of this.objects.entries()) {
       const item = this.lastSceneSnapshot.itemSnapshots.get(id);
       if (!item || obj.kind !== item.kind) continue;
-      const group = this.itemGroups.get(id);
-      if (!group) continue;
-      ctx.threeScene = group;
-      const renderer = getRenderer(item.kind);
-      const layout = renderer.layout as
-        | ((item: ItemSnapshot, obj: ThreeSceneObject, ctx: ViewLayoutContext2D) => void)
-        | undefined;
-      layout?.(item, obj, ctx);
+      const container = this.containers.get(id);
+      if (container === undefined) continue;
+      const renderer = this.getRendererFor(item.kind);
+      renderer.layout?.(item, obj, { viewport, container });
     }
   }
 
   // ========== Camera-scoped visibility ==========
 
-  // Hide whole items the active camera's `visibleTags` filters out. We toggle
-  // the per-item group (which culls its WebGL meshes) and each CSS2D label
-  // inside it (CSS2DRenderer ignores an ancestor's visibility, so it needs its
-  // own flag set). The item's own `visible` field stays untouched on the inner
-  // meshes, so the two compose. Runs after layout so freshly built objects are
-  // covered too.
+  // Hide whole items the active camera's `visibleTags` filters out. The
+  // item's own `visible` field stays untouched on the inner objects, so the
+  // two compose. Runs after layout so freshly built objects are covered too.
   applyCameraVisibility(): void {
     const visibleTags = this.activeCam.visibleTags.get();
-    for (const [id, group] of this.itemGroups.entries()) {
+    for (const [id, container] of this.containers.entries()) {
       const item = this.lastSceneSnapshot.itemSnapshots.get(id);
       const tags = item && "tags" in item ? item.tags : [];
-      const show = cameraShowsTags(visibleTags, tags);
-      group.visible = show;
-      group.traverse((obj) => {
-        if ((obj as { isCSS2DObject?: boolean }).isCSS2DObject) {
-          obj.visible = show;
-        }
-      });
+      this.surface.setItemVisible(container, cameraShowsTags(visibleTags, tags));
     }
   }
 
@@ -357,44 +303,32 @@ export class View2D {
 
   // ========== Coord conversions ==========
 
-  // Convert client coords to Three.js NDC, then unproject to a world Vec2.
+  // Convert client coords to a world Vec2 via the pure viewport math.
   screenToWorld(event: { clientX: number; clientY: number }): Vec2 {
-    const rect = this.threeRenderer.domElement.getBoundingClientRect();
-    const ndcX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    const ndcY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    const v = new THREE.Vector3(ndcX, ndcY, 0).unproject(this.threeCamera);
-    return vec2(v.x, v.y);
+    const rect = this.containerElem.getBoundingClientRect();
+    return this.getViewport2D().screenToWorld({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
   }
 
   // ========== Interaction System ==========
 
-  raycastItem(event: PointerEvent) {
-    const rect = this.threeRenderer.domElement.getBoundingClientRect();
-    this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-    this.raycaster.setFromCamera(this.pointer, this.threeCamera);
-
-    const intersects = this.raycaster.intersectObjects(this.threeScene.children, true);
-
-    for (const hit of intersects) {
-      let obj: THREE.Object3D | null = hit.object;
-      while (obj) {
-        if (obj.userData.itemId) {
-          const itemId = obj.userData.itemId as ItemId;
-          const item = this.scene.items.get(itemId);
-          if (item && "pointerEvents" in item && item.pointerEvents.get() === "none") break;
-          // Can't grab what the active camera doesn't render.
-          if (!this.cameraShowsItem(itemId)) break;
-          return {
-            itemId,
-            worldPosition: vec2(hit.point.x, hit.point.y),
-          };
-        }
-        obj = obj.parent;
-      }
+  // Blocked items don't take hits but don't occlude items beneath them either,
+  // so the filter runs per candidate inside the backend's hit-test.
+  private isHittable = (itemId: ItemId): boolean => {
+    const item = this.scene.items.get(itemId);
+    if (item && "pointerEvents" in item && item.pointerEvents.get() === "none") {
+      return false;
     }
-    return null;
+    // Can't grab what the active camera doesn't render.
+    return this.cameraShowsItem(itemId);
+  };
+
+  hitItem(event: PointerEvent): { itemId: ItemId; worldPosition: Vec2 } | null {
+    const itemId = this.surface.hitTest(event, this.isHittable);
+    if (!itemId) return null;
+    return { itemId, worldPosition: this.screenToWorld(event) };
   }
 
   dispatchEvent<E extends InteractionEventType>(
@@ -436,18 +370,18 @@ export class View2D {
   }
 
   updateCursor(): void {
-    const canvas = this.threeRenderer.domElement;
+    const target = this.eventTarget;
     if (this.dragState || this.panState || this.pinchState) {
-      canvas.style.cursor = "grabbing";
+      target.style.cursor = "grabbing";
       return;
     }
     if (this.hoveredItemId) {
       const item = this.scene.items.get(this.hoveredItemId);
       const cursor = item?.getCursorState();
-      canvas.style.cursor = cursor ?? "default";
+      target.style.cursor = cursor ?? "default";
       return;
     }
-    canvas.style.cursor = "default";
+    target.style.cursor = "default";
   }
 
   // ========== Pointer / Wheel Handlers ==========
@@ -464,7 +398,7 @@ export class View2D {
     // Already in a multi-finger gesture (or dragging an item): ignore further pointers.
     if (this.activePointers.size >= 2) return;
 
-    const hit = this.raycastItem(event);
+    const hit = this.hitItem(event);
 
     this.pointerDownInfo = {
       itemId: hit?.itemId ?? null,
@@ -480,7 +414,7 @@ export class View2D {
         if (constraint && constraint !== "none") {
           // Capture the pointer so the drag keeps receiving move/up events even
           // when the cursor passes over overlay DOM elements or leaves the canvas.
-          this.threeRenderer.domElement.setPointerCapture(event.pointerId);
+          this.eventTarget.setPointerCapture(event.pointerId);
           this.dragState = {
             pointerId: event.pointerId,
             itemId: hit.itemId,
@@ -508,7 +442,7 @@ export class View2D {
     const camSnap = this.activeCam.getItemSnapshot();
     if (camSnap.enablePan) {
       // Capture the pointer so panning continues past the canvas edge and over overlays.
-      this.threeRenderer.domElement.setPointerCapture(event.pointerId);
+      this.eventTarget.setPointerCapture(event.pointerId);
       this.panState = {
         pointerId: event.pointerId,
         lastClientX: event.clientX,
@@ -564,7 +498,7 @@ export class View2D {
     }
 
     // Hover detection
-    const hit = this.raycastItem(event);
+    const hit = this.hitItem(event);
     const newHoveredId = hit?.itemId ?? null;
 
     if (newHoveredId !== this.hoveredItemId) {
@@ -651,7 +585,7 @@ export class View2D {
       const dy = event.clientY - this.pointerDownInfo.screenPosition.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       if (distance < CLICK_THRESHOLD_PX && this.pointerDownInfo.itemId) {
-        const hit = this.raycastItem(event);
+        const hit = this.hitItem(event);
         if (hit && hit.itemId === this.pointerDownInfo.itemId) {
           const item = this.scene.items.get(hit.itemId);
           if (item) {
@@ -729,11 +663,9 @@ export class View2D {
     this.zoomAroundScreenPoint(event.clientX, event.clientY, factor);
   };
 
-  // Pixels-to-world conversion based on the current threeCamera frustum + zoom.
+  // Pixels-to-world conversion for the current viewport.
   worldPerPixel(): number {
-    const rect = this.threeRenderer.domElement.getBoundingClientRect();
-    const worldHeight = (this.threeCamera.top - this.threeCamera.bottom) / this.threeCamera.zoom;
-    return worldHeight / rect.height;
+    return this.getViewport2D().worldPerPixel;
   }
 
   // Pan the camera by a pixel delta, converting to world units via the current
@@ -757,11 +689,8 @@ export class View2D {
     const newZoom = Math.max(0.001, this.activeCam.zoom.get() * factor);
     setBoundAtomIfWritable(this.activeCam.zoom, newZoom);
 
-    // Sync the threeCamera so the post-zoom unprojection uses the new matrix.
-    // Without this, `after` would be computed from the stale projection matrix.
-    this.threeCamera.zoom = newZoom;
-    this.threeCamera.updateProjectionMatrix();
-
+    // screenToWorld reads the camera atoms, so this conversion already sees
+    // the new zoom.
     const after = this.screenToWorld(point);
 
     const center = this.activeCam.center.get();
@@ -782,7 +711,7 @@ export class View2D {
 
     // Capture both fingers so the gesture survives one straying over an overlay.
     for (const id of this.activePointers.keys()) {
-      this.threeRenderer.domElement.setPointerCapture(id);
+      this.eventTarget.setPointerCapture(id);
     }
 
     this.panState = null;
@@ -850,17 +779,17 @@ export class View2D {
     this.unsubscribeSceneInvalidation?.();
     this.unsubscribeSceneInvalidation = null;
 
-    for (const id of this.threeMeshes.keys()) {
+    for (const id of [...this.objects.keys()]) {
       this.removeItem(id);
     }
 
-    const canvas = this.threeRenderer.domElement;
-    canvas.removeEventListener("pointerdown", this.onPointerDown);
-    canvas.removeEventListener("pointermove", this.onPointerMove);
-    canvas.removeEventListener("pointerup", this.onPointerUp);
-    canvas.removeEventListener("pointercancel", this.onPointerCancel);
-    canvas.removeEventListener("pointerleave", this.onPointerLeave);
-    canvas.removeEventListener("wheel", this.onWheel);
+    const target = this.eventTarget;
+    target.removeEventListener("pointerdown", this.onPointerDown);
+    target.removeEventListener("pointermove", this.onPointerMove);
+    target.removeEventListener("pointerup", this.onPointerUp);
+    target.removeEventListener("pointercancel", this.onPointerCancel);
+    target.removeEventListener("pointerleave", this.onPointerLeave);
+    target.removeEventListener("wheel", this.onWheel);
 
     this.dragState = null;
     this.panState = null;
@@ -869,79 +798,7 @@ export class View2D {
     this.pointerDownInfo = null;
     this.hoveredItemId = null;
 
-    this.sizer.dispose();
-    this.threeRenderer.forceContextLoss();
-    this.threeRenderer.dispose();
-
-    if (this.threeRenderer.domElement.parentNode === this.containerElem) {
-      this.containerElem.removeChild(this.threeRenderer.domElement);
-    }
-
-    if (this.css2dRenderer.domElement.parentNode === this.containerElem) {
-      this.containerElem.removeChild(this.css2dRenderer.domElement);
-    }
+    this.resizeObserver.disconnect();
+    this.surface.dispose();
   }
-}
-
-// Sets the orthographic frustum from container size, preserving the configured
-// vertical half-span and following the container aspect ratio.
-function createResponsiveOrthoSizer({
-  container,
-  renderer,
-  camera,
-  onResize,
-}: {
-  container: HTMLElement;
-  renderer: THREE.WebGLRenderer;
-  camera: THREE.OrthographicCamera;
-  onResize: () => void;
-}) {
-  let pendingWidth = 0;
-  let pendingHeight = 0;
-
-  const ro = new ResizeObserver((entries) => {
-    const { width, height } = entries[0].contentRect;
-    if (width > 0 && height > 0) {
-      pendingWidth = width;
-      pendingHeight = height;
-      onResize();
-    }
-  });
-  ro.observe(container);
-
-  const rect = container.getBoundingClientRect();
-  if (rect.width > 0 && rect.height > 0) {
-    pendingWidth = rect.width;
-    pendingHeight = rect.height;
-  }
-
-  function applyIfNeeded() {
-    const currentSize = renderer.getSize(new THREE.Vector2());
-    const aspect = pendingWidth / pendingHeight;
-    const halfH = BASE_VERTICAL_HALF_SPAN;
-    const halfW = halfH * aspect;
-    const frustumChanged =
-      camera.left !== -halfW ||
-      camera.right !== halfW ||
-      camera.top !== halfH ||
-      camera.bottom !== -halfH;
-
-    if (currentSize.x !== pendingWidth || currentSize.y !== pendingHeight) {
-      renderer.setSize(pendingWidth, pendingHeight, false);
-    }
-    if (frustumChanged) {
-      camera.left = -halfW;
-      camera.right = halfW;
-      camera.top = halfH;
-      camera.bottom = -halfH;
-      camera.updateProjectionMatrix();
-    }
-  }
-
-  // Apply once immediately so the first render has a valid frustum.
-  if (pendingWidth > 0 && pendingHeight > 0) {
-    applyIfNeeded();
-  }
-
-  return { applyIfNeeded, dispose: () => ro.disconnect() };
 }

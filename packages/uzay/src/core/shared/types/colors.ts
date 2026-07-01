@@ -1,6 +1,6 @@
-import type { ColorRepresentation } from "three";
-
-export type Color = ColorRepresentation;
+// A CSS color string or a hex number, e.g. "#e2725b" or 0xe2725b. The common
+// subset every render backend understands.
+export type Color = string | number;
 
 const warnedRgbaColors = new Set<string>();
 

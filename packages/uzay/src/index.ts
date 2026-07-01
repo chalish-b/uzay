@@ -3,6 +3,8 @@ export { Scene3D } from "./core/3d/scene3d"
 export { View3D } from "./core/3d/view3d"
 export { Scene2D } from "./core/2d/scene2d"
 export { View2D } from "./core/2d/view2d"
+export type { View2DOptions } from "./core/2d/view2d"
+export type { Renderer2DKind } from "./core/2d/backend"
 
 // Vector utilities
 export { vec3, Vec3 } from "./core/shared/types/vec3"

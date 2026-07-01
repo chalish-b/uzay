@@ -1,4 +1,4 @@
-import type { ItemKind } from "../types/item-registry";
+import type { ItemKind } from "../../../types/item-registry";
 import type { ItemRenderer } from "./shared";
 
 // Shared constants and types live in ./shared so individual renderers can

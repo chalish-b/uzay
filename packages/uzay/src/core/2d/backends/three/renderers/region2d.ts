@@ -2,12 +2,12 @@ import * as THREE from "three";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, Region2DStrokeObject, ThreeSceneTypes } from "./shared";
 import { Z_REGION, Z_REGION_STROKE } from "./shared";
-import { checkedColor } from "../../shared/types/colors";
-import type { Region2DPoints } from "../items/region2d";
-import type { Vec2 } from "../../shared/types/vec2";
+import { checkedColor } from "../../../../shared/types/colors";
+import type { Region2DPoints } from "../../../items/region2d";
+import type { Vec2 } from "../../../../shared/types/vec2";
 
 const MIN_POINTS = 3;
 

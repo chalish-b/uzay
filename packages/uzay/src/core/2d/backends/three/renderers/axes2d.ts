@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_DEFAULT } from "./shared";
 import { Line2 } from "three/addons/lines/Line2.js";
@@ -8,51 +8,19 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
-import { checkedColor } from "../../shared/types/colors";
-import type { Viewport2D } from "../types/view-context";
-import { getNiceStep } from "../types/nice-step";
-import { anchorToTranslate } from "../../shared/types/overlay";
-
-// Pixel-space sizes for ornaments. Multiplied by item.thickness so the same
-// dial that controls line width also scales ticks and arrowheads
-// proportionally.
-const BASE_TICK_HALF_LENGTH_PX = 6;
-const BASE_ARROW_LENGTH_PX = 14;
-const BASE_ARROW_HALF_WIDTH_PX = 5;
-const INFINITE_RANGE: readonly [number, number] = [-100, 100];
-// Renderer requirements, always applied regardless of user styling.
-const LABEL_BASE_STYLE = [
-  "line-height: 1",
-  "white-space: nowrap",
-  "pointer-events: none",
-].join(";");
-
-// The default look, tuned for the library's dark-canvas defaults like every
-// other item color. Applied only when the user provides neither labelStyle
-// nor labelClassName; either one replaces this block entirely. Inline
-// defaults would otherwise outrank any class, making CSS theming impossible.
-const LABEL_DEFAULT_STYLE = [
-  "color: rgba(255, 255, 255, 0.72)",
-  "font-size: 12px",
-  "font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-  "text-shadow: 0 1px 2px black, 0 0 4px black",
-].join(";");
-
-type AxisKey = "x" | "y";
-
-function getRange(
-  axis: AxisKey,
-  value: boolean | [number, number],
-  viewport: Viewport2D | null = null
-): readonly [number, number] {
-  if (typeof value !== "boolean") return value;
-  if (value === true && viewport) {
-    const { left, right, bottom, top } = viewport.visibleWorldBounds;
-    return axis === "x" ? [left, right] : [bottom, top];
-  }
-  return INFINITE_RANGE;
-}
+import { getWorldPerPixel, chainOnBeforeRender } from "../screen-space";
+import { checkedColor } from "../../../../shared/types/colors";
+import type { Viewport2D } from "../../../types/view-context";
+import {
+  BASE_TICK_HALF_LENGTH_PX,
+  BASE_ARROW_LENGTH_PX,
+  BASE_ARROW_HALF_WIDTH_PX,
+  buildTickPositions,
+  getAxisRange,
+  getTickStep,
+  type AxisKey,
+} from "../../../math/axes-math";
+import { createAxisTickLabel } from "../../../overlay-dom";
 
 function buildAxisLineGeometry(
   axis: AxisKey,
@@ -65,35 +33,6 @@ function buildAxisLineGeometry(
   const geom = new LineGeometry();
   geom.setPositions(positions);
   return geom;
-}
-
-function buildTickPositions(
-  range: readonly [number, number],
-  step: number
-): number[] {
-  if (step <= 0) return [];
-  const positions: number[] = [];
-  const start = Math.ceil(range[0] / step) * step;
-  for (let v = start; v <= range[1] + 1e-9; v += step) {
-    if (Math.abs(v) < 1e-9) continue;
-    positions.push(v);
-  }
-  return positions;
-}
-
-function formatTick(value: number, step: number): string {
-  const decimals = Math.max(0, Math.ceil(-Math.log10(Math.abs(step))));
-  const rounded = Number(value.toFixed(decimals));
-  return Object.is(rounded, -0) ? "0" : String(rounded);
-}
-
-function getTickStep(
-  tickStep: ItemSnapshot<"axes2d">["tickStep"],
-  viewport: Viewport2D | null
-): number {
-  if (tickStep !== "auto") return tickStep;
-  if (!viewport || viewport.worldPerPixel <= 0) return 1;
-  return getNiceStep(viewport.worldPerPixel);
 }
 
 function buildTickGeometry(
@@ -138,7 +77,7 @@ function createAxis(
   viewport: Viewport2D | null = null
 ): ThreeSceneTypes["axes2d"]["x"] {
   const enabled = item[axis] !== false;
-  const range = getRange(axis, item[axis], viewport);
+  const range = getAxisRange(axis, item[axis], viewport);
 
   const lineMaterial = new LineMaterial({
     color: checkedColor(item.color, "Axes2D.color"),
@@ -249,25 +188,10 @@ function createLabels(
   for (const axis of axes) {
     if (item[axis] === false) continue;
 
-    const range = getRange(axis, item[axis], viewport);
+    const range = getAxisRange(axis, item[axis], viewport);
     const ticks = buildTickPositions(range, tickStep);
     for (const tick of ticks) {
-      const wrapper = document.createElement("div");
-      wrapper.style.width = "max-content";
-      wrapper.style.zIndex = "0";
-
-      const element = document.createElement("div");
-      element.textContent = formatTick(tick, tickStep);
-      element.className = item.labelClassName;
-      element.style.cssText =
-        item.labelStyle || item.labelClassName
-          ? `${LABEL_BASE_STYLE};${item.labelStyle}`
-          : `${LABEL_BASE_STYLE};${LABEL_DEFAULT_STYLE}`;
-      element.style.transform =
-        axis === "x"
-          ? `${anchorToTranslate("top")} translate(0px, 10px)`
-          : `${anchorToTranslate("right")} translate(-10px, 0px)`;
-      wrapper.appendChild(element);
+      const { wrapper, element } = createAxisTickLabel(item, axis, tick, tickStep);
 
       const cssObject = new CSS2DObject(wrapper);
       if (axis === "x") {
@@ -322,8 +246,8 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
       !item.labels
     ) return;
 
-    const xRange = getRange("x", item.x, ctx.viewport);
-    const yRange = getRange("y", item.y, ctx.viewport);
+    const xRange = getAxisRange("x", item.x, ctx.viewport);
+    const yRange = getAxisRange("y", item.y, ctx.viewport);
     const tickStep = getTickStep(item.tickStep, ctx.viewport);
     const layoutKey = JSON.stringify({
       xRange,
@@ -337,12 +261,12 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
     });
     if (layoutKey === obj.layoutKey) return;
 
-    disposeAxis(obj.x, ctx.threeScene);
-    disposeAxis(obj.y, ctx.threeScene);
-    disposeLabels(obj.labels, ctx.threeScene);
-    obj.x = createAxis("x", item, ctx.threeScene, ctx.viewport);
-    obj.y = createAxis("y", item, ctx.threeScene, ctx.viewport);
-    obj.labels = createLabels(item, ctx.viewport, ctx.threeScene);
+    disposeAxis(obj.x, ctx.container);
+    disposeAxis(obj.y, ctx.container);
+    disposeLabels(obj.labels, ctx.container);
+    obj.x = createAxis("x", item, ctx.container, ctx.viewport);
+    obj.y = createAxis("y", item, ctx.container, ctx.viewport);
+    obj.labels = createLabels(item, ctx.viewport, ctx.container);
     obj.layoutKey = layoutKey;
   },
 

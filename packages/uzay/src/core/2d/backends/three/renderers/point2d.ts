@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import type { ItemSnapshot } from "../types/item-registry";
+import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_POINT } from "./shared";
-import { getWorldPerPixel, chainOnBeforeRender } from "../types/screen-space";
-import { checkedColor } from "../../shared/types/colors";
+import { getWorldPerPixel, chainOnBeforeRender } from "../screen-space";
+import { checkedColor } from "../../../../shared/types/colors";
 
 // Geometry is built once at unit radius (1 world unit). Each frame
 // onBeforeRender scales the mesh so its rendered size is exactly
