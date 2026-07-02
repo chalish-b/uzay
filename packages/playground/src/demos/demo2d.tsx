@@ -97,7 +97,6 @@ function createScene() {
     f: sineFn,
     tStart: -8,
     tEnd: 8,
-    samples: 200,
     color: "violet",
     thickness: 3,
   });
@@ -107,7 +106,6 @@ function createScene() {
     f: (t: number) => vec2(2.5 + Math.cos(t) * 1.2, 5 + Math.sin(t) * 1.2),
     tStart: 0,
     tEnd: Math.PI * 2,
-    samples: 64,
     color: "cyan",
     thickness: 3,
   });
@@ -121,7 +119,6 @@ function createScene() {
     f: curveF,
     tStart: -6,
     tEnd: 6,
-    samples: 240,
     color: "orange",
     thickness: 3,
   });

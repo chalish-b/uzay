@@ -6,17 +6,18 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { checkedColor } from "../../../../shared/types/colors";
-import type { Viewport2D } from "../../../types/view-context";
 import {
-  getFunctionDomain,
+  createFunctionSamplingPlan,
+  planFitsViewport,
   sampleFunctionRuns,
+  type FunctionSamplingPlan,
 } from "../../../math/function-sampling";
 
 function buildGeometry(
   item: ItemSnapshot<"function2d">,
-  viewport: Viewport2D | null = null
-): LineSegmentsGeometry {
-  const runs = sampleFunctionRuns(item, viewport);
+  plan: FunctionSamplingPlan
+): { geometry: LineSegmentsGeometry; hasSegments: boolean } {
+  const runs = sampleFunctionRuns(item, plan);
   const positions: number[] = [];
 
   for (const run of runs) {
@@ -34,15 +35,27 @@ function buildGeometry(
 
   const geometry = new LineSegmentsGeometry();
   geometry.setPositions(positions);
-  return geometry;
+  return { geometry, hasSegments: positions.length > 0 };
 }
 
+function applyVisibility(
+  item: ItemSnapshot<"function2d">,
+  obj: ThreeSceneTypes["function2d"]
+): void {
+  obj.mesh.visible = item.visible && obj.hasSegments;
+}
+
+// Sampling is viewport-dependent (screen-space tolerance, view-window
+// clipping), so geometry is built in layout() rather than create()/update().
+// Those two only reset the stored plan; layout() rebuilds whenever the plan
+// is missing or no longer fits the viewport.
 export const function2dRenderer: ItemRenderer<"function2d"> = {
   create(
     item: ItemSnapshot<"function2d">,
     threeScene: THREE.Object3D
   ): ThreeSceneTypes["function2d"] {
-    const geometry = buildGeometry(item);
+    const geometry = new LineSegmentsGeometry();
+    geometry.setPositions([]);
     const material = new LineMaterial({
       color: checkedColor(item.color, "Function2D.color"),
       linewidth: item.thickness,
@@ -50,10 +63,17 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
       opacity: item.opacity,
     });
     const mesh = new LineSegments2(geometry, material);
-    mesh.visible = item.visible;
+    mesh.visible = false;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
-    return { kind: "function2d", geometry, material, mesh, layoutKey: null };
+    return {
+      kind: "function2d",
+      geometry,
+      material,
+      mesh,
+      plan: null,
+      hasSegments: false,
+    };
   },
 
   update(item: ItemSnapshot<"function2d">, obj: ThreeSceneTypes["function2d"]): void {
@@ -62,28 +82,21 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
     obj.material.opacity = item.opacity;
     obj.material.transparent = item.opacity < 1;
     obj.material.needsUpdate = true;
-    obj.mesh.visible = item.visible;
-
-    obj.geometry.dispose();
-    obj.geometry = buildGeometry(item);
-    obj.mesh.geometry = obj.geometry;
-    obj.layoutKey = null;
+    applyVisibility(item, obj);
+    obj.plan = null;
   },
 
   layout(item: ItemSnapshot<"function2d">, obj: ThreeSceneTypes["function2d"], ctx): void {
-    if (item.domain !== "infinite") return;
-    const domain = getFunctionDomain(item, ctx.viewport);
-    const layoutKey = JSON.stringify({
-      domain,
-      samples: item.samples,
-      discontinuities: item.discontinuities,
-    });
-    if (layoutKey === obj.layoutKey) return;
+    if (obj.plan && planFitsViewport(item, obj.plan, ctx.viewport)) return;
 
+    const plan = createFunctionSamplingPlan(item, ctx.viewport);
+    const built = buildGeometry(item, plan);
     obj.geometry.dispose();
-    obj.geometry = buildGeometry(item, ctx.viewport);
-    obj.mesh.geometry = obj.geometry;
-    obj.layoutKey = layoutKey;
+    obj.geometry = built.geometry;
+    obj.mesh.geometry = built.geometry;
+    obj.hasSegments = built.hasSegments;
+    obj.plan = plan;
+    applyVisibility(item, obj);
   },
 
   dispose(obj: ThreeSceneTypes["function2d"], threeScene: THREE.Object3D): void {

@@ -44,7 +44,6 @@ export default function FunctionPoint2DDemo() {
     scene.create("function2d", {
       f,
       domain: "infinite",
-      samples: 200,
       color: t("primary"),
       thickness: 2.5,
       pointerEvents: "none",

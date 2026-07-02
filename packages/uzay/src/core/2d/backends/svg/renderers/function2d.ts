@@ -1,31 +1,26 @@
 import type { ItemSnapshot } from "../../../types/item-registry";
-import type { Viewport2D } from "../../../types/view-context";
 import {
-  getFunctionDomain,
+  createFunctionSamplingPlan,
+  planFitsViewport,
   sampleFunctionRuns,
+  type FunctionSamplingPlan,
 } from "../../../math/function-sampling";
 import type { SvgItemRenderer, SvgSceneTypes } from "./shared";
 import { applyStrokePx, polylinePathD, setVisible, svgEl } from "./shared";
 
 function buildD(
   item: ItemSnapshot<"function2d">,
-  viewport: Viewport2D | null = null
+  plan: FunctionSamplingPlan
 ): string {
-  return sampleFunctionRuns(item, viewport)
+  return sampleFunctionRuns(item, plan)
     .map((run) => polylinePathD(run))
     .join(" ");
 }
 
-function apply(
-  item: ItemSnapshot<"function2d">,
-  obj: SvgSceneTypes["function2d"]
-): void {
-  obj.path.setAttribute("d", buildD(item));
-  applyStrokePx(obj.path, item.color, item.thickness, item.opacity);
-  setVisible(obj.path, item.visible);
-  obj.layoutKey = null;
-}
-
+// Sampling is viewport-dependent (screen-space tolerance, view-window
+// clipping), so the path is built in layout() rather than create()/update().
+// Those two only reset the stored plan; layout() rebuilds whenever the plan
+// is missing or no longer fits the viewport.
 export const function2dSvgRenderer: SvgItemRenderer<"function2d"> = {
   create(item, container) {
     const path = svgEl("path");
@@ -33,28 +28,25 @@ export const function2dSvgRenderer: SvgItemRenderer<"function2d"> = {
     const obj: SvgSceneTypes["function2d"] = {
       kind: "function2d",
       path,
-      layoutKey: null,
+      plan: null,
     };
-    apply(item, obj);
+    applyStrokePx(path, item.color, item.thickness, item.opacity);
+    setVisible(path, item.visible);
     return obj;
   },
 
   update(item, obj) {
-    apply(item, obj);
+    applyStrokePx(obj.path, item.color, item.thickness, item.opacity);
+    setVisible(obj.path, item.visible);
+    obj.plan = null;
   },
 
   layout(item, obj, ctx) {
-    if (item.domain !== "infinite") return;
-    const domain = getFunctionDomain(item, ctx.viewport);
-    const layoutKey = JSON.stringify({
-      domain,
-      samples: item.samples,
-      discontinuities: item.discontinuities,
-    });
-    if (layoutKey === obj.layoutKey) return;
+    if (obj.plan && planFitsViewport(item, obj.plan, ctx.viewport)) return;
 
-    obj.path.setAttribute("d", buildD(item, ctx.viewport));
-    obj.layoutKey = layoutKey;
+    const plan = createFunctionSamplingPlan(item, ctx.viewport);
+    obj.path.setAttribute("d", buildD(item, plan));
+    obj.plan = plan;
   },
 
   dispose(obj) {

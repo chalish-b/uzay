@@ -206,7 +206,6 @@ function createDerivativeScene(initialTheme: DemoTheme) {
     f,
     domain: "infinite",
     discontinuities: [],
-    samples: 240,
     color: scene.atom((get) => get(themeAtom).scene.curve),
     thickness: 3,
     pointerEvents: "none",
@@ -264,7 +263,6 @@ function createDerivativeScene(initialTheme: DemoTheme) {
   scene.create("function2d", {
     f: (x: number) => lineAtPoint(a, f(a), tangentSlope, x),
     domain: "infinite",
-    samples: 32,
     color: scene.atom((get) => get(themeAtom).scene.tangent),
     thickness: 2,
     pointerEvents: "none",
@@ -276,7 +274,6 @@ function createDerivativeScene(initialTheme: DemoTheme) {
       return (x: number) => lineAtPoint(a, f(a), slope, x);
     }),
     domain: "infinite",
-    samples: 32,
     color: scene.atom((get) => get(themeAtom).scene.accent),
     thickness: 3.5,
     pointerEvents: "none",
@@ -482,7 +479,6 @@ function createIntegralScene(initialTheme: DemoTheme) {
     f: integralFunction,
     domain: "infinite",
     discontinuities: [],
-    samples: 260,
     color: scene.atom((get) => get(themeAtom).scene.curve),
     thickness: 3,
     pointerEvents: "none",

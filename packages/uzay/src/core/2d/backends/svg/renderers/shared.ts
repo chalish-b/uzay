@@ -1,5 +1,7 @@
 import type { ItemKind } from "../../../types/item-registry";
 import type { ItemRenderer2D } from "../../../backend";
+import type { FunctionSamplingPlan } from "../../../math/function-sampling";
+import type { ParametricSamplingPlan } from "../../../math/parametric-sampling";
 import {
   warnIfRgbaColor,
   type Color,
@@ -64,11 +66,12 @@ export type SvgSceneTypes = {
   parametricfunction2d: {
     kind: "parametricfunction2d";
     path: SVGPathElement;
+    plan: ParametricSamplingPlan | null;
   };
   function2d: {
     kind: "function2d";
     path: SVGPathElement;
-    layoutKey: string | null;
+    plan: FunctionSamplingPlan | null;
   };
   overlay2d: {
     kind: "overlay2d";

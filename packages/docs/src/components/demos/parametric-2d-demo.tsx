@@ -53,7 +53,6 @@ export default function Parametric2DDemo() {
       f: scene.atom((get) => lissajous(get(kAtom))),
       tStart: 0,
       tEnd: Math.PI * 2,
-      samples: 400,
       color: t("primary"),
       thickness: 2.5,
       pointerEvents: "none",

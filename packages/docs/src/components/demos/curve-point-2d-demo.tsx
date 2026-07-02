@@ -48,7 +48,6 @@ export default function CurvePoint2DDemo() {
       f,
       tStart: T_START,
       tEnd: T_END,
-      samples: 200,
       color: t("primary"),
       thickness: 2.5,
       pointerEvents: "none",

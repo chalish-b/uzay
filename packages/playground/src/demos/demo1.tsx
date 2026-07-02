@@ -1,278 +1,383 @@
-import { useMemo, type ReactNode } from "react";
-import { Scene2D, Vec2, vec2, type ItemTags, type WritableBoundAtom } from "uzay";
+import { useMemo, useState } from "react";
+import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
-// SVG backend test bench.
+// Function sampling torture bench.
 //
-// One scene on the SVG renderer where every 2D item kind has a live control
-// or interaction driving its reactive fields: sliders mutate atoms, points
-// drag, the circle takes clicks, the vector tip reacts to hover, and a camera
-// tag filter hides a whole group. The point is to exercise every renderer
-// code path (update, layout, visibility, hit-testing) under real interaction.
+// Each case is one scene rendered by BOTH backends side by side (threejs left,
+// svg right) with a shared camera, so pan/zoom stays in sync and any visual
+// difference between the backends is immediately obvious. The cases cover the
+// hard parts of plotting: asymptotes, jumps, domain edges, removable holes,
+// high frequencies, needle-thin features, and viewport-dependent resampling.
+//
+// General checks that apply to every case:
+// - both backends look identical
+// - pan and zoom stay smooth, the curve never shimmers while panning
+// - zooming in never exposes polygon corners; zooming out never leaves gaps
 
-const CHECKLIST = [
-  "Drag the amber points: vector, guide line, region, circle follow live",
-  "Slider point on the x-axis only drags horizontally; its guide + readout track",
-  "Hover the vector tip: it grows; leave: it shrinks back",
-  "Click the circle's fill (not its center point): fill + outline cycle colors",
-  "θ-end slider: wedge sweeps open, snaps to a clean full circle at 2π",
-  "Pole slider: the 1/(x−c) gap slides along, never a vertical wall",
-  "Lissajous t-end scrub draws the curve; a/b change its lobes",
-  "Axes toggles: labels/arrows/ticks appear and disappear cleanly",
-  "Hide tagged items: Lissajous, region, circle vanish; their points stop dragging",
-  "Sine visible toggle: curve hides, everything else keeps working",
-  "Pan/zoom after all of the above: pixel-sized handles, re-stepping grid/ticks",
-];
-
-const CIRCLE_COLORS = ["#f59e0b", "#f97583", "#34d399", "#4f9cf9"];
-const EXTRAS: ItemTags = ["extras"];
-
-function buildScene() {
-  const scene = new Scene2D();
-
-  const showExtras = scene.atom<ItemTags | undefined>(undefined);
-  const camera = scene.create("camera2d", {
-    center: vec2(0, 0),
-    zoom: 1.2,
-    visibleTags: showExtras,
-  });
-
-  // Grid & axes
-  const gridOpacity = scene.atom(0.1);
-  scene.create("grid2d", {
-    rangeX: true,
-    rangeY: true,
-    gap: "auto",
-    color: "white",
-    opacity: gridOpacity,
-  });
-
-  const axesLabels = scene.atom(true);
-  const axesArrows = scene.atom(true);
-  const axesTicks = scene.atom(true);
-  scene.create("axes2d", {
-    x: true,
-    y: true,
-    color: "#888",
-    thickness: 1.1,
-    tickmarks: axesTicks,
-    tickStep: "auto",
-    arrows: axesArrows,
-    labels: axesLabels,
-  });
-
-  // Sine: amplitude/frequency atoms, infinite domain (viewport resampling)
-  const sineAmp = scene.atom(1.5);
-  const sineFreq = scene.atom(1);
-  const sineVisible = scene.atom(true);
-  scene.create("function2d", {
-    f: scene.atom((get) => {
-      const amp = get(sineAmp);
-      const freq = get(sineFreq);
-      return (x: number) => Math.sin(x * freq) * amp;
-    }),
-    domain: "infinite",
-    color: "#4f9cf9",
-    thickness: 3,
-    visible: sineVisible,
-  });
-
-  // Rational curve with a movable pole: the declared discontinuity follows it
-  const pole = scene.atom(1);
-  scene.create("function2d", {
-    f: scene.atom((get) => {
-      const c = get(pole);
-      return (x: number) => 1 / (x - c);
-    }),
-    discontinuities: scene.atom((get) => [get(pole)]),
-    domain: [-8, 8],
-    samples: 500,
-    color: "#f97583",
-    thickness: 2,
-  });
-
-  // Lissajous, drawn by a t-end scrub (tagged: hides with "extras")
-  const lissA = scene.atom(3);
-  const lissB = scene.atom(2);
-  const lissTEnd = scene.atom(Math.PI * 2);
-  scene.create("parametricfunction2d", {
-    f: scene.atom((get) => {
-      const a = get(lissA);
-      const b = get(lissB);
-      return (t: number) =>
-        vec2(Math.cos(a * t) * 0.9 - 3.2, Math.sin(b * t) * 0.9 + 2.2);
-    }),
-    tStart: 0,
-    tEnd: lissTEnd,
-    samples: 512,
-    color: "#34d399",
-    thickness: 2,
-    tags: EXTRAS,
-  });
-
-  // Region: a triangle whose vertices are draggable points (tagged)
-  const r1 = scene.create("point2d", {
-    coords: vec2(-4.4, -1.2), draggable: "xy", color: "#a78bfa", radius: 6, tags: EXTRAS,
-  });
-  const r2 = scene.create("point2d", {
-    coords: vec2(-2.4, -1.2), draggable: "xy", color: "#a78bfa", radius: 6, tags: EXTRAS,
-  });
-  const r3 = scene.create("point2d", {
-    coords: vec2(-3.4, -2.8), draggable: "xy", color: "#a78bfa", radius: 6, tags: EXTRAS,
-  });
-  scene.create("region2d", {
-    points: scene.atom((get) => [get(r1.coords), get(r2.coords), get(r3.coords)]),
-    color: "#a78bfa",
-    opacity: 0.25,
-    strokeColor: "#a78bfa",
-    strokeThickness: 2,
-    tags: EXTRAS,
-  });
-
-  // Circle: draggable center, radius + arc sweep sliders, click cycles color
-  const circleCenter = scene.create("point2d", {
-    coords: vec2(3.4, 2.2), draggable: "xy", color: "#f59e0b", radius: 6, tags: EXTRAS,
-  });
-  const circleRadius = scene.atom(0.9);
-  const circleThetaEnd = scene.atom(Math.PI * 2);
-  const circleColorIdx = scene.atom(0);
-  const circleColor = scene.atom((get) => CIRCLE_COLORS[get(circleColorIdx)]);
-  const circle = scene.create("circle2d", {
-    center: circleCenter.coords,
-    radius: circleRadius,
-    thetaStart: 0,
-    thetaEnd: circleThetaEnd,
-    color: circleColor,
-    opacity: 0.2,
-    strokeColor: circleColor,
-    strokeThickness: 2,
-    tags: EXTRAS,
-  });
-  circle.on("click", () => {
-    circleColorIdx.set((circleColorIdx.get() + 1) % CIRCLE_COLORS.length);
-  });
-
-  // Vector between two draggable points; the tip point reacts to hover
-  const vecTail = scene.create("point2d", {
-    coords: vec2(0.6, -1.8), draggable: "xy", color: "#ffb547", radius: 7,
-  });
-  const tipHovered = scene.atom(false);
-  const vecTip = scene.create("point2d", {
-    coords: vec2(2.2, -0.6),
-    draggable: "xy",
-    color: "#ffb547",
-    radius: scene.atom((get) => (get(tipHovered) ? 11 : 7)),
-  });
-  vecTip.on("hover", (e) => {
-    if (e.phase === "enter") tipHovered.set(true);
-    if (e.phase === "leave") tipHovered.set(false);
-  });
-
-  const headLength = scene.atom(12);
-  const headWidth = scene.atom(10);
-  scene.create("vector2d", {
-    origin: vecTail.coords,
-    vector: scene.atom((get) => Vec2.subtract(get(vecTip.coords), get(vecTail.coords))),
-    color: "#34d399",
-    thickness: 2.5,
-    headLength,
-    headWidth,
-  });
-
-  scene.create("overlay2d", {
-    position: vecTip.coords,
-    content: scene.atom((get) => {
-      const p = get(vecTip.coords);
-      return `\\vec{v} \\to (${p.x.toFixed(2)},\\ ${p.y.toFixed(2)})`;
-    }),
-    format: "latex",
-    anchor: "bottom",
-    offset: vec2(0, -14),
-    style: "color: #ffd9a0; font-size: 13px;",
-    pointerEvents: "none",
-  });
-
-  // Axis-constrained slider point with a vertical guide line and readout
-  const slider = scene.create("point2d", {
-    coords: vec2(-1.5, 0), draggable: "x", color: "#f97583", radius: 7,
-  });
-  scene.create("line2d", {
-    start: scene.atom((get) => vec2(get(slider.coords).x, -4.5)),
-    end: scene.atom((get) => vec2(get(slider.coords).x, 4.5)),
-    color: "#f97583",
-    thickness: 1.5,
-    opacity: 0.5,
-    pointerEvents: "none",
-  });
-  scene.create("overlay2d", {
-    position: slider.coords,
-    content: scene.atom((get) => `x = ${get(slider.coords).x.toFixed(2)}`),
-    format: "latex",
-    anchor: "top",
-    offset: vec2(0, 14),
-    style: "color: #ffa3ae; font-size: 13px;",
-    pointerEvents: "none",
-  });
-
-  return {
-    scene,
-    camera,
-    atoms: {
-      showExtras,
-      gridOpacity,
-      axesLabels,
-      axesArrows,
-      axesTicks,
-      sineAmp,
-      sineFreq,
-      sineVisible,
-      pole,
-      lissA,
-      lissB,
-      lissTEnd,
-      circleRadius,
-      circleThetaEnd,
-      headLength,
-      headWidth,
-    },
-  };
-}
-
-type SceneAtoms = ReturnType<typeof buildScene>["atoms"];
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ color: "#ccc", fontSize: 12, fontWeight: 600 }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function Slider({
-  label,
-  atom,
-  min,
-  max,
-  step,
-}: {
+type SliderSpec = {
   label: string;
   atom: WritableBoundAtom<number>;
   min: number;
   max: number;
   step: number;
-}) {
-  const [value, setValue] = useAtomState(atom);
+};
+
+type BenchCase = {
+  id: string;
+  title: string;
+  notes: string[];
+  build: () => {
+    scene: Scene2D;
+    camera: ReturnType<Scene2D["create"]>;
+    sliders: SliderSpec[];
+  };
+};
+
+function baseScene(center = vec2(0, 0), zoom = 1) {
+  const scene = new Scene2D();
+  const camera = scene.create("camera2d", { center, zoom });
+  scene.create("grid2d", {
+    rangeX: true,
+    rangeY: true,
+    gap: "auto",
+    color: "white",
+    opacity: 0.08,
+  });
+  scene.create("axes2d", {
+    x: true,
+    y: true,
+    color: "#888",
+    thickness: 1,
+    tickmarks: true,
+    tickStep: "auto",
+    labels: true,
+  });
+  return { scene, camera };
+}
+
+const CASES: BenchCase[] = [
+  {
+    id: "reciprocal",
+    title: "1/x — auto asymptote",
+    notes: [
+      "No declared discontinuities: the pole at x=0 is detected automatically",
+      "Two branches, no vertical wall connecting them",
+      "Branches hug the y-axis and run off-screen steeply, not at a shallow angle",
+      "Zoom in near the pole: the plunge stays steep and smooth",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: (x: number) => 1 / x,
+        domain: "infinite",
+        color: "#4f9cf9",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "pole",
+    title: "1/(x−c) — declared pole",
+    notes: [
+      "The pole is declared via `discontinuities` and follows the slider",
+      "Gap slides along smoothly, never a vertical wall",
+      "Compare with the 1/x case: declared and auto-detected should look alike",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      const poleAtom = scene.atom(1);
+      scene.create("function2d", {
+        f: scene.atom((get) => {
+          const c = get(poleAtom);
+          return (x: number) => 1 / (x - c);
+        }),
+        discontinuities: scene.atom((get) => [get(poleAtom)]),
+        domain: "infinite",
+        color: "#f97583",
+        thickness: 2,
+      });
+      return {
+        scene,
+        camera,
+        sliders: [{ label: "pole c", atom: poleAtom, min: -3, max: 3, step: 0.05 }],
+      };
+    },
+  },
+  {
+    id: "tan",
+    title: "tan(x) — many asymptotes",
+    notes: [
+      "Every branch separate, no connector walls, nothing declared by hand",
+      "Each branch runs off both the top and the bottom of the screen",
+      "Zoom way out: branches become near-vertical strokes but stay separate",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: Math.tan,
+        domain: "infinite",
+        color: "#34d399",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "log",
+    title: "log(x) — domain edge",
+    notes: [
+      "Curve plunges down the y-axis at x=0 instead of stopping short",
+      "Nothing drawn for x < 0 (f is NaN there)",
+      "Zoom in around the origin: the plunge keeps following the axis",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene(vec2(2, 0));
+      scene.create("function2d", {
+        f: Math.log,
+        domain: "infinite",
+        color: "#ffd166",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "sinax",
+    title: "sin(ax) — high frequency",
+    notes: [
+      "Crank `a` to the max: the wave stays smooth, no jagged corners",
+      "No aliasing: the curve never collapses into a flat or misshapen line",
+      "Extremely high a degrades to a dense band, never to garbage",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      const freqAtom = scene.atom(5);
+      scene.create("function2d", {
+        f: scene.atom((get) => {
+          const a = get(freqAtom);
+          return (x: number) => 2 * Math.sin(a * x);
+        }),
+        domain: "infinite",
+        color: "#4f9cf9",
+        thickness: 1.5,
+      });
+      return {
+        scene,
+        camera,
+        sliders: [{ label: "a", atom: freqAtom, min: 1, max: 120, step: 1 }],
+      };
+    },
+  },
+  {
+    id: "sinrecip",
+    title: "sin(1/x) — infinite oscillation",
+    notes: [
+      "Oscillates infinitely fast toward x=0: must stay responsive, no freeze",
+      "Away from 0 the wave is clean; near 0 it degrades to a dense scribble",
+      "Zoom into the chaos region: detail keeps resolving as far as it can",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: (x: number) => Math.sin(1 / x),
+        domain: "infinite",
+        color: "#a78bfa",
+        thickness: 1.5,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "floor",
+    title: "floor(x) — jumps",
+    notes: [
+      "Flat treads with clean breaks: no vertical risers at the integers",
+      "Each tread runs the full unit right up to both jumps",
+      "Zoomed far out the treads merge visually but never grow risers",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: Math.floor,
+        domain: "infinite",
+        color: "#f59e0b",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "roots",
+    title: "√x and ∛x — vertical tangents",
+    notes: [
+      "Steep but continuous: neither curve breaks at its vertical tangent",
+      "√x starts exactly at the origin, nothing drawn for x < 0",
+      "∛x passes through the origin in one unbroken S-curve",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: Math.sqrt,
+        domain: "infinite",
+        color: "#4f9cf9",
+        thickness: 2,
+      });
+      scene.create("function2d", {
+        f: Math.cbrt,
+        domain: "infinite",
+        color: "#f97583",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "sinc",
+    title: "sin(x)/x — removable hole",
+    notes: [
+      "Undefined only at x=0: the curve still looks continuous through it",
+      "Zoom into (0, 1) as far as you can: any gap stays below a pixel",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: (x: number) => Math.sin(x) / x,
+        domain: "infinite",
+        color: "#34d399",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "needle",
+    title: "Gaussian needle — narrow spike",
+    notes: [
+      "Shrink σ: the spike keeps its full height instead of vanishing",
+      "The spike's sides stay smooth at any zoom",
+      "At extreme σ the needle is thinner than the seed grid; finding it is",
+      "best-effort, so it may drop out at the very bottom of the range",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      const sigmaAtom = scene.atom(0.3);
+      scene.create("function2d", {
+        f: scene.atom((get) => {
+          const s = get(sigmaAtom);
+          return (x: number) => 4 * Math.exp((-x * x) / (2 * s * s));
+        }),
+        domain: "infinite",
+        color: "#ffd166",
+        thickness: 2,
+      });
+      return {
+        scene,
+        camera,
+        sliders: [{ label: "σ", atom: sigmaAtom, min: 0.002, max: 0.5, step: 0.002 }],
+      };
+    },
+  },
+  {
+    id: "exp",
+    title: "eˣ — runaway growth",
+    notes: [
+      "Exits the top of the screen steeply; no overflow artifacts anywhere",
+      "Pan right: the exit point follows, the curve never disappears",
+      "Coordinates blow up fast off-screen; clipping must keep things stable",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: Math.exp,
+        domain: "infinite",
+        color: "#f97583",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "finite",
+    title: "x² on [−3, 3] — finite domain",
+    notes: [
+      "Ends exactly at x=±3",
+      "Zoom deep into the curve: it stays smooth (finite domains resample on",
+      "zoom too, there is no fixed sample count to run out of)",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("function2d", {
+        f: (x: number) => x * x,
+        domain: [-3, 3],
+        color: "#4f9cf9",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "astroid",
+    title: "Parametric: astroid + spiral",
+    notes: [
+      "The astroid's four cusps stay razor sharp at any zoom",
+      "The spiral runs far off-screen: the visible part stays smooth and the",
+      "off-screen part is clipped away",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("parametricfunction2d", {
+        f: (t: number) => vec2(3 * Math.cos(t) ** 3, 3 * Math.sin(t) ** 3),
+        tStart: 0,
+        tEnd: Math.PI * 2,
+        color: "#34d399",
+        thickness: 2,
+      });
+      scene.create("parametricfunction2d", {
+        f: (t: number) =>
+          vec2(0.05 * Math.exp(0.25 * t) * Math.cos(t), 0.05 * Math.exp(0.25 * t) * Math.sin(t)),
+        tStart: 0,
+        tEnd: Math.PI * 8,
+        color: "#a78bfa",
+        thickness: 1.5,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+  {
+    id: "ptan",
+    title: "Parametric: (t, tan t)",
+    notes: [
+      "Same tan picture as the function case, drawn as a parametric curve",
+      "Branches split automatically, no connector walls",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      scene.create("parametricfunction2d", {
+        f: (t: number) => vec2(t, Math.tan(t)),
+        tStart: -8,
+        tEnd: 8,
+        color: "#f59e0b",
+        thickness: 2,
+      });
+      return { scene, camera, sliders: [] };
+    },
+  },
+];
+
+function Slider({ spec }: { spec: SliderSpec }) {
+  const [value, setValue] = useAtomState(spec.atom);
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#999" }}>
-      <span style={{ width: 86, flexShrink: 0 }}>
-        {label}: {value.toFixed(step >= 1 ? 0 : 2)}
+      <span style={{ width: 64, flexShrink: 0 }}>
+        {spec.label}: {value.toFixed(spec.step >= 1 ? 0 : 3)}
       </span>
       <input
         type="range"
-        min={min}
-        max={max}
-        step={step}
+        min={spec.min}
+        max={spec.max}
+        step={spec.step}
         value={value}
         onChange={(e) => setValue(parseFloat(e.target.value))}
         style={{ width: "100%" }}
@@ -281,80 +386,46 @@ function Slider({
   );
 }
 
-function Toggle({
-  label,
-  atom,
+function ViewPane({
+  scene,
+  camera,
+  renderer,
 }: {
-  label: string;
-  atom: SceneAtoms["axesLabels"];
+  scene: Scene2D;
+  camera: ReturnType<Scene2D["create"]>;
+  renderer: "threejs" | "svg";
 }) {
-  const [on, setOn] = useAtomState(atom);
   return (
-    <button
-      onClick={() => setOn(!on)}
-      style={{
-        padding: "4px 8px",
-        border: "1px solid #444",
-        borderRadius: 4,
-        backgroundColor: on ? "#264d2a" : "#4d2626",
-        color: "#ddd",
-        fontSize: 11,
-        cursor: "pointer",
-      }}
-    >
-      {label}: {String(on)}
-    </button>
-  );
-}
-
-function ExtrasToggle({ atom }: { atom: SceneAtoms["showExtras"] }) {
-  const [tags, setTags] = useAtomState(atom);
-  const visible = tags === undefined;
-  return (
-    <button
-      onClick={() => setTags(visible ? [] : undefined)}
-      style={{
-        padding: "4px 8px",
-        border: "1px solid #444",
-        borderRadius: 4,
-        backgroundColor: visible ? "#264d2a" : "#4d2626",
-        color: "#ddd",
-        fontSize: 11,
-        cursor: "pointer",
-      }}
-    >
-      tagged items (Lissajous, region, circle): {visible ? "shown" : "hidden"}
-    </button>
+    <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+      <Scene2DView
+        scene={scene}
+        camera={camera}
+        renderer={renderer}
+        style={{ width: "100%", height: "100%" }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          left: 10,
+          color: "#777",
+          fontSize: 12,
+          pointerEvents: "none",
+        }}
+      >
+        {renderer}
+      </div>
+    </div>
   );
 }
 
 export default function Demo1() {
-  const { scene, camera, atoms } = useMemo(buildScene, []);
+  const [caseId, setCaseId] = useState(CASES[0].id);
+  const activeCase = CASES.find((c) => c.id === caseId) ?? CASES[0];
+  const { scene, camera, sliders } = useMemo(() => activeCase.build(), [activeCase]);
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex" }}>
-      <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-        <Scene2DView
-          scene={scene}
-          camera={camera}
-          renderer="svg"
-          style={{ width: "100%", height: "100%" }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 10,
-            color: "#777",
-            fontSize: 12,
-            fontFamily: "system-ui, sans-serif",
-            pointerEvents: "none",
-          }}
-        >
-          renderer: svg
-        </div>
-      </div>
-
+    <div style={{ width: "100%", height: "100%", display: "flex", fontFamily: "system-ui, sans-serif" }}>
       <div
         style={{
           width: 300,
@@ -363,64 +434,59 @@ export default function Demo1() {
           padding: 14,
           display: "flex",
           flexDirection: "column",
-          gap: 18,
+          gap: 14,
           backgroundColor: "#161616",
-          borderLeft: "1px solid #2a2a2a",
-          fontFamily: "system-ui, sans-serif",
+          borderRight: "1px solid #2a2a2a",
         }}
       >
-        <Section title="Grid & axes">
-          <Slider label="grid opacity" atom={atoms.gridOpacity} min={0} max={0.4} step={0.01} />
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <Toggle label="labels" atom={atoms.axesLabels} />
-            <Toggle label="arrows" atom={atoms.axesArrows} />
-            <Toggle label="ticks" atom={atoms.axesTicks} />
-          </div>
-        </Section>
+        <div style={{ color: "#ccc", fontSize: 12, fontWeight: 600 }}>
+          Sampling torture bench
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {CASES.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCaseId(c.id)}
+              style={{
+                textAlign: "left",
+                padding: "5px 8px",
+                border: "1px solid #333",
+                borderRadius: 4,
+                backgroundColor: c.id === caseId ? "#26364d" : "#1d1d1d",
+                color: c.id === caseId ? "#dbe9ff" : "#aaa",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              {c.title}
+            </button>
+          ))}
+        </div>
 
-        <Section title="Sine (function2d, infinite domain)">
-          <Slider label="amplitude" atom={atoms.sineAmp} min={0.2} max={2.5} step={0.05} />
-          <Slider label="frequency" atom={atoms.sineFreq} min={0.5} max={3} step={0.05} />
-          <Toggle label="visible" atom={atoms.sineVisible} />
-        </Section>
-
-        <Section title="Pole (function2d, discontinuity)">
-          <Slider label="pole c" atom={atoms.pole} min={-3} max={3} step={0.05} />
-        </Section>
-
-        <Section title="Lissajous (parametricfunction2d)">
-          <Slider label="a" atom={atoms.lissA} min={1} max={5} step={1} />
-          <Slider label="b" atom={atoms.lissB} min={1} max={5} step={1} />
-          {/* Step divides 2π exactly so the slider can close the curve. */}
-          <Slider label="t end" atom={atoms.lissTEnd} min={0} max={Math.PI * 2} step={Math.PI / 64} />
-        </Section>
-
-        <Section title="Circle (circle2d)">
-          <Slider label="radius" atom={atoms.circleRadius} min={0.3} max={2} step={0.05} />
-          {/* Step divides 2π exactly so the slider can reach the full circle. */}
-          <Slider label="θ end" atom={atoms.circleThetaEnd} min={0} max={Math.PI * 2} step={Math.PI / 64} />
-          <div style={{ color: "#777", fontSize: 11 }}>
-            click the circle's fill to cycle its color (dead center is the draggable center point)
-          </div>
-        </Section>
-
-        <Section title="Vector (vector2d)">
-          <Slider label="head length" atom={atoms.headLength} min={6} max={28} step={1} />
-          <Slider label="head width" atom={atoms.headWidth} min={4} max={22} step={1} />
-          <div style={{ color: "#777", fontSize: 11 }}>hover the tip point: it grows</div>
-        </Section>
-
-        <Section title="Camera tags">
-          <ExtrasToggle atom={atoms.showExtras} />
-        </Section>
-
-        <Section title="Checklist">
-          <ul style={{ margin: 0, paddingLeft: 16, color: "#888", fontSize: 11, lineHeight: 1.5 }}>
-            {CHECKLIST.map((item) => (
-              <li key={item}>{item}</li>
+        {sliders.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {sliders.map((spec) => (
+              <Slider key={spec.label} spec={spec} />
             ))}
-          </ul>
-        </Section>
+          </div>
+        )}
+
+        <div style={{ color: "#ccc", fontSize: 11, fontWeight: 600 }}>What to check</div>
+        <ul style={{ margin: 0, paddingLeft: 16, color: "#888", fontSize: 11, lineHeight: 1.5 }}>
+          {activeCase.notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+        <div style={{ color: "#666", fontSize: 10, lineHeight: 1.5 }}>
+          Both panes share one camera: pan/zoom in either and compare. The two
+          backends must look identical.
+        </div>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
+        <ViewPane scene={scene} camera={camera} renderer="threejs" />
+        <div style={{ width: 1, backgroundColor: "#2a2a2a" }} />
+        <ViewPane scene={scene} camera={camera} renderer="svg" />
       </div>
     </div>
   );

@@ -7,6 +7,8 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import type { ItemKind } from "../../../types/item-registry";
 import type { ItemRenderer2D } from "../../../backend";
+import type { FunctionSamplingPlan } from "../../../math/function-sampling";
+import type { ParametricSamplingPlan } from "../../../math/parametric-sampling";
 
 // Stacking offsets so 2D items don't z-fight on the z=0 plane.
 // Higher z draws on top.
@@ -73,16 +75,19 @@ export type ThreeSceneTypes = {
   };
   parametricfunction2d: {
     kind: "parametricfunction2d";
-    geometry: LineGeometry;
+    geometry: LineSegmentsGeometry;
     material: LineMaterial;
-    mesh: Line2;
+    mesh: LineSegments2;
+    plan: ParametricSamplingPlan | null;
+    hasSegments: boolean;
   };
   function2d: {
     kind: "function2d";
     geometry: LineSegmentsGeometry;
     material: LineMaterial;
     mesh: LineSegments2;
-    layoutKey: string | null;
+    plan: FunctionSamplingPlan | null;
+    hasSegments: boolean;
   };
   overlay2d: {
     kind: "overlay2d";

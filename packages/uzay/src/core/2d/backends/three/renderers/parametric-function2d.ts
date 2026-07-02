@@ -1,43 +1,79 @@
-import * as THREE from "three";
+import type * as THREE from "three";
 import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_DEFAULT } from "./shared";
-import { Line2 } from "three/addons/lines/Line2.js";
-import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { checkedColor } from "../../../../shared/types/colors";
-import { sampleParametricPoints } from "../../../math/parametric-sampling";
+import {
+  createParametricSamplingPlan,
+  parametricPlanFitsViewport,
+  sampleParametricRuns,
+  type ParametricSamplingPlan,
+} from "../../../math/parametric-sampling";
 
-function buildGeometry(item: ItemSnapshot<"parametricfunction2d">): LineGeometry {
-  const points = sampleParametricPoints(item);
-  const positions = new Array<number>(points.length * 3);
-  for (let i = 0; i < points.length; i++) {
-    positions[i * 3] = points[i].x;
-    positions[i * 3 + 1] = points[i].y;
-    positions[i * 3 + 2] = Z_DEFAULT;
+function buildGeometry(
+  item: ItemSnapshot<"parametricfunction2d">,
+  plan: ParametricSamplingPlan
+): { geometry: LineSegmentsGeometry; hasSegments: boolean } {
+  const runs = sampleParametricRuns(item, plan);
+  const positions: number[] = [];
+
+  for (const run of runs) {
+    for (let i = 0; i < run.length - 1; i++) {
+      positions.push(
+        run[i].x,
+        run[i].y,
+        Z_DEFAULT,
+        run[i + 1].x,
+        run[i + 1].y,
+        Z_DEFAULT
+      );
+    }
   }
-  const geom = new LineGeometry();
-  geom.setPositions(positions);
-  return geom;
+
+  const geometry = new LineSegmentsGeometry();
+  geometry.setPositions(positions);
+  return { geometry, hasSegments: positions.length > 0 };
 }
 
+function applyVisibility(
+  item: ItemSnapshot<"parametricfunction2d">,
+  obj: ThreeSceneTypes["parametricfunction2d"]
+): void {
+  obj.mesh.visible = item.visible && obj.hasSegments;
+}
+
+// Sampling is viewport-dependent (screen-space tolerance, view-window
+// clipping), so geometry is built in layout() rather than create()/update().
+// Those two only reset the stored plan; layout() rebuilds whenever the plan
+// is missing or no longer fits the viewport.
 export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> = {
   create(
     item: ItemSnapshot<"parametricfunction2d">,
     threeScene: THREE.Object3D
   ): ThreeSceneTypes["parametricfunction2d"] {
-    const geometry = buildGeometry(item);
+    const geometry = new LineSegmentsGeometry();
+    geometry.setPositions([]);
     const material = new LineMaterial({
       color: checkedColor(item.color, "ParametricFunction2D.color"),
       linewidth: item.thickness,
       transparent: item.opacity < 1,
       opacity: item.opacity,
     });
-    const mesh = new Line2(geometry, material);
-    mesh.visible = item.visible;
+    const mesh = new LineSegments2(geometry, material);
+    mesh.visible = false;
     mesh.userData.itemId = item.id;
     threeScene.add(mesh);
-    return { kind: "parametricfunction2d", geometry, material, mesh };
+    return {
+      kind: "parametricfunction2d",
+      geometry,
+      material,
+      mesh,
+      plan: null,
+      hasSegments: false,
+    };
   },
 
   update(
@@ -49,12 +85,25 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
     obj.material.opacity = item.opacity;
     obj.material.transparent = item.opacity < 1;
     obj.material.needsUpdate = true;
-    obj.mesh.visible = item.visible;
+    applyVisibility(item, obj);
+    obj.plan = null;
+  },
 
+  layout(
+    item: ItemSnapshot<"parametricfunction2d">,
+    obj: ThreeSceneTypes["parametricfunction2d"],
+    ctx
+  ): void {
+    if (obj.plan && parametricPlanFitsViewport(obj.plan, ctx.viewport)) return;
+
+    const plan = createParametricSamplingPlan(ctx.viewport);
+    const built = buildGeometry(item, plan);
     obj.geometry.dispose();
-    const next = buildGeometry(item);
-    obj.mesh.geometry = next;
-    (obj as { geometry: LineGeometry }).geometry = next;
+    obj.geometry = built.geometry;
+    obj.mesh.geometry = built.geometry;
+    obj.hasSegments = built.hasSegments;
+    obj.plan = plan;
+    applyVisibility(item, obj);
   },
 
   dispose(

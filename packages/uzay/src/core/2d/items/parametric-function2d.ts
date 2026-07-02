@@ -21,7 +21,6 @@ export type ParametricFunction2DFields = {
   color: Color;
   thickness: number;
   opacity: number;
-  samples: number;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -43,7 +42,6 @@ export const parametricFunction2dDefinition = defineItem2D({
     color: field<Color>("white"),
     thickness: field(1),
     opacity: field(1),
-    samples: field(64),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },
