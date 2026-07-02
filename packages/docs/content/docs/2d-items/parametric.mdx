@@ -28,33 +28,12 @@ const circle = scene.create("parametricfunction2d", {
   tEnd: Math.PI * 2,
   color: "dodgerblue",
   thickness: 2,
-  samples: 64,
 });
 ```
 
-## How Sampling Works
+## Sampling
 
-The curve is approximated by connecting discrete sample points. The `samples` property controls how many points are computed:
-
-```typescript
-// Low samples: jaggy curve
-scene.create("parametricfunction2d", {
-  f: (t) => vec2(Math.cos(t), Math.sin(t)),
-  tStart: 0,
-  tEnd: Math.PI * 2,
-  samples: 8, // Octagon-ish
-});
-
-// High samples: smooth curve
-scene.create("parametricfunction2d", {
-  f: (t) => vec2(Math.cos(t), Math.sin(t)),
-  tStart: 0,
-  tEnd: Math.PI * 2,
-  samples: 64, // Smooth circle
-});
-```
-
-Higher sample counts look better but cost more to compute.
+Sampling is automatic: the library decides how densely to evaluate `f` from the shape of the curve and the current zoom, so tight loops and sharp corners render smoothly without any configuration. The curve breaks wherever `f(t)` returns a non-finite point.
 
 ## Common Curves
 
@@ -65,7 +44,6 @@ scene.create("parametricfunction2d", {
   f: (t) => vec2(Math.cos(t), Math.sin(t)),
   tStart: 0,
   tEnd: Math.PI * 2,
-  samples: 64,
 });
 ```
 
@@ -76,7 +54,6 @@ scene.create("parametricfunction2d", {
   f: (t) => vec2(t * Math.cos(t), t * Math.sin(t)),
   tStart: 0,
   tEnd: Math.PI * 6,
-  samples: 200,
 });
 ```
 
@@ -87,7 +64,6 @@ scene.create("parametricfunction2d", {
   f: (t) => vec2(Math.sin(3 * t), Math.sin(4 * t)),
   tStart: 0,
   tEnd: Math.PI * 2,
-  samples: 256,
 });
 ```
 
@@ -105,7 +81,6 @@ scene.create("parametricfunction2d", {
   tStart: 0,
   tEnd: maxT,
   color: "dodgerblue",
-  samples: scene.atom((get) => Math.max(16, Math.ceil(get(maxT) * 16))),
 });
 
 // Animate: curve grows over time
@@ -115,8 +90,6 @@ function animate() {
 }
 animate();
 ```
-
-Notice how `samples` is also reactive, increasing as the curve gets longer to maintain smoothness.
 
 ### Reactive Function
 
@@ -134,7 +107,6 @@ const curve = scene.create("parametricfunction2d", {
   }),
   tStart: 0,
   tEnd: Math.PI * 2,
-  samples: 256,
 });
 ```
 
@@ -152,7 +124,6 @@ scene.create("parametricfunction2d", {
   tStart: 0,
   tEnd: Math.PI * 2,
   color: "dodgerblue",
-  samples: 64,
 });
 
 scene.create("point2d", {
@@ -175,7 +146,6 @@ To make a point the user can **drag along** a curve, use the [curvePoint2D](/doc
 | `f` | `(t: number) => Vec2` | `(t) => vec2(t, t)` | The parametric function |
 | `tStart` | `number` | `0` | Parameter start value |
 | `tEnd` | `number` | `1` | Parameter end value |
-| `samples` | `number` | `64` | Number of sample points |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
@@ -191,7 +161,6 @@ To make a point the user can **drag along** a curve, use the [curvePoint2D](/doc
 | `f` | `BoundAtom<(t: number) => Vec2>` | Function atom |
 | `tStart` | `BoundAtom<number>` | Start parameter atom |
 | `tEnd` | `BoundAtom<number>` | End parameter atom |
-| `samples` | `BoundAtom<number>` | Sample count atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |

@@ -46,29 +46,20 @@ scene.create("function2d", {
 
 ## Discontinuities
 
-Functions with vertical asymptotes or jumps would otherwise be drawn with a near-vertical segment connecting the two sides. List the $x$ values where the function breaks in `discontinuities`, and the curve is split there instead of joined across:
+Jumps and vertical asymptotes are handled automatically: the curve splits into separate branches instead of being joined by a vertical segment, so functions like `tan(x)` or `1/x` render correctly out of the box. The curve also breaks wherever `f(x)` returns a non-finite value (`NaN` or `Infinity`), so a function like `(x) => Math.log(x)` simply has no curve where it is undefined.
+
+If you know exactly where a function breaks, you can still list those $x$ values in `discontinuities` to split the curve at precisely those points:
 
 ```typescript
-// tan(x) has asymptotes at odd multiples of pi/2
 scene.create("function2d", {
-  f: (x) => Math.tan(x),
-  domain: [-Math.PI, Math.PI],
-  discontinuities: [-Math.PI / 2, Math.PI / 2],
+  f: (x) => 1 / (x - 2),
+  discontinuities: [2],
 });
 ```
-
-The curve also breaks automatically wherever `f(x)` returns a non-finite value (`NaN` or `Infinity`), so a function like `(x) => Math.sqrt(x)` simply has no curve where it is undefined.
 
 ## Sampling
 
-`samples` controls how many points are evaluated across the drawn range. Raise it for wiggly functions, lower it for cheap straight-ish ones:
-
-```typescript
-scene.create("function2d", {
-  f: (x) => Math.sin(10 * x),
-  samples: 400, // Dense enough to resolve fast oscillation
-});
-```
+Sampling is automatic: the library decides how densely to evaluate `f` from the shape of the curve and the current zoom, so steep slopes, tight oscillations, and asymptotes render smoothly without any configuration. The only sampling control is the `discontinuities` list above.
 
 ## Styling
 
@@ -131,7 +122,6 @@ graph.thickness.set(3);
 | `f` | `(x: number) => number` | `(x) => x` | The function to plot |
 | `domain` | `"infinite" \| [number, number]` | `[-10, 10]` | Range of $x$ to draw, or `"infinite"` to follow the viewport |
 | `discontinuities` | `number[]` | `[]` | $x$ values where the curve should break |
-| `samples` | `number` | `128` | Number of points evaluated across the drawn range |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
@@ -147,7 +137,6 @@ graph.thickness.set(3);
 | `f` | `BoundAtom<(x: number) => number>` | Function atom |
 | `domain` | `BoundAtom<"infinite" \| [number, number]>` | Domain atom |
 | `discontinuities` | `BoundAtom<number[]>` | Discontinuities atom |
-| `samples` | `BoundAtom<number>` | Sample count atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |

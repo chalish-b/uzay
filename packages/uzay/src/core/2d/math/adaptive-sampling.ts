@@ -64,7 +64,10 @@ const DEFAULT_SEED_COUNT = 64;
 // jump (probe collapsed onto one endpoint's level) breaks at any visible size.
 const ASYMPTOTE_PX = 12;
 const JUMP_PX = 3;
-const EDGE_BISECT_STEPS = 45;
+// Runaway guard for the edge-approach loops. Real termination comes from the
+// directional clip exit, convergence, or float precision; the cap only needs
+// to sit above float64's exponent range (~1074 halvings exhaust it).
+const MAX_EDGE_STEPS = 1100;
 
 type SampleState = {
   f: (t: number) => CurvePoint;
@@ -131,9 +134,33 @@ function deviationPx(
   return Number.isFinite(d) ? d : Infinity;
 }
 
+// Whether p sits outside the clip rect AND moved further outward relative to
+// prev, i.e. the curve is leaving the view for good. Merely being outside is
+// not enough to stop an edge approach: when the viewport is panned below a
+// plunge's elbow, the early probes sit above the top while still traveling
+// down toward the visible band.
+function exitedOutward(
+  prev: CurvePoint | null,
+  p: CurvePoint,
+  clip: ClipRect
+): boolean {
+  if (!prev) return false;
+  const code = outCode(p, clip);
+  if (code === 0) return false;
+  return (
+    ((code & OUT_BOTTOM) !== 0 && p.y < prev.y) ||
+    ((code & OUT_TOP) !== 0 && p.y > prev.y) ||
+    ((code & OUT_LEFT) !== 0 && p.x < prev.x) ||
+    ((code & OUT_RIGHT) !== 0 && p.x > prev.x)
+  );
+}
+
 // Bisect between a finite sample and a non-finite one, returning the finite
-// point closest to the domain edge. Stops early once the point has run off
-// the clip rect: past that the plunge is invisible anyway.
+// point closest to the domain edge. When the edge sits at the interval's end
+// the bisection degenerates into gap-halving toward it, so the loop runs
+// until the curve demonstrably leaves the view or float precision is
+// exhausted; a fixed small step count would put a zoom-dependent floor on
+// how deep a log-type tail can reach.
 function bisectEdge(
   state: SampleState,
   tGood: number,
@@ -143,14 +170,15 @@ function bisectEdge(
   let lo = tGood;
   let pLo = pGood;
   let hi = tBad;
-  for (let k = 0; k < EDGE_BISECT_STEPS && state.evals < MAX_EVALS; k++) {
+  for (let k = 0; k < MAX_EDGE_STEPS && state.evals < MAX_EVALS; k++) {
     const tm = (lo + hi) / 2;
     if (tm === lo || tm === hi) break;
     const pm = evalAt(state, tm);
     if (isFinitePoint(pm)) {
+      const exited = exitedOutward(pLo, pm, state.clip);
       lo = tm;
       pLo = pm;
-      if (outCode(pm, state.clip) !== 0) break;
+      if (exited) break;
     } else {
       hi = tm;
     }
@@ -159,10 +187,10 @@ function bisectEdge(
 }
 
 // One-sided approach to a declared discontinuity: halve the remaining gap
-// each step to trace the curve toward its limit at the boundary. Stops when
-// the curve runs off the clip rect (infinite limit) or the probes converge on
-// screen (finite one-sided limit). Never evaluates at the boundary itself,
-// where the function may belong to the other side.
+// each step to trace the curve toward its limit at the boundary. Never
+// evaluates at the boundary itself, where the function may belong to the
+// other side. Stops when the curve demonstrably leaves the view (infinite
+// limit) or the probes converge (finite one-sided limit).
 function approachBoundary(
   state: SampleState,
   tFrom: number,
@@ -171,19 +199,27 @@ function approachBoundary(
   let dist = tBoundary - tFrom;
   let best: { t: number; p: CurvePoint } | null = null;
   let prev: CurvePoint | null = null;
-  for (let k = 0; k < EDGE_BISECT_STEPS && state.evals < MAX_EVALS; k++) {
+  let prevProgress = Infinity;
+  for (let k = 0; k < MAX_EDGE_STEPS && state.evals < MAX_EVALS; k++) {
     dist /= 2;
     const t = tBoundary - dist;
     if (t === tBoundary || t === tFrom) break;
     const p = evalAt(state, t);
     if (!isFinitePoint(p)) continue;
-    if (prev && k > 8 && chordPx(prev, p, state.worldPerPixel) < 0.05) {
-      best = { t, p };
-      break;
+    if (prev) {
+      const progress = chordPx(prev, p, state.worldPerPixel);
+      // A finite limit shows up as geometrically shrinking progress. Constant
+      // progress per step (a log-type tail crawling 0.69 world units per
+      // halving) is not convergence and must keep going.
+      if (k > 8 && progress < 0.05 && progress < prevProgress * 0.7) {
+        best = { t, p };
+        break;
+      }
+      prevProgress = progress;
     }
     best = { t, p };
+    if (exitedOutward(prev, p, state.clip)) break;
     prev = p;
-    if (outCode(p, state.clip) !== 0) break;
   }
   return best;
 }
