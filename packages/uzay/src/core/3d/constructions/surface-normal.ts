@@ -2,7 +2,7 @@ import type { Scene3D } from "../scene3d";
 import type { AtomLikeInput } from "../../shared/atom-wrapper";
 import { ensureAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
-import { Vec3 as Vec3Utils, vec3 } from "../../shared/types/vec3";
+import { vec3 } from "../../shared/types/vec3";
 import type { Vec2 } from "../../shared/types/vec2";
 
 type SurfaceFunc = (x: number, z: number) => number;
@@ -29,7 +29,7 @@ export function surfaceNormal(scene: Scene3D, options: SurfaceNormalOptions) {
     const f = get(fAtom);
     const dfdx = (f(x + EPSILON, z) - f(x - EPSILON, z)) / (2 * EPSILON);
     const dfdz = (f(x, z + EPSILON) - f(x, z - EPSILON)) / (2 * EPSILON);
-    return Vec3Utils.normalized(vec3(-dfdx, 1, -dfdz));
+    return vec3(-dfdx, 1, -dfdz).unit();
   });
 
   const originAtom = scene.atom((get) => {
@@ -38,7 +38,7 @@ export function surfaceNormal(scene: Scene3D, options: SurfaceNormalOptions) {
   });
 
   const scaledNormalAtom = scene.atom((get) => {
-    return Vec3Utils.scaled(get(normalAtom), get(scaleAtom));
+    return get(normalAtom).scale(get(scaleAtom));
   });
 
   const vector = scene.create("vector3d", {

@@ -2,7 +2,7 @@ import type { Scene2D } from "../scene2d";
 import type { AtomLikeInput } from "../../shared/atom-wrapper";
 import { ensureAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
-import { type Vec2, vec2 } from "../../shared/types/vec2";
+import { Vec2, vec2 } from "../../shared/types/vec2";
 
 type AngleMark2DOptions = {
   // The angle's vertex and the two points its arms point at. Read-only: the
@@ -51,7 +51,8 @@ const TAU = 2 * Math.PI;
  * default), which by convention becomes the right-angle square whenever that
  * angle is 90° (pass `squareRightAngle: false` to keep the arc). The measured
  * angle is returned as `measure`, in radians, so a readout and the mark share
- * one source of truth.
+ * one source of truth, and the arc's mid direction as `midDir`, the anchor
+ * direction for placing a label inside the marked wedge.
  */
 export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
   const vertexAtom = ensureAtom(scene.atom, options.vertex);
@@ -93,6 +94,15 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
   });
 
   const measure = scene.atom((get) => Math.abs(get(sweepAtom).delta));
+
+  // Unit direction from the vertex through the midpoint of the drawn arc, i.e.
+  // the bisector of the marked angle, on the side the mark actually sweeps.
+  // The anchor direction for a label: vertex + midDir * dist sits the label
+  // centered in the marked wedge at any sweep mode.
+  const midDir = scene.atom((get) => {
+    const { start, delta } = get(sweepAtom);
+    return Vec2.fromAngle(start + delta / 2);
+  });
 
   // The arc and square coexist and trade visibility as the angle crosses 90° (an
   // item's kind is fixed at creation, so a single item can't morph between them).
@@ -180,7 +190,7 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
         const dirs: Vec2[] = [];
         for (let i = 0; i < markerCount; i++) {
           const theta = mid + (i - (markerCount - 1) / 2) * step;
-          dirs.push(vec2(Math.cos(theta), Math.sin(theta)));
+          dirs.push(Vec2.fromAngle(theta));
         }
         return dirs;
       })
@@ -241,6 +251,7 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
   return {
     mark: arc,
     measure,
+    midDir,
     dispose: () => {
       scene.remove(arc);
       for (const side of squareSides) scene.remove(side);

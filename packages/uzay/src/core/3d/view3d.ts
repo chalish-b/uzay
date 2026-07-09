@@ -4,6 +4,7 @@ import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import type { Camera3D, Camera3DFields } from "./items/camera3d";
 import type { Scene3D, SceneSnapshot } from "./scene3d";
 import { Vec3, vec3 } from "../shared/types/vec3";
+import { vec2 } from "../shared/types/vec2";
 import { cameraShowsTags } from "../shared/types/tags";
 import type { ItemId, ItemSnapshot } from "./types/item-registry";
 import { setBoundAtomIfWritable, type AtomLikeOptions } from "../shared/atom-wrapper";
@@ -130,7 +131,7 @@ export class View3D {
     );
     // TODO: Make damping an option
     this.threeOrbitControls.enableDamping = false;
-    this.threeOrbitControls.target.set(...Vec3.asArray(camera.lookAt));
+    this.threeOrbitControls.target.set(...camera.lookAt.toArray());
     this.threeOrbitControls.addEventListener("change", () => {
       this.syncCameraFromThree();
       this.requestRender();
@@ -332,13 +333,13 @@ export class View3D {
       }
 
       // Position
-      if (!last || !Vec3.equals(snap.position, last.position)) {
-        this.threeCamera.position.set(...Vec3.asArray(snap.position));
+      if (!last || !snap.position.equals(last.position)) {
+        this.threeCamera.position.set(...snap.position.toArray());
       }
 
       // LookAt -> OrbitControls target
-      if (!last || !Vec3.equals(snap.lookAt, last.lookAt)) {
-        this.threeOrbitControls.target.set(...Vec3.asArray(snap.lookAt));
+      if (!last || !snap.lookAt.equals(last.lookAt)) {
+        this.threeOrbitControls.target.set(...snap.lookAt.toArray());
       }
 
       // Projection properties
@@ -353,8 +354,8 @@ export class View3D {
         // between position and lookAt, so a change to any of them resizes it.
         !last ||
         snap.fov !== last.fov ||
-        !Vec3.equals(snap.position, last.position) ||
-        !Vec3.equals(snap.lookAt, last.lookAt)
+        !snap.position.equals(last.position) ||
+        !snap.lookAt.equals(last.lookAt)
       ) {
         applyOrthoFrustum(this.threeCamera, snap, this.getAspect());
         needsProjectionUpdate = true;
@@ -411,10 +412,10 @@ export class View3D {
       const newLookAt = vec3(tt.x, tt.y, tt.z);
 
       // Write back camera state only when the destination atom is writable.
-      if (!Vec3.equals(newPos, cam.position.get())) {
+      if (!newPos.equals(cam.position.get())) {
         setBoundAtomIfWritable(cam.position, newPos);
       }
-      if (!Vec3.equals(newLookAt, cam.lookAt.get())) {
+      if (!newLookAt.equals(cam.lookAt.get())) {
         setBoundAtomIfWritable(cam.lookAt, newLookAt);
       }
 
@@ -739,7 +740,7 @@ export class View3D {
         phase: "start",
         itemId: hit.itemId,
         itemKind: item.kind,
-        screenPosition: { x: event.clientX, y: event.clientY },
+        screenPosition: vec2(event.clientX, event.clientY),
         startWorldPosition: hit.worldPosition,
         worldPosition: hit.worldPosition,
         delta: vec3(0, 0, 0),
@@ -774,7 +775,7 @@ export class View3D {
             this.dragState.constraint
           );
 
-      const delta = Vec3.subtract(worldPos, this.dragState.lastWorldPosition);
+      const delta = worldPos.sub(this.dragState.lastWorldPosition);
       if (!isCustom) this.dragState.lastWorldPosition = worldPos;
 
       this.dispatchEvent("drag", {
@@ -782,7 +783,7 @@ export class View3D {
         phase: "move",
         itemId: this.dragState.itemId,
         itemKind: item.kind,
-        screenPosition: { x: event.clientX, y: event.clientY },
+        screenPosition: vec2(event.clientX, event.clientY),
         worldPosition: worldPos,
         startWorldPosition: this.dragState.startWorldPosition,
         delta,
@@ -805,7 +806,7 @@ export class View3D {
             phase: "leave",
             itemId: this.hoveredItemId,
             itemKind: oldItem.kind,
-            screenPosition: { x: event.clientX, y: event.clientY },
+            screenPosition: vec2(event.clientX, event.clientY),
             worldPosition: vec3(0, 0, 0), // Not meaningful for leave
             ray: this.getCurrentRay(),
           });
@@ -821,7 +822,7 @@ export class View3D {
             phase: "enter",
             itemId: newHoveredId,
             itemKind: newItem.kind,
-            screenPosition: { x: event.clientX, y: event.clientY },
+            screenPosition: vec2(event.clientX, event.clientY),
             worldPosition: hit.worldPosition,
             ray: this.getCurrentRay(),
           });
@@ -838,7 +839,7 @@ export class View3D {
           phase: "move",
           itemId: newHoveredId,
           itemKind: currentItem.kind,
-          screenPosition: { x: event.clientX, y: event.clientY },
+          screenPosition: vec2(event.clientX, event.clientY),
           worldPosition: hit.worldPosition,
           ray: this.getCurrentRay(),
         });
@@ -864,10 +865,10 @@ export class View3D {
           phase: "end",
           itemId: this.dragState.itemId,
           itemKind: item.kind,
-          screenPosition: { x: event.clientX, y: event.clientY },
+          screenPosition: vec2(event.clientX, event.clientY),
           startWorldPosition: this.dragState.startWorldPosition,
           worldPosition: worldPos,
-          delta: Vec3.subtract(worldPos, this.dragState.startWorldPosition),
+          delta: worldPos.sub(this.dragState.startWorldPosition),
           ray: this.getCurrentRay(),
         });
       }
@@ -894,7 +895,7 @@ export class View3D {
               itemId: hit.itemId,
               itemKind: item.kind,
               worldPosition: hit.worldPosition,
-              screenPosition: { x: event.clientX, y: event.clientY },
+              screenPosition: vec2(event.clientX, event.clientY),
               ray: this.getCurrentRay(),
             });
           }
@@ -972,7 +973,7 @@ function applyOrthoFrustum(
   snap: Camera3DSnapshot,
   aspect: number
 ) {
-  const dist = Vec3.length(Vec3.subtract(snap.position, snap.lookAt)) || 1;
+  const dist = snap.position.sub(snap.lookAt).len() || 1;
   const halfHeight = dist * Math.tan((snap.fov * Math.PI) / 360);
   const halfWidth = halfHeight * aspect;
   camera.left = -halfWidth;
@@ -993,8 +994,8 @@ function createThreeCamera(
   } else {
     camera = new THREE.PerspectiveCamera(snap.fov, aspect, snap.near, snap.far);
   }
-  camera.position.set(...Vec3.asArray(snap.position));
-  camera.lookAt(...Vec3.asArray(snap.lookAt));
+  camera.position.set(...snap.position.toArray());
+  camera.lookAt(...snap.lookAt.toArray());
   camera.zoom = snap.zoom;
   camera.updateProjectionMatrix();
   return camera;

@@ -137,7 +137,7 @@ scene.create("vector3d", {
   vector: scene.atom((get) => {
     const from = get(a.coords);
     const to = get(b.coords);
-    return Vec3.subtract(to, from);
+    return to.sub(from);
   }),
   color: "white",
   draggable: "none",

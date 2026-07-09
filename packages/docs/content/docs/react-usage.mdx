@@ -305,7 +305,7 @@ function createSphereLineScene() {
   const sphereOpacity = scene.atom(0.3);
 
   const rayDir = scene.atom((get) =>
-    Vec3.normalized(Vec3.subtract(get(rayDirPoint), get(rayOrigin)))
+    get(rayDirPoint).sub(get(rayOrigin)).unit()
   );
 
   const intersection = scene.atom((get) => {
@@ -314,10 +314,10 @@ function createSphereLineScene() {
     const center = get(sphereCenter);
     const r = get(sphereRadius);
 
-    const oc = Vec3.subtract(origin, center);
-    const a = Vec3.dot(dir, dir);
-    const b = 2 * Vec3.dot(oc, dir);
-    const c = Vec3.dot(oc, oc) - r * r;
+    const oc = origin.sub(center);
+    const a = dir.dot(dir);
+    const b = 2 * oc.dot(dir);
+    const c = oc.dot(oc) - r * r;
     const disc = b * b - 4 * a * c;
 
     if (disc < 0) return { hit: false as const, points: [] as Vec3[] };
@@ -326,8 +326,8 @@ function createSphereLineScene() {
     const t1 = (-b - sqrtD) / (2 * a);
     const t2 = (-b + sqrtD) / (2 * a);
     const points = Math.abs(t1 - t2) < 0.001
-      ? [Vec3.add(origin, Vec3.scaled(dir, t1))]
-      : [Vec3.add(origin, Vec3.scaled(dir, t1)), Vec3.add(origin, Vec3.scaled(dir, t2))];
+      ? [origin.add(dir.scale(t1))]
+      : [origin.add(dir.scale(t1)), origin.add(dir.scale(t2))];
 
     return { hit: true as const, points };
   });
@@ -343,8 +343,8 @@ function createSphereLineScene() {
   });
 
   scene.create("line3d", {
-    start: scene.atom((get) => Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), -5))),
-    end: scene.atom((get) => Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), 20))),
+    start: scene.atom((get) => get(rayOrigin).add(get(rayDir).scale(-5))),
+    end: scene.atom((get) => get(rayOrigin).add(get(rayDir).scale(20))),
     color: "#ff6b6b", pointerEvents: "none",
   });
 

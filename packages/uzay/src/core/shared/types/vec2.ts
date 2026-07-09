@@ -1,82 +1,104 @@
-// I'm not making this a class. The Vec2 objects should just be simple containers.
-// We are also using them in atoms, so it shouldn't be complicated.
-export type Vec2 = { x: number; y: number };
+// 2D vectors as immutable class instances: two readonly fields plus chainable
+// methods that always return a new vector. Immutability keeps them safe to
+// share between items and atoms (Jotai updates need a fresh object anyway),
+// and chaining reads left to right: p.sub(from).unit().scale(dist).add(p).
+//
+// Vectors are born through vec2() (or a method, or a static). A plain { x, y }
+// object from outside the library is not a Vec2; adopt it with Vec2.from(p).
+export class Vec2 {
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+  ) {}
 
-// This is just a convenience function to create vectors easily,
-// without the new keyword: vec2(1, 2)
+  add(v: Vec2): Vec2 {
+    return new Vec2(this.x + v.x, this.y + v.y);
+  }
+
+  sub(v: Vec2): Vec2 {
+    return new Vec2(this.x - v.x, this.y - v.y);
+  }
+
+  scale(s: number): Vec2 {
+    return new Vec2(this.x * s, this.y * s);
+  }
+
+  neg(): Vec2 {
+    return new Vec2(-this.x, -this.y);
+  }
+
+  // The unit vector pointing the same way. The zero vector stays zero.
+  unit(): Vec2 {
+    const l = this.len();
+    return l === 0 ? Vec2.ZERO : new Vec2(this.x / l, this.y / l);
+  }
+
+  // The perpendicular direction: this vector rotated 90° counterclockwise.
+  perp(): Vec2 {
+    return new Vec2(-this.y, this.x);
+  }
+
+  rotate(theta: number): Vec2 {
+    const c = Math.cos(theta);
+    const s = Math.sin(theta);
+    return new Vec2(this.x * c - this.y * s, this.x * s + this.y * c);
+  }
+
+  len(): number {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  }
+
+  lenSq(): number {
+    return this.x * this.x + this.y * this.y;
+  }
+
+  dot(v: Vec2): number {
+    return this.x * v.x + this.y * v.y;
+  }
+
+  // The scalar 2D cross product (the z-component of the 3D one). Useful for
+  // winding order and signed area.
+  cross(v: Vec2): number {
+    return this.x * v.y - this.y * v.x;
+  }
+
+  distTo(v: Vec2): number {
+    return this.sub(v).len();
+  }
+
+  mid(v: Vec2): Vec2 {
+    return new Vec2((this.x + v.x) / 2, (this.y + v.y) / 2);
+  }
+
+  // Linear interpolation from this vector (t = 0) toward v (t = 1); values
+  // outside [0, 1] extrapolate along the same line.
+  lerp(v: Vec2, t: number): Vec2 {
+    return new Vec2(this.x + (v.x - this.x) * t, this.y + (v.y - this.y) * t);
+  }
+
+  equals(v: Vec2, epsilon = 1e-10): boolean {
+    return Math.abs(this.x - v.x) < epsilon && Math.abs(this.y - v.y) < epsilon;
+  }
+
+  toArray(): [number, number] {
+    return [this.x, this.y];
+  }
+
+  static readonly ZERO = Object.freeze(new Vec2(0, 0));
+  static readonly ONE = Object.freeze(new Vec2(1, 1));
+
+  // Adopt a plain { x, y } object from outside the library.
+  static from(p: { x: number; y: number }): Vec2 {
+    return new Vec2(p.x, p.y);
+  }
+
+  // The unit vector at an angle from the positive x-axis.
+  static fromAngle(theta: number): Vec2 {
+    return new Vec2(Math.cos(theta), Math.sin(theta));
+  }
+}
+
+// The everyday constructor, no `new` needed: vec2(1, 2).
 export function vec2(x: number, y: number): Vec2 {
-  // TODO: Should we freeze this object?
-  // Should vectors be immutable?
-  return { x, y };
+  return new Vec2(x, y);
 }
-
-// Updates are basically done like this, which is clean imo.
-// Jotai requires us to create a new object for the update, so we can't mutate the vector directly.
-// set(posAtom, (prev) => Vec2(prev.x + 1, prev.y));
-
-// Vec2 namespace functions return new objects instead of modifying the vector diretly.
-// set(posAtom, (prev) => Vec2.normalized(prev));
-export namespace Vec2 {
-  export const ZERO = Object.freeze(vec2(0, 0));
-  export const ONE = Object.freeze(vec2(1, 1));
-
-  export function add(...vectors: Vec2[]): Vec2 {
-    const result = vec2(0, 0);
-    for (const vec of vectors) {
-      result.x += vec.x;
-      result.y += vec.y;
-    }
-    return result;
-  }
-
-  export function subtract(a: Vec2, b: Vec2): Vec2 {
-    return vec2(a.x - b.x, a.y - b.y);
-  }
-
-  export function length(vec: Vec2): number {
-    return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
-  }
-
-  export function normalized(vec: Vec2): Vec2 {
-    const length = Math.sqrt(vec.x * vec.x + vec.y * vec.y);
-    if (length === 0) return vec2(0, 0);
-    return vec2(vec.x / length, vec.y / length);
-  }
-
-  export function scaled(vec: Vec2, scalar: number): Vec2 {
-    return vec2(vec.x * scalar, vec.y * scalar);
-  }
-
-  export function dot(a: Vec2, b: Vec2): number {
-    return a.x * b.x + a.y * b.y;
-  }
-
-  export function cross(a: Vec2, b: Vec2): number {
-    return a.x * b.y - a.y * b.x;
-  }
-
-  export function distance(a: Vec2, b: Vec2): number {
-    return Math.sqrt(distanceSquared(a, b));
-  }
-
-  export function distanceSquared(a: Vec2, b: Vec2): number {
-    return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
-  }
-}
-
-// ==================================
-
-// Or maybe, we should make it a class, but make its components atoms:
-// { x: Atom<number>, y: Atom<number> } instead of Atom<{x: number, y: number}>
-// Idk which one is better. Currently I'm going with the simpler approach Atom<{...}>
-// but it might be worse for performance. We'll worry about it later.
-
-// I think we can create our own stuff like ReactiveVec2 (or Vec2Value) and
-// ReactiveScalar that are simple atom wrappers. This would kind of limit the user
-// though since they can't use any arbitrary atoms. There are also function atoms
-// to consider.
-
-// NOTE: Conclusion: Start with Atom<Vec2> with simple objects. But in the future,
-// we'll probably create our own wrappers for performance. Those wrappers will be
-// mutable and mutate the vector coordinates directly for performance (the coords
-// are still atoms, just scalar atoms instead of vectors).

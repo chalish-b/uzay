@@ -121,8 +121,8 @@ const midpoint = scene.atom((get) => {
 scene.create("overlay3d", {
   position: midpoint,
   content: scene.atom((get) => {
-    const diff = Vec3.subtract(get(p2.coords), get(p1.coords));
-    return `d = ${Vec3.length(diff).toFixed(2)}`;
+    const diff = get(p2.coords).sub(get(p1.coords));
+    return `d = ${diff.len().toFixed(2)}`;
   }),
   anchor: "bottom-left",
   offset: vec2(6, -6),

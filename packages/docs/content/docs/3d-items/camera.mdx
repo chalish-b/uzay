@@ -222,7 +222,7 @@ const point = scene.create("point3d", {
 const camera = scene.create("camera3d", {
   position: scene.atom((get) => {
     const target = get(targetPos);
-    return Vec3.add(target, vec3(5, 5, 5)); // Offset from target
+    return target.add(vec3(5, 5, 5)); // Offset from target
   }),
   lookAt: targetPos,
 });

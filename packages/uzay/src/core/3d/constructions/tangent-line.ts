@@ -2,7 +2,7 @@ import type { Scene3D } from "../scene3d";
 import type { AtomLikeInput } from "../../shared/atom-wrapper";
 import { ensureAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
-import { Vec3 as Vec3Utils, vec3, type Vec3 } from "../../shared/types/vec3";
+import { vec3, type Vec3 } from "../../shared/types/vec3";
 
 type ParametricFunc = (t: number) => Vec3;
 
@@ -40,16 +40,16 @@ export function tangentLine(scene: Scene3D, options: TangentLineOptions) {
 
   const startAtom = scene.atom((get) => {
     const pos = get(positionAtom);
-    const dir = Vec3Utils.normalized(get(tangentAtom));
+    const dir = get(tangentAtom).unit();
     const halfLen = get(lengthAtom) / 2;
-    return Vec3Utils.subtract(pos, Vec3Utils.scaled(dir, halfLen));
+    return pos.sub(dir.scale(halfLen));
   });
 
   const endAtom = scene.atom((get) => {
     const pos = get(positionAtom);
-    const dir = Vec3Utils.normalized(get(tangentAtom));
+    const dir = get(tangentAtom).unit();
     const halfLen = get(lengthAtom) / 2;
-    return Vec3Utils.add(pos, Vec3Utils.scaled(dir, halfLen));
+    return pos.add(dir.scale(halfLen));
   });
 
   const point = scene.create("point3d", {

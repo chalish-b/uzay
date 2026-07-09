@@ -1,6 +1,6 @@
 "use client";
 
-import { vec3, Vec3 } from "uzay";
+import { vec3 } from "uzay";
 import { Scene3DView, useAtomState } from "uzay/react";
 import { DemoFrame } from "./demo-frame";
 import { overlayStyles } from "./theme";
@@ -56,9 +56,7 @@ export default function SpheresDemo() {
     // code at all. pointerEvents off so the handles stay grabbable inside it.
     scene.create("sphere3d", {
       center: center.coords,
-      radius: scene.atom((get) =>
-        Vec3.length(Vec3.subtract(get(rim.coords), get(center.coords))),
-      ),
+      radius: scene.atom((get) => get(rim.coords).sub(get(center.coords)).len()),
       color: t("primary"),
       opacity: opacityAtom,
       pointerEvents: "none",
@@ -76,12 +74,10 @@ export default function SpheresDemo() {
 
     scene.create("overlay3d", {
       position: scene.atom((get) =>
-        Vec3.scaled(Vec3.add(get(center.coords), get(rim.coords)), 0.5),
+        get(center.coords).add(get(rim.coords)).scale(0.5),
       ),
       content: scene.atom((get) => {
-        const r = Vec3.length(
-          Vec3.subtract(get(rim.coords), get(center.coords)),
-        );
+        const r = get(rim.coords).sub(get(center.coords)).len();
         return `r = ${r.toFixed(2)}`;
       }),
       format: "latex",

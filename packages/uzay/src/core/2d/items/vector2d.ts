@@ -1,7 +1,7 @@
 import type { PointDraggableDir2D } from "../types/axes";
 import type { Color } from "../../shared/types/colors";
 import type { ItemTags } from "../../shared/types/tags";
-import { type Vec2, Vec2 as Vec2Utils, vec2 } from "../../shared/types/vec2";
+import { type Vec2, vec2 } from "../../shared/types/vec2";
 import { applyDragConstraint } from "../types/drag-utils";
 import {
   isWritableBoundAtom,
@@ -82,16 +82,16 @@ export const vector2dDefinition = defineItem2D({
 
     const origin = item.origin.get();
     const currentVector = item.vector.get();
-    const tipPos = Vec2Utils.add(origin, currentVector);
+    const tipPos = origin.add(currentVector);
 
     if (event.phase === "start") {
-      state.dragOffset = Vec2Utils.subtract(event.worldPosition, tipPos);
+      state.dragOffset = event.worldPosition.sub(tipPos);
       return;
     }
 
-    const adjusted = Vec2Utils.subtract(event.worldPosition, state.dragOffset);
+    const adjusted = event.worldPosition.sub(state.dragOffset);
     const constrained = applyDragConstraint(tipPos, adjusted, draggable);
-    const nextVector = Vec2Utils.subtract(constrained, origin);
+    const nextVector = constrained.sub(origin);
     setBoundAtomIfWritable(item.vector, nextVector);
   },
 });

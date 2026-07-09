@@ -1,7 +1,7 @@
 import type { PointDraggableDir2D } from "../types/axes";
 import type { Color } from "../../shared/types/colors";
 import type { ItemTags } from "../../shared/types/tags";
-import { type Vec2, Vec2 as Vec2Utils, vec2 } from "../../shared/types/vec2";
+import { type Vec2, vec2 } from "../../shared/types/vec2";
 import { applyDragConstraint } from "../types/drag-utils";
 import {
   isWritableBoundAtom,
@@ -80,14 +80,11 @@ export const point2dDefinition = defineItem2D({
     }
 
     if (event.phase === "start") {
-      state.dragOffset = Vec2Utils.subtract(
-        event.worldPosition,
-        item.coords.get()
-      );
+      state.dragOffset = event.worldPosition.sub(item.coords.get());
       return;
     }
 
-    const adjusted = Vec2Utils.subtract(event.worldPosition, state.dragOffset);
+    const adjusted = event.worldPosition.sub(state.dragOffset);
     const nextCoords = applyDragConstraint(
       item.coords.get(),
       adjusted,

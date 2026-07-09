@@ -1,7 +1,7 @@
 import type { PointDraggableDir } from "../types/axes";
 import type { Color } from "../../shared/types/colors";
 import type { ItemTags } from "../../shared/types/tags";
-import { type Vec3, Vec3 as Vec3Utils, vec3 } from "../../shared/types/vec3";
+import { type Vec3, vec3 } from "../../shared/types/vec3";
 import { applyDragConstraint } from "../types/drag-utils";
 import {
   isWritableBoundAtom,
@@ -76,14 +76,11 @@ export const point3dDefinition = defineItem3D({
     }
 
     if (event.phase === "start") {
-      state.dragOffset = Vec3Utils.subtract(
-        event.worldPosition,
-        item.coords.get()
-      );
+      state.dragOffset = event.worldPosition.sub(item.coords.get());
       return;
     }
 
-    const adjusted = Vec3Utils.subtract(event.worldPosition, state.dragOffset);
+    const adjusted = event.worldPosition.sub(state.dragOffset);
     const nextCoords = applyDragConstraint(
       item.coords.get(),
       adjusted,

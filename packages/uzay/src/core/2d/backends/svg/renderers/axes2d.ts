@@ -1,5 +1,6 @@
 import type { ItemSnapshot } from "../../../types/item-registry";
 import type { Viewport2D } from "../../../types/view-context";
+import { vec2 } from "../../../../shared/types/vec2";
 import {
   BASE_TICK_HALF_LENGTH_PX,
   BASE_ARROW_LENGTH_PX,
@@ -157,7 +158,7 @@ export const axes2dSvgRenderer: SvgItemRenderer<"axes2d"> = {
     // Labels are HTML, outside the SVG's viewBox mapping, so their screen
     // positions move with every pan even when the key is unchanged.
     for (const label of obj.labels) {
-      const screen = ctx.viewport.worldToScreen(label.world);
+      const screen = ctx.viewport.worldToScreen(vec2(label.world.x, label.world.y));
       label.wrapper.style.left = `${screen.x}px`;
       label.wrapper.style.top = `${screen.y}px`;
       label.wrapper.style.transform = "translate(-50%, -50%)";

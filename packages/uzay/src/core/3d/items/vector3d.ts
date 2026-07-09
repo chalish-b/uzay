@@ -1,7 +1,7 @@
 import type { PointDraggableDir } from "../types/axes";
 import type { Color } from "../../shared/types/colors";
 import type { ItemTags } from "../../shared/types/tags";
-import { type Vec3, Vec3 as Vec3Utils, vec3 } from "../../shared/types/vec3";
+import { type Vec3, vec3 } from "../../shared/types/vec3";
 import { applyDragConstraint } from "../types/drag-utils";
 import {
   isWritableBoundAtom,
@@ -81,16 +81,16 @@ export const vector3dDefinition = defineItem3D({
 
     const origin = item.origin.get();
     const currentVector = item.vector.get();
-    const tipPos = Vec3Utils.add(origin, currentVector);
+    const tipPos = origin.add(currentVector);
 
     if (event.phase === "start") {
-      state.dragOffset = Vec3Utils.subtract(event.worldPosition, tipPos);
+      state.dragOffset = event.worldPosition.sub(tipPos);
       return;
     }
 
-    const adjusted = Vec3Utils.subtract(event.worldPosition, state.dragOffset);
+    const adjusted = event.worldPosition.sub(state.dragOffset);
     const constrained = applyDragConstraint(tipPos, adjusted, draggable);
-    const nextVector = Vec3Utils.subtract(constrained, origin);
+    const nextVector = constrained.sub(origin);
     setBoundAtomIfWritable(item.vector, nextVector);
   },
 });

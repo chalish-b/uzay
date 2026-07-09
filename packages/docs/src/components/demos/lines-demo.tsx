@@ -1,6 +1,6 @@
 "use client";
 
-import { vec2, vec3, Vec3 } from "uzay";
+import { vec2, vec3 } from "uzay";
 import { Scene3DView } from "uzay/react";
 import { DemoFrame } from "./demo-frame";
 import { overlayStyles } from "./theme";
@@ -58,13 +58,13 @@ export default function LinesDemo() {
 
     // Length readout pinned to the segment's midpoint, recomputed live.
     const midpoint = scene.atom((get) =>
-      Vec3.scaled(Vec3.add(get(p1.coords), get(p2.coords)), 0.5),
+      get(p1.coords).add(get(p2.coords)).scale(0.5),
     );
 
     scene.create("overlay3d", {
       position: midpoint,
       content: scene.atom((get) => {
-        const length = Vec3.length(Vec3.subtract(get(p2.coords), get(p1.coords)));
+        const length = get(p2.coords).sub(get(p1.coords)).len();
         return `d = ${length.toFixed(2)}`;
       }),
       format: "latex",

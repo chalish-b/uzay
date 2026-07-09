@@ -1,5 +1,5 @@
 import type { PointDraggableDir } from "./axes";
-import type { Vec3 } from "../../shared/types/vec3";
+import { vec3, type Vec3 } from "../../shared/types/vec3";
 
 /** Apply axis/plane constraint to a target position relative to a current position. */
 export function applyDragConstraint(
@@ -9,17 +9,17 @@ export function applyDragConstraint(
 ): Vec3 {
   switch (constraint) {
     case "x":
-      return { ...current, x: target.x };
+      return vec3(target.x, current.y, current.z);
     case "y":
-      return { ...current, y: target.y };
+      return vec3(current.x, target.y, current.z);
     case "z":
-      return { ...current, z: target.z };
+      return vec3(current.x, current.y, target.z);
     case "xy":
-      return { ...current, x: target.x, y: target.y };
+      return vec3(target.x, target.y, current.z);
     case "xz":
-      return { ...current, x: target.x, z: target.z };
+      return vec3(target.x, current.y, target.z);
     case "yz":
-      return { ...current, y: target.y, z: target.z };
+      return vec3(current.x, target.y, target.z);
     case "xyz":
       return target;
     case "none":

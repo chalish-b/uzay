@@ -1,6 +1,6 @@
 ---
 title: Vec3
-description: 3D vector type and operations
+description: 3D vector class with chainable, immutable operations
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
@@ -9,122 +9,118 @@ import { Callout } from "fumadocs-ui/components/callout";
 These are lightweight utilities for basic vector math within Uzay. For a more complete, mature, and optimized solution, consider dedicated libraries like [gl-matrix](https://glmatrix.net/), [Three.js math](https://threejs.org/docs/#api/en/math/Vector3), or [mathjs](https://mathjs.org/).
 </Callout>
 
-A plain object type `{ x, y, z }` used throughout Uzay for positions and directions.
+`Vec3` is the 3D counterpart of [Vec2](/docs/utilities/vec2), used throughout Uzay for positions and directions: an immutable class with readonly `x`, `y`, `z` and chainable methods that always return a new vector.
 
-There are two exports: `vec3` (lowercase) is a helper function for creating vectors, and `Vec3` (capitalized) is a namespace containing operations and constants.
+Construct vectors with the `vec3` helper function, no `new` needed:
 
 ```typescript
-import { vec3, Vec3 } from "uzay";
+import { vec3 } from "uzay";
 
 const position = vec3(1, 2, 3);
-const doubled = Vec3.scaled(position, 2); // { x: 2, y: 4, z: 6 }
+const doubled = position.scale(2); // vec3(2, 4, 6)
+```
+
+A plain `{ x, y, z }` object is not a `Vec3`; adopt one explicitly when it arrives from outside:
+
+```typescript
+import { Vec3 } from "uzay";
+
+const v = Vec3.from({ x: 1, y: 2, z: 3 });
 ```
 
 ## Operations
 
-All operations return new vectors.
+All operations return new vectors; nothing mutates.
 
-### Addition
+### Arithmetic
 
 ```typescript
 const a = vec3(1, 0, 0);
 const b = vec3(0, 1, 0);
-const c = vec3(0, 0, 1);
 
-const sum = Vec3.add(a, b);     // { x: 1, y: 1, z: 0 }
-const total = Vec3.add(a, b, c); // { x: 1, y: 1, z: 1 }
+a.add(b);   // vec3(1, 1, 0)
+a.sub(b);   // vec3(1, -1, 0)
+a.scale(3); // vec3(3, 0, 0)
+a.neg();    // vec3(-1, 0, 0)
 ```
 
-### Subtraction
-
-```typescript
-const a = vec3(5, 3, 1);
-const b = vec3(1, 1, 1);
-
-const diff = Vec3.subtract(a, b); // { x: 4, y: 2, z: 0 }
-```
-
-### Scaling
-
-```typescript
-const v = vec3(1, 2, 3);
-
-const doubled = Vec3.scaled(v, 2);   // { x: 2, y: 4, z: 6 }
-const halved = Vec3.scaled(v, 0.5);  // { x: 0.5, y: 1, z: 1.5 }
-const negated = Vec3.scaled(v, -1);  // { x: -1, y: -2, z: -3 }
-```
-
-### Length
+### Length and Normalization
 
 ```typescript
 const v = vec3(1, 2, 2);
-Vec3.length(v); // 3
+
+v.len();   // 3
+v.lenSq(); // 9 (faster, no sqrt)
+v.unit();  // vec3(0.333..., 0.666..., 0.666...)
 ```
 
-### Normalization
+`unit()` on the zero vector returns the zero vector.
 
-Get a unit vector (length = 1) pointing in the same direction:
-
-```typescript
-const v = vec3(3, 4, 0);
-const unit = Vec3.normalized(v); // { x: 0.6, y: 0.8, z: 0 }
-```
-
-### Dot Product
-
-```typescript
-const a = vec3(1, 0, 0);
-const b = vec3(0, 1, 0);
-
-Vec3.dot(a, b); // 0 (perpendicular)
-Vec3.dot(a, a); // 1 (parallel to itself)
-```
-
-### Cross Product
-
-Get a vector perpendicular to both inputs:
+### Dot and Cross Product
 
 ```typescript
 const x = vec3(1, 0, 0);
 const y = vec3(0, 1, 0);
 
-const z = Vec3.cross(x, y); // { x: 0, y: 0, z: 1 }
+x.dot(y);   // 0 (perpendicular)
+x.cross(y); // vec3(0, 0, 1), perpendicular to both
 ```
 
-### Converting to Array
+### Distance, Midpoint, Interpolation
 
 ```typescript
-const v = vec3(1, 2, 3);
-const arr = Vec3.asArray(v); // [1, 2, 3]
+const a = vec3(0, 0, 0);
+const b = vec3(4, 2, 6);
+
+a.distTo(b);     // 7.48...
+a.mid(b);        // vec3(2, 1, 3)
+a.lerp(b, 0.25); // vec3(1, 0.5, 1.5)
+```
+
+`lerp` interpolates linearly from the receiver (at `t = 0`) to the argument (at `t = 1`); values outside `[0, 1]` extrapolate along the same line. `a.mid(b)` is `a.lerp(b, 0.5)`.
+
+### Comparison and Conversion
+
+```typescript
+vec3(1, 2, 3).equals(vec3(1, 2, 3)); // true (with an epsilon tolerance)
+vec3(1, 2, 3).toArray();             // [1, 2, 3]
 ```
 
 ---
 
 ## API Reference
 
-### Constructor
+### Constructors
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `vec3` | `(x: number, y: number, z: number) => Vec3` | Create a Vec3 object |
+| `vec3` | `(x: number, y: number, z: number) => Vec3` | The everyday constructor |
+| `Vec3.from` | `(p: { x: number; y: number; z: number }) => Vec3` | Adopt a plain object |
 
 ### Constants
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `Vec3.ZERO` | `{ x: 0, y: 0, z: 0 }` | Origin / zero vector (frozen) |
-| `Vec3.ONE` | `{ x: 1, y: 1, z: 1 }` | Unit vector in all directions (frozen) |
+| `Vec3.ZERO` | `vec3(0, 0, 0)` | Origin / zero vector (frozen) |
+| `Vec3.ONE` | `vec3(1, 1, 1)` | Unit in all components (frozen) |
 
-### Operations
+### Methods
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `Vec3.add` | `(...vectors: Vec3[]) => Vec3` | Sum of all input vectors |
-| `Vec3.subtract` | `(a: Vec3, b: Vec3) => Vec3` | Vector subtraction `a - b` |
-| `Vec3.length` | `(v: Vec3) => number` | Vector magnitude |
-| `Vec3.scaled` | `(v: Vec3, scalar: number) => Vec3` | Multiply vector by scalar |
-| `Vec3.normalized` | `(v: Vec3) => Vec3` | Unit vector in same direction |
-| `Vec3.dot` | `(a: Vec3, b: Vec3) => number` | Dot product |
-| `Vec3.cross` | `(a: Vec3, b: Vec3) => Vec3` | Cross product |
-| `Vec3.asArray` | `(v: Vec3) => [number, number, number]` | Convert to tuple |
+All methods returning `Vec3` return a new vector.
 
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `add` | `(v: Vec3) => Vec3` | Vector sum |
+| `sub` | `(v: Vec3) => Vec3` | Vector difference (receiver minus argument) |
+| `scale` | `(s: number) => Vec3` | Multiply by a scalar |
+| `neg` | `() => Vec3` | Negation |
+| `unit` | `() => Vec3` | Unit vector in the same direction (zero stays zero) |
+| `len` | `() => number` | Magnitude |
+| `lenSq` | `() => number` | Squared magnitude (faster) |
+| `dot` | `(v: Vec3) => number` | Dot product |
+| `cross` | `(v: Vec3) => Vec3` | Cross product |
+| `distTo` | `(v: Vec3) => number` | Euclidean distance |
+| `mid` | `(v: Vec3) => Vec3` | Point halfway to `v` |
+| `lerp` | `(v: Vec3, t: number) => Vec3` | Linear interpolation toward `v` by `t` |
+| `equals` | `(v: Vec3, epsilon?: number) => boolean` | Component-wise comparison with tolerance |
+| `toArray` | `() => [number, number, number]` | Convert to tuple |

@@ -427,7 +427,7 @@ export class View2D {
             phase: "start",
             itemId: hit.itemId,
             itemKind: item.kind,
-            screenPosition: { x: event.clientX, y: event.clientY },
+            screenPosition: vec2(event.clientX, event.clientY),
             startWorldPosition: hit.worldPosition,
             worldPosition: hit.worldPosition,
             delta: vec2(0, 0),
@@ -471,7 +471,7 @@ export class View2D {
         return;
       }
       const worldPos = this.screenToWorld(event);
-      const delta = Vec2.subtract(worldPos, this.dragState.lastWorldPosition);
+      const delta = worldPos.sub(this.dragState.lastWorldPosition);
       this.dragState.lastWorldPosition = worldPos;
 
       this.dispatchEvent("drag", {
@@ -479,7 +479,7 @@ export class View2D {
         phase: "move",
         itemId: this.dragState.itemId,
         itemKind: item.kind,
-        screenPosition: { x: event.clientX, y: event.clientY },
+        screenPosition: vec2(event.clientX, event.clientY),
         worldPosition: worldPos,
         startWorldPosition: this.dragState.startWorldPosition,
         delta,
@@ -510,7 +510,7 @@ export class View2D {
             phase: "leave",
             itemId: this.hoveredItemId,
             itemKind: oldItem.kind,
-            screenPosition: { x: event.clientX, y: event.clientY },
+            screenPosition: vec2(event.clientX, event.clientY),
             worldPosition: vec2(0, 0),
           });
         }
@@ -523,7 +523,7 @@ export class View2D {
             phase: "enter",
             itemId: newHoveredId,
             itemKind: newItem.kind,
-            screenPosition: { x: event.clientX, y: event.clientY },
+            screenPosition: vec2(event.clientX, event.clientY),
             worldPosition: hit.worldPosition,
           });
         }
@@ -538,7 +538,7 @@ export class View2D {
           phase: "move",
           itemId: newHoveredId,
           itemKind: currentItem.kind,
-          screenPosition: { x: event.clientX, y: event.clientY },
+          screenPosition: vec2(event.clientX, event.clientY),
           worldPosition: hit.worldPosition,
         });
       }
@@ -564,10 +564,10 @@ export class View2D {
           phase: "end",
           itemId: this.dragState.itemId,
           itemKind: item.kind,
-          screenPosition: { x: event.clientX, y: event.clientY },
+          screenPosition: vec2(event.clientX, event.clientY),
           startWorldPosition: this.dragState.startWorldPosition,
           worldPosition: worldPos,
-          delta: Vec2.subtract(worldPos, this.dragState.startWorldPosition),
+          delta: worldPos.sub(this.dragState.startWorldPosition),
         });
       }
       this.dragState = null;
@@ -594,7 +594,7 @@ export class View2D {
               itemId: hit.itemId,
               itemKind: item.kind,
               worldPosition: hit.worldPosition,
-              screenPosition: { x: event.clientX, y: event.clientY },
+              screenPosition: vec2(event.clientX, event.clientY),
             });
           }
         }
@@ -623,11 +623,10 @@ export class View2D {
           phase: "end",
           itemId: this.dragState.itemId,
           itemKind: item.kind,
-          screenPosition: { x: event.clientX, y: event.clientY },
+          screenPosition: vec2(event.clientX, event.clientY),
           startWorldPosition: this.dragState.startWorldPosition,
           worldPosition: this.dragState.lastWorldPosition,
-          delta: Vec2.subtract(
-            this.dragState.lastWorldPosition,
+          delta: this.dragState.lastWorldPosition.sub(
             this.dragState.startWorldPosition
           ),
         });

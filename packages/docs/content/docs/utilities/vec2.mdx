@@ -1,6 +1,6 @@
 ---
 title: Vec2
-description: 2D vector type and operations
+description: 2D vector class with chainable, immutable operations
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
@@ -9,127 +9,133 @@ import { Callout } from "fumadocs-ui/components/callout";
 These are lightweight utilities for basic vector math within Uzay. For a more complete, mature, and optimized solution, consider dedicated libraries like [gl-matrix](https://glmatrix.net/), [Three.js math](https://threejs.org/docs/#api/en/math/Vector2), or [mathjs](https://mathjs.org/).
 </Callout>
 
-A plain object type `{ x, y }` for 2D calculations, screen coordinates, or planar math.
+`Vec2` is an immutable class: `x` and `y` are readonly, and every operation returns a new vector. That makes vectors safe to share between items and atoms.
 
-There are two exports: `vec2` (lowercase) is a helper function for creating vectors, and `Vec2` (capitalized) is a namespace containing operations and constants.
+Construct vectors with the `vec2` helper function, no `new` needed:
 
 ```typescript
-import { vec2, Vec2 } from "uzay";
+import { vec2 } from "uzay";
 
 const position = vec2(3, 4);
-const doubled = Vec2.scaled(position, 2); // { x: 6, y: 8 }
+const doubled = position.scale(2); // vec2(6, 8)
+```
+
+A plain `{ x, y }` object is not a `Vec2`: it has no methods and will not typecheck where a `Vec2` is expected. When a value shaped like a vector arrives from outside (an event payload, a config object), adopt it explicitly:
+
+```typescript
+import { Vec2 } from "uzay";
+
+const v = Vec2.from({ x: 3, y: 4 });
 ```
 
 ## Operations
 
-All operations return new vectors.
+All operations return new vectors; nothing mutates.
 
-### Addition
-
-```typescript
-const a = vec2(1, 0);
-const b = vec2(0, 1);
-
-const sum = Vec2.add(a, b);     // { x: 1, y: 1 }
-const total = Vec2.add(a, b, a); // { x: 2, y: 1 }
-```
-
-### Subtraction
-
-```typescript
-const a = vec2(5, 3);
-const b = vec2(1, 1);
-
-const diff = Vec2.subtract(a, b); // { x: 4, y: 2 }
-```
-
-### Scaling
-
-```typescript
-const v = vec2(3, 4);
-
-const doubled = Vec2.scaled(v, 2);  // { x: 6, y: 8 }
-const halved = Vec2.scaled(v, 0.5); // { x: 1.5, y: 2 }
-```
-
-### Length
-
-```typescript
-const v = vec2(3, 4);
-Vec2.length(v); // 5
-```
-
-### Normalization
-
-Get a unit vector (length = 1):
-
-```typescript
-const v = vec2(3, 4);
-const unit = Vec2.normalized(v); // { x: 0.6, y: 0.8 }
-```
-
-### Dot Product
+### Arithmetic
 
 ```typescript
 const a = vec2(1, 0);
 const b = vec2(0, 1);
 
-Vec2.dot(a, b); // 0 (perpendicular)
-Vec2.dot(a, a); // 1 (parallel)
+a.add(b);      // vec2(1, 1)
+a.sub(b);      // vec2(1, -1)
+a.scale(3);    // vec2(3, 0)
+a.neg();       // vec2(-1, 0)
 ```
 
-### Cross Product (2D)
+### Length and Normalization
 
-In 2D, the cross product returns a scalar (the z-component of the 3D cross product):
+```typescript
+const v = vec2(3, 4);
+
+v.len();    // 5
+v.lenSq();  // 25 (faster, no sqrt)
+v.unit();   // vec2(0.6, 0.8), the unit vector in the same direction
+```
+
+`unit()` on the zero vector returns the zero vector.
+
+### Dot and Cross Product
 
 ```typescript
 const a = vec2(1, 0);
 const b = vec2(0, 1);
 
-Vec2.cross(a, b); // 1
-Vec2.cross(b, a); // -1
+a.dot(b);   // 0 (perpendicular)
+a.cross(b); // 1
+b.cross(a); // -1
 ```
 
-This is useful for determining winding order or signed area.
+In 2D the cross product is a scalar (the z-component of the 3D cross product), useful for winding order and signed area.
 
-### Distance
+### Perpendicular and Rotation
+
+```typescript
+const v = vec2(1, 0);
+
+v.perp();              // vec2(0, 1), rotated 90° counterclockwise
+v.rotate(Math.PI / 4); // vec2(0.707..., 0.707...)
+```
+
+### Distance, Midpoint, Interpolation
 
 ```typescript
 const a = vec2(0, 0);
-const b = vec2(3, 4);
+const b = vec2(4, 2);
 
-Vec2.distance(a, b);        // 5
-Vec2.distanceSquared(a, b); // 25 (faster, no sqrt)
+a.distTo(b);   // 4.47...
+a.mid(b);      // vec2(2, 1)
+a.lerp(b, 0.25); // vec2(1, 0.5)
+```
+
+`lerp` interpolates linearly from the receiver (at `t = 0`) to the argument (at `t = 1`); values outside `[0, 1]` extrapolate along the same line. `a.mid(b)` is `a.lerp(b, 0.5)`.
+
+### Comparison and Conversion
+
+```typescript
+vec2(1, 2).equals(vec2(1, 2)); // true (with an epsilon tolerance)
+vec2(1, 2).toArray();          // [1, 2]
 ```
 
 ---
 
 ## API Reference
 
-### Constructor
+### Constructors
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `vec2` | `(x: number, y: number) => Vec2` | Create a Vec2 object |
+| `vec2` | `(x: number, y: number) => Vec2` | The everyday constructor |
+| `Vec2.from` | `(p: { x: number; y: number }) => Vec2` | Adopt a plain object |
+| `Vec2.fromAngle` | `(theta: number) => Vec2` | Unit vector at an angle from the positive x-axis |
 
 ### Constants
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `Vec2.ZERO` | `{ x: 0, y: 0 }` | Origin / zero vector (frozen) |
-| `Vec2.ONE` | `{ x: 1, y: 1 }` | Unit vector in both directions (frozen) |
+| `Vec2.ZERO` | `vec2(0, 0)` | Origin / zero vector (frozen) |
+| `Vec2.ONE` | `vec2(1, 1)` | Unit in both components (frozen) |
 
-### Operations
+### Methods
 
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `Vec2.add` | `(...vectors: Vec2[]) => Vec2` | Sum of all input vectors |
-| `Vec2.subtract` | `(a: Vec2, b: Vec2) => Vec2` | Vector subtraction `a - b` |
-| `Vec2.length` | `(v: Vec2) => number` | Vector magnitude |
-| `Vec2.scaled` | `(v: Vec2, scalar: number) => Vec2` | Multiply vector by scalar |
-| `Vec2.normalized` | `(v: Vec2) => Vec2` | Unit vector in same direction |
-| `Vec2.dot` | `(a: Vec2, b: Vec2) => number` | Dot product |
-| `Vec2.cross` | `(a: Vec2, b: Vec2) => number` | 2D cross product (scalar) |
-| `Vec2.distance` | `(a: Vec2, b: Vec2) => number` | Euclidean distance |
-| `Vec2.distanceSquared` | `(a: Vec2, b: Vec2) => number` | Squared distance (faster) |
+All methods returning `Vec2` return a new vector.
 
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `add` | `(v: Vec2) => Vec2` | Vector sum |
+| `sub` | `(v: Vec2) => Vec2` | Vector difference (receiver minus argument) |
+| `scale` | `(s: number) => Vec2` | Multiply by a scalar |
+| `neg` | `() => Vec2` | Negation |
+| `unit` | `() => Vec2` | Unit vector in the same direction (zero stays zero) |
+| `perp` | `() => Vec2` | Rotated 90° counterclockwise |
+| `rotate` | `(theta: number) => Vec2` | Rotated by an angle (radians, counterclockwise) |
+| `len` | `() => number` | Magnitude |
+| `lenSq` | `() => number` | Squared magnitude (faster) |
+| `dot` | `(v: Vec2) => number` | Dot product |
+| `cross` | `(v: Vec2) => number` | 2D cross product (scalar) |
+| `distTo` | `(v: Vec2) => number` | Euclidean distance |
+| `mid` | `(v: Vec2) => Vec2` | Point halfway to `v` |
+| `lerp` | `(v: Vec2, t: number) => Vec2` | Linear interpolation toward `v` by `t` |
+| `equals` | `(v: Vec2, epsilon?: number) => boolean` | Component-wise comparison with tolerance |
+| `toArray` | `() => [number, number]` | Convert to tuple |

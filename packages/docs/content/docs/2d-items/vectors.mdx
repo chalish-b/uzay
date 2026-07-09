@@ -122,7 +122,7 @@ const b = scene.create("point2d", { coords: vec2(3, 2), color: "blue" });
 
 scene.create("vector2d", {
   origin: a.coords,
-  vector: scene.atom((get) => Vec2.subtract(get(b.coords), get(a.coords))),
+  vector: scene.atom((get) => get(b.coords).sub(get(a.coords))),
   color: "white",
   draggable: "none",
 });

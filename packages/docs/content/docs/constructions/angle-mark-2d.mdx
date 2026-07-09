@@ -75,6 +75,22 @@ scene.create("overlay2d", {
 
 By default `measure` reports the smaller angle, so it ranges from `0` to `π`. With other `sweep` modes it covers the angle actually drawn, up to `2π`.
 
+## Placing a Label
+
+The construction also returns `midDir`, the unit direction from the vertex through the midpoint of the drawn arc: the bisector of the marked angle, on the side the mark actually sweeps. Walking along it anchors a label centered inside the wedge, just past the arc:
+
+```typescript
+const mark = angleMark2D(scene, { vertex, a, b, radius: 0.4 });
+
+scene.create("overlay2d", {
+  position: scene.atom((get) => vertex.add(get(mark.midDir).scale(0.7))),
+  content: "\\alpha",
+  format: "latex",
+});
+```
+
+Because `midDir` derives from the same sweep as the arc, the anchor is correct in every `sweep` mode: a `"major"` mark puts the label on the reflex side, where its arc actually is. Computing the bisector yourself from the two arms would get exactly that case wrong.
+
 ## Choosing Which Angle: `sweep`
 
 Two arms always cut the plane into two angles that sum to 360°. The `sweep` option decides which one the mark draws:
@@ -177,4 +193,5 @@ All options accept either a plain value or an atom, except `squareRightAngle`, `
 |-------|------|-------------|
 | `mark` | `Circle2D` | The arc, as a `circle2d` |
 | `measure` | `BoundAtom<number>` | The marked angle's measure in radians: `0` to `π` by default, up to `2π` with other `sweep` modes |
+| `midDir` | `BoundAtom<Vec2>` | Unit direction from the vertex through the drawn arc's midpoint: the marked angle's bisector, the anchor direction for a label |
 | `dispose` | `() => void` | Removes the mark from the scene |

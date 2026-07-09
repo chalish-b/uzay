@@ -1,6 +1,6 @@
 "use client";
 
-import { vec2, Vec2 } from "uzay";
+import { vec2 } from "uzay";
 import { Scene2DView } from "uzay/react";
 import { DemoFrame } from "./demo-frame";
 import { overlayStyles } from "./theme";
@@ -52,7 +52,7 @@ export default function Vectors2DDemo() {
 
     // The payoff: the resultant a + b, drawn from the origin straight to the
     // end of the chain. Derived, so it follows every drag but isn't draggable.
-    const sum = scene.atom((get) => Vec2.add(get(a.vector), get(b.vector)));
+    const sum = scene.atom((get) => get(a.vector).add(get(b.vector)));
 
     scene.create("vector2d", {
       origin: vec2(0, 0),
@@ -85,7 +85,7 @@ export default function Vectors2DDemo() {
 
     // Name tags at each arrow's midpoint, so the scene reads as the equation.
     scene.create("overlay2d", {
-      position: scene.atom((get) => Vec2.scaled(get(a.vector), 0.5)),
+      position: scene.atom((get) => get(a.vector).scale(0.5)),
       content: "\\vec{a}",
       format: "latex",
       className: `${overlayStyles.boardLabel} text-sm text-fd-foreground`,
@@ -93,7 +93,7 @@ export default function Vectors2DDemo() {
 
     scene.create("overlay2d", {
       position: scene.atom((get) =>
-        Vec2.add(get(a.vector), Vec2.scaled(get(b.vector), 0.5)),
+        get(a.vector).add(get(b.vector).scale(0.5)),
       ),
       content: "\\vec{b}",
       format: "latex",
@@ -101,7 +101,7 @@ export default function Vectors2DDemo() {
     });
 
     scene.create("overlay2d", {
-      position: scene.atom((get) => Vec2.scaled(get(sum), 0.5)),
+      position: scene.atom((get) => get(sum).scale(0.5)),
       content: "\\vec{a} + \\vec{b}",
       format: "latex",
       className: `${overlayStyles.boardLabel} text-sm text-fd-foreground`,

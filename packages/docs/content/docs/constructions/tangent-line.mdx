@@ -96,7 +96,7 @@ const tl = tangentLine(scene, { f, t: tAtom });
 
 // Subscribe to the tangent direction
 tl.tangent.sub((dir) => {
-  console.log("speed:", Vec3.length(dir));
+  console.log("speed:", dir.len());
 });
 ```
 

@@ -1,5 +1,5 @@
 import type { PointDraggableDir2D } from "./axes";
-import type { Vec2 } from "../../shared/types/vec2";
+import { vec2, type Vec2 } from "../../shared/types/vec2";
 
 // Apply axis constraint to a target position relative to a current position.
 // 2D doesn't need ray-plane projection like 3D does because mouse coords map
@@ -11,9 +11,9 @@ export function applyDragConstraint(
 ): Vec2 {
   switch (constraint) {
     case "x":
-      return { x: target.x, y: current.y };
+      return vec2(target.x, current.y);
     case "y":
-      return { x: current.x, y: target.y };
+      return vec2(current.x, target.y);
     case "xy":
       return target;
     case "custom":

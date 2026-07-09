@@ -2,7 +2,7 @@ import type { Scene3D } from "../scene3d";
 import type { AtomLikeInput, WritableInput } from "../../shared/atom-wrapper";
 import { ensureAtom, ensureWritableAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
-import { Vec3 as Vec3Utils, vec3, type Vec3 } from "../../shared/types/vec3";
+import { vec3, type Vec3 } from "../../shared/types/vec3";
 import { vec2, type Vec2 } from "../../shared/types/vec2";
 
 type SurfaceFunc = (x: number, z: number) => number;
@@ -33,17 +33,17 @@ function findNearestXZToRay(
   xRange: [number, number],
   zRange: [number, number],
 ): Vec2 {
-  const d = Vec3Utils.normalized(rayDir);
+  const d = rayDir.unit();
   let x = currentXZ.x;
   let z = currentXZ.y;
 
   for (let i = 0; i < NEWTON_ITERATIONS; i++) {
     const y = f(x, z);
     const pos = vec3(x, y, z);
-    const v = Vec3Utils.subtract(pos, rayOrigin);
+    const v = pos.sub(rayOrigin);
 
     // Rejection of v from ray direction (perpendicular component)
-    const proj = Vec3Utils.dot(v, d);
+    const proj = v.dot(d);
     const rx = v.x - d.x * proj;
     const ry = v.y - d.y * proj;
     const rz = v.z - d.z * proj;
@@ -55,13 +55,13 @@ function findNearestXZToRay(
     // Jacobian columns: dP/dx = (1, dfdx, 0), dP/dz = (0, dfdz, 1)
     // Reject each from the ray direction
     const Jx = vec3(1, dfdx, 0);
-    const JxProj = Vec3Utils.dot(Jx, d);
+    const JxProj = Jx.dot(d);
     const jx_rx = Jx.x - d.x * JxProj;
     const jx_ry = Jx.y - d.y * JxProj;
     const jx_rz = Jx.z - d.z * JxProj;
 
     const Jz = vec3(0, dfdz, 1);
-    const JzProj = Vec3Utils.dot(Jz, d);
+    const JzProj = Jz.dot(d);
     const jz_rx = Jz.x - d.x * JzProj;
     const jz_ry = Jz.y - d.y * JzProj;
     const jz_rz = Jz.z - d.z * JzProj;

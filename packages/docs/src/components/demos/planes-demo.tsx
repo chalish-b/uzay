@@ -57,22 +57,22 @@ export default function PlanesDemo() {
     // and the normal is the cross product of two triangle edges. "Three points
     // define a plane" with no constraint code, just two derived atoms.
     const centroidAtom = scene.atom((get) =>
-      Vec3.scaled(Vec3.add(get(a.coords), get(b.coords), get(c.coords)), 1 / 3),
+      get(a.coords)
+        .add(get(b.coords))
+        .add(get(c.coords))
+        .scale(1 / 3),
     );
 
     const normalAtom = scene.atom((get) =>
-      Vec3.cross(
-        Vec3.subtract(get(b.coords), get(a.coords)),
-        Vec3.subtract(get(c.coords), get(a.coords)),
-      ),
+      get(b.coords).sub(get(a.coords)).cross(get(c.coords).sub(get(a.coords))),
     );
 
     // Zero when the points are dragged collinear: the one configuration that
     // does not define a plane.
     const unitNormalAtom = scene.atom((get) => {
       const n = get(normalAtom);
-      const len = Vec3.length(n);
-      return len < 1e-9 ? Vec3.ZERO : Vec3.scaled(n, 1 / len);
+      const len = n.len();
+      return len < 1e-9 ? Vec3.ZERO : n.scale(1 / len);
     });
 
     const sizeAtom = scene.atom(5);
@@ -108,18 +108,18 @@ export default function PlanesDemo() {
     // with the live unit normal readout floating past its tip.
     scene.create("vector3d", {
       origin: centroidAtom,
-      vector: scene.atom((get) => Vec3.scaled(get(unitNormalAtom), 1.6)),
+      vector: scene.atom((get) => get(unitNormalAtom).scale(1.6)),
       color: t("secondary"),
       pointerEvents: "none",
     });
 
     scene.create("overlay3d", {
       position: scene.atom((get) =>
-        Vec3.add(get(centroidAtom), Vec3.scaled(get(unitNormalAtom), 2)),
+        get(centroidAtom).add(get(unitNormalAtom).scale(2)),
       ),
       content: scene.atom((get) => {
         const n = get(unitNormalAtom);
-        if (Vec3.equals(n, Vec3.ZERO)) return String.raw`\text{collinear!}`;
+        if (n.equals(Vec3.ZERO)) return String.raw`\text{collinear!}`;
         return `\\hat{n} = (${n.x.toFixed(2)}, ${n.y.toFixed(2)}, ${n.z.toFixed(2)})`;
       }),
       format: "latex",

@@ -28,7 +28,7 @@ function createSphereLineScene() {
   const rayDir = scene.atom((get) => {
     const origin = get(rayOrigin);
     const target = get(rayDirPoint);
-    return Vec3.normalized(Vec3.subtract(target, origin));
+    return target.sub(origin).unit();
   });
 
   // Derived: sphere-line intersection
@@ -39,10 +39,10 @@ function createSphereLineScene() {
     const center = get(sphereCenter);
     const r = get(sphereRadius);
 
-    const oc = Vec3.subtract(origin, center);
-    const a = Vec3.dot(dir, dir);
-    const b = 2 * Vec3.dot(oc, dir);
-    const c = Vec3.dot(oc, oc) - r * r;
+    const oc = origin.sub(center);
+    const a = dir.dot(dir);
+    const b = 2 * oc.dot(dir);
+    const c = oc.dot(oc) - r * r;
     const discriminant = b * b - 4 * a * c;
 
     if (discriminant < 0) {
@@ -55,22 +55,18 @@ function createSphereLineScene() {
 
     const points: Vec3[] = [];
     if (Math.abs(t1 - t2) < 0.001) {
-      points.push(Vec3.add(origin, Vec3.scaled(dir, t1)));
+      points.push(origin.add(dir.scale(t1)));
     } else {
-      points.push(Vec3.add(origin, Vec3.scaled(dir, t1)));
-      points.push(Vec3.add(origin, Vec3.scaled(dir, t2)));
+      points.push(origin.add(dir.scale(t1)));
+      points.push(origin.add(dir.scale(t2)));
     }
 
     return { hit: true as const, points };
   });
 
   // Derived atoms for rendering
-  const rayExtent = scene.atom((get) =>
-    Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), 20))
-  );
-  const rayBack = scene.atom((get) =>
-    Vec3.add(get(rayOrigin), Vec3.scaled(get(rayDir), -5))
-  );
+  const rayExtent = scene.atom((get) => get(rayOrigin).add(get(rayDir).scale(20)));
+  const rayBack = scene.atom((get) => get(rayOrigin).add(get(rayDir).scale(-5)));
 
   const hit1 = scene.atom((get) => get(intersection).points[0] ?? vec3(0, 0, 0));
   const hit2 = scene.atom((get) => get(intersection).points[1] ?? vec3(0, 0, 0));

@@ -2,7 +2,7 @@ import type { Scene3D } from "../scene3d";
 import type { AtomLikeInput, WritableInput } from "../../shared/atom-wrapper";
 import { ensureAtom, ensureWritableAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
-import { Vec3 as Vec3Utils, vec3, type Vec3 } from "../../shared/types/vec3";
+import { vec3, type Vec3 } from "../../shared/types/vec3";
 
 type ParametricFunc = (t: number) => Vec3;
 
@@ -36,16 +36,16 @@ function findNearestTToRay(
   tEnd: number,
 ): number {
   // Normalize ray direction once
-  const d = Vec3Utils.normalized(rayDir);
+  const d = rayDir.unit();
   let t = currentT;
 
   for (let i = 0; i < NEWTON_ITERATIONS; i++) {
     const pos = f(t);
-    const v = Vec3Utils.subtract(pos, rayOrigin);
+    const v = pos.sub(rayOrigin);
 
     // Rejection of v from d: the component of (f(t) - rayOrigin) perpendicular to the ray
-    const proj = Vec3Utils.dot(v, d);
-    const rejection = Vec3Utils.subtract(v, Vec3Utils.scaled(d, proj));
+    const proj = v.dot(d);
+    const rejection = v.sub(d.scale(proj));
 
     // f'(t) via central difference
     const fPrev = f(t - EPSILON);
@@ -58,12 +58,12 @@ function findNearestTToRay(
 
     // g(t) = f'(t) · rejection(f(t) - origin, rayDir)
     // This is the derivative of the squared ray-curve distance w.r.t. t.
-    const g = Vec3Utils.dot(deriv, rejection);
+    const g = deriv.dot(rejection);
 
     // Gauss-Newton approximation of g'(t):
     // |f'(t)|² - (f'(t) · d)², i.e. the squared length of f'(t) rejected from the ray.
-    const derivDotD = Vec3Utils.dot(deriv, d);
-    const gPrime = Vec3Utils.dot(deriv, deriv) - derivDotD * derivDotD;
+    const derivDotD = deriv.dot(d);
+    const gPrime = deriv.dot(deriv) - derivDotD * derivDotD;
 
     if (Math.abs(gPrime) < 1e-12) break;
 
