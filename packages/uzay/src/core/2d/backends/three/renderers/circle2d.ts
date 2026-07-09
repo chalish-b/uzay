@@ -6,6 +6,7 @@ import type { ItemSnapshot } from "../../../types/item-registry";
 import type { Circle2DStrokeObject, ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_REGION, Z_REGION_STROKE } from "./shared";
 import { checkedColor } from "../../../../shared/types/colors";
+import { dashPatternPx } from "../../../math/dash-pattern";
 
 // Tessellation of a full circle's disk fill and outline polyline. High enough
 // that a viewport-filling circle reads as smooth, cheap enough to rebuild on
@@ -64,7 +65,16 @@ function createStroke(item: ItemSnapshot<"circle2d">): Circle2DStrokeObject | nu
     transparent: item.strokeOpacity < 1,
     opacity: item.strokeOpacity,
   });
+  // Same pixel-unit dash setup as line2d: pattern from the thickness here,
+  // dashScale from the zoom in layout().
+  material.dashed = item.strokeDashed;
+  if (item.strokeDashed) {
+    const { dashPx, gapPx } = dashPatternPx(item.strokeThickness);
+    material.dashSize = dashPx;
+    material.gapSize = gapPx;
+  }
   const mesh = new Line2(geometry, material);
+  if (item.strokeDashed) mesh.computeLineDistances();
   mesh.position.set(item.center.x, item.center.y, Z_REGION_STROKE);
   mesh.visible = item.visible;
   mesh.userData.itemId = item.id;
@@ -121,6 +131,11 @@ export const circle2dRenderer: ItemRenderer<"circle2d"> = {
     disposeStroke(obj.stroke, threeScene);
     obj.stroke = createStroke(item);
     if (obj.stroke) threeScene.add(obj.stroke.mesh);
+  },
+
+  layout(item: ItemSnapshot<"circle2d">, obj: ThreeSceneTypes["circle2d"], ctx): void {
+    if (!item.strokeDashed || !obj.stroke || ctx.viewport.worldPerPixel <= 0) return;
+    obj.stroke.material.dashScale = 1 / ctx.viewport.worldPerPixel;
   },
 
   dispose(obj: ThreeSceneTypes["circle2d"], threeScene: THREE.Object3D): void {

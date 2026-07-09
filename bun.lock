@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "math-lib-monorepo",
@@ -55,7 +56,7 @@
     },
     "packages/uzay": {
       "name": "uzay",
-      "version": "0.1.4",
+      "version": "0.1.6",
       "devDependencies": {
         "@types/katex": "^0.16.8",
         "@types/react": "^19.2.0",

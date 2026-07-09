@@ -105,6 +105,21 @@ By convention a right angle is marked with a square, so that happens on its own:
 angleMark2D(scene, { vertex, a, b, squareRightAngle: false });
 ```
 
+## Marking Equal Angles
+
+To assert that two angles are equal, give their marks the same `marker`: `"tick"` draws short strokes crossing the arc, `"dot"` draws small filled disks inside it. `markerCount` fans 1 to 3 of them around the arc's midpoint so different equality families stay distinguishable:
+
+```typescript
+// A bisector splits the angle into two equal halves; a single tick on each.
+angleMark2D(scene, { vertex, a, b: bisector, marker: "tick" });
+angleMark2D(scene, { vertex, a: bisector, b, marker: "tick" });
+
+// An unrelated equal pair elsewhere gets double dots.
+angleMark2D(scene, { vertex: other, a: p, b: q, marker: "dot", markerCount: 2 });
+```
+
+Markers follow the arms reactively like the arc itself. By default their size scales with `radius`; pass `markerSize` (world units: the tick stroke's length, or the dot's diameter) to pin it independently. While the mark renders as the right-angle square, markers hide: the square already states the measure.
+
 ## Styling
 
 `radius` sets the size of the arc in world units; `color` and `thickness` style its stroke:
@@ -150,8 +165,11 @@ mark.dispose();
 | `thickness` | `number` | `2` | Stroke width |
 | `squareRightAngle` | `boolean` | `true` | Show a right-angle square (instead of the arc) whenever the angle is 90°; set false to keep the arc |
 | `sweep` | `"minor" \| "major" \| "ccw" \| "cw"` | `"minor"` | Which of the two angles the mark draws: smaller, larger, or a fixed counterclockwise/clockwise sweep |
+| `marker` | `"tick" \| "dot"` | no marker | Equal-angle marker on the arc: tick strokes crossing it, or dots inside it; omit for a plain arc |
+| `markerCount` | `1 \| 2 \| 3` | `1` | How many markers to fan around the arc's midpoint |
+| `markerSize` | `number` | scales with `radius` | Marker size in world units: the tick stroke's length, or the dot's diameter |
 
-All options accept either a plain value or an atom.
+All options accept either a plain value or an atom, except `squareRightAngle`, `sweep`, `marker`, and `markerCount`, which are fixed at creation.
 
 ### Returned Handle
 

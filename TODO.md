@@ -59,14 +59,8 @@
 
 ## 2D
 
-- Some kind of tick marks support on lines and angle markers to show that their lengths are equal.
-  - Idk what the right API would be though. Maybe just add it as an option directly to the line / angle itself, or should it be a construction?
-  - A workaround can just be an overlay for now, but that wouldn't work with rotation.
 - Some kind of construction like circlePoint2D to add a point on a circle
-- Function plotting is still weird, especially for steep stuff like log(x), sqrt(x), 1/x etc around x=0.
 - A construction to display an area _between_ two functions. A logical extension of area under construction.
 - Adding limits to the zoom and pan in the camera
 - Hit testing lines in 2D might be an issue
 - Add some anti aliasing to the lines and functions
-- Zooming into a function plot makes the point look not on the function. We need an adaptive function sampling approach I guess.
-  - As a hack though, we can put limits on zoom levels

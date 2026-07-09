@@ -24,6 +24,19 @@ type AngleMark2DOptions = {
   //    "minor"/"major", which always pick by size, these hold one side as b
   //    travels around the vertex, so the mark grows continuously through 180°.
   sweep?: "minor" | "major" | "ccw" | "cw";
+  // An optional marker on the arc asserting this angle equals others carrying
+  // the same marker, the textbook convention for equal-angle families:
+  //  - "tick": short radial strokes crossing the arc.
+  //  - "dot": small filled disks inside the angle, just short of the arc.
+  // Omitted by default: the arc alone marks the angle. Markers hide while the
+  // mark renders as the right-angle square, which asserts its measure by
+  // itself.
+  marker?: "tick" | "dot";
+  // How many markers to fan around the arc's midpoint.
+  markerCount?: 1 | 2 | 3;
+  // Marker size in world units: the tick stroke's length, or the dot's
+  // diameter. Defaults scale with the arc radius.
+  markerSize?: AtomLikeInput<number>;
 };
 
 // How close to 90° counts as a right angle. ±0.5° so the square appears exactly
@@ -89,6 +102,10 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
     ? scene.atom((get) => Math.abs((get(measure) * 180) / Math.PI - 90) < RIGHT_ANGLE_TOL_DEG)
     : null;
 
+  const arcVisible = rightAngle
+    ? scene.atom((get) => !get(rightAngle))
+    : true;
+
   const arc = scene.create("circle2d", {
     center: vertexAtom,
     radius: radiusAtom,
@@ -99,7 +116,7 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
     }),
     strokeColor: colorAtom,
     strokeThickness: thicknessAtom,
-    visible: rightAngle ? scene.atom((get) => !get(rightAngle)) : true,
+    visible: arcVisible,
     pointerEvents: "none",
   });
 
@@ -145,12 +162,89 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
       ]
     : [];
 
+  // Marker positions, one per markerCount: unit radial directions at angles
+  // fanned around the arc's midpoint. The angular step keeps a constant
+  // arc-length spacing (relative to the radius) but tightens when the angle
+  // itself is too narrow to fit the fan.
+  const marker = options.marker;
+  const markerCount = options.markerCount ?? 1;
+  const markerSizeAtom =
+    options.markerSize !== undefined
+      ? ensureAtom(scene.atom, options.markerSize)
+      : null;
+  const markerDirs = marker
+    ? scene.atom((get) => {
+        const { start, delta } = get(sweepAtom);
+        const mid = start + delta / 2;
+        const step = Math.min(0.22, Math.abs(delta) / (markerCount + 1));
+        const dirs: Vec2[] = [];
+        for (let i = 0; i < markerCount; i++) {
+          const theta = mid + (i - (markerCount - 1) / 2) * step;
+          dirs.push(vec2(Math.cos(theta), Math.sin(theta)));
+        }
+        return dirs;
+      })
+    : null;
+
+  const markerDisposers: Array<() => void> = [];
+  if (markerDirs) {
+    for (let i = 0; i < markerCount; i++) {
+      if (marker === "tick") {
+        // A radial stroke crossing the arc, half inside and half outside.
+        const halfLength = scene.atom((get) =>
+          (markerSizeAtom ? get(markerSizeAtom) : get(radiusAtom) * 0.4) / 2
+        );
+        const tick = scene.create("line2d", {
+          start: scene.atom((get) => {
+            const v = get(vertexAtom);
+            const r = get(radiusAtom);
+            const d = get(markerDirs)[i];
+            const h = get(halfLength);
+            return vec2(v.x + d.x * (r - h), v.y + d.y * (r - h));
+          }),
+          end: scene.atom((get) => {
+            const v = get(vertexAtom);
+            const r = get(radiusAtom);
+            const d = get(markerDirs)[i];
+            const h = get(halfLength);
+            return vec2(v.x + d.x * (r + h), v.y + d.y * (r + h));
+          }),
+          color: colorAtom,
+          thickness: thicknessAtom,
+          visible: arcVisible,
+          pointerEvents: "none",
+        });
+        markerDisposers.push(() => scene.remove(tick));
+      } else {
+        // A small filled disk between the vertex and the arc.
+        const dot = scene.create("circle2d", {
+          center: scene.atom((get) => {
+            const v = get(vertexAtom);
+            const r = get(radiusAtom);
+            const d = get(markerDirs)[i];
+            return vec2(v.x + d.x * r * 0.62, v.y + d.y * r * 0.62);
+          }),
+          radius: scene.atom((get) =>
+            (markerSizeAtom ? get(markerSizeAtom) : get(radiusAtom) * 0.16) / 2
+          ),
+          color: colorAtom,
+          opacity: 1,
+          strokeOpacity: 0,
+          visible: arcVisible,
+          pointerEvents: "none",
+        });
+        markerDisposers.push(() => scene.remove(dot));
+      }
+    }
+  }
+
   return {
     mark: arc,
     measure,
     dispose: () => {
       scene.remove(arc);
       for (const side of squareSides) scene.remove(side);
+      for (const disposer of markerDisposers) disposer();
     },
   };
 }

@@ -1,0 +1,112 @@
+---
+title: Segment Mark 2D
+description: Tick and arrow marks asserting equal or parallel segments
+---
+
+import SegmentMark2DDemo from "@/components/demos/segment-mark-2d-demo";
+
+## What is Segment Mark 2D?
+
+`segmentMark2D` draws the small marks geometry figures put on a segment: tick strokes crossing it, the convention for equal lengths, or chevrons along it, the convention for parallel segments. Given the two endpoints `a` and `b`, it renders the marks centered on the segment's midpoint and returns a handle for cleanup.
+
+The construction only draws the marks. It does not draw the segment itself, and it does not check that the marked segments really are equal or parallel: it asserts, you make the assertion true. Because it takes two plain points, it works on a standalone `line2d`, one side of a polygon given by vertices, or a sub-span of a longer segment, none of which need to be their own item.
+
+<SegmentMark2DDemo />
+
+The midsegment theorem, with every mark true by construction: D and E are derived midpoints of the draggable triangle's sides, so the single ticks (AD = DB), the double ticks (AE = EC), and the chevrons (DE parallel to BC) all hold no matter how the vertices move. Each mark is a `segmentMark2D` fed the same point atoms as its segment's `line2d`.
+
+## Basic Usage
+
+```typescript
+import { Scene2D, segmentMark2D, vec2 } from "uzay";
+
+const scene = new Scene2D();
+
+scene.create("camera2d", { center: vec2(0, 0), zoom: 1.5 });
+
+const a = vec2(-2, 0);
+const b = vec2(2, 1);
+
+// Draw the segment yourself.
+scene.create("line2d", { start: a, end: b });
+
+// Mark it with a tick.
+segmentMark2D(scene, { a, b, color: "gold" });
+```
+
+## Reactive Endpoints
+
+The endpoints can be atoms, so the marks follow points you control. They are read-only as far as the construction is concerned: it never writes them, it only draws the marks they imply.
+
+```typescript
+const a = scene.create("point2d", { coords: vec2(-2, 0), color: "gold" });
+const b = scene.create("point2d", { coords: vec2(2, 1), color: "gold" });
+
+scene.create("line2d", { start: a.coords, end: b.coords });
+segmentMark2D(scene, { a: a.coords, b: b.coords });
+```
+
+Drag either point and the marks slide to stay centered on the segment.
+
+## Ticks and Arrows
+
+`variant` picks what the mark asserts, and `count` fans 1 to 3 of them so different families stay distinguishable:
+
+```typescript
+// Equal lengths: single and double ticks are two separate equality families.
+segmentMark2D(scene, { a: p1, b: q1, count: 1 });
+segmentMark2D(scene, { a: p2, b: q2, count: 2 });
+
+// Parallel segments: chevrons pointing from a to b.
+segmentMark2D(scene, { a: r1, b: s1, variant: "arrow" });
+segmentMark2D(scene, { a: r2, b: s2, variant: "arrow" });
+```
+
+Ticks are perpendicular to the segment. Chevrons point along it, from `a` toward `b`, so the two ends are not interchangeable for the arrow variant.
+
+## Styling
+
+`size` sets the mark's extent in world units (the tick's length, or the chevron's width), so marks scale with the figure. `color` and `thickness` style the strokes:
+
+```typescript
+segmentMark2D(scene, {
+  a,
+  b,
+  count: 2,
+  size: 0.35,
+  color: "tomato",
+  thickness: 3,
+});
+```
+
+## Cleanup
+
+The returned handle removes every stroke the construction created:
+
+```typescript
+const mark = segmentMark2D(scene, { a, b });
+
+mark.dispose();
+```
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `a` | `Vec2` | (required) | One endpoint of the segment |
+| `b` | `Vec2` | (required) | The other endpoint |
+| `variant` | `"tick" \| "arrow"` | `"tick"` | Ticks across the segment (equal lengths) or chevrons along it (parallel segments) |
+| `count` | `1 \| 2 \| 3` | `1` | How many marks to fan around the midpoint |
+| `size` | `number` | `0.25` | Mark extent in world units: the tick's length, or the chevron's width |
+| `color` | `string` | `"white"` | Stroke color |
+| `thickness` | `number` | `2` | Stroke width |
+
+`a`, `b`, `size`, `color`, and `thickness` accept either a plain value or an atom. `variant` and `count` are fixed at creation.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dispose` | `() => void` | Removes the marks from the scene |

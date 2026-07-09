@@ -1,19 +1,19 @@
 import { useMemo, useState } from "react";
-import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
+import { Scene2D, angleMark2D, segmentMark2D, vec2, type WritableBoundAtom } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
-// Function sampling torture bench.
+// Dash & mark test bench.
 //
-// Each case is one scene rendered by BOTH backends side by side (threejs left,
-// svg right) with a shared camera, so pan/zoom stays in sync and any visual
-// difference between the backends is immediately obvious. The cases cover the
-// hard parts of plotting: asymptotes, jumps, domain edges, removable holes,
-// high frequencies, needle-thin features, and viewport-dependent resampling.
+// Exercises dashed strokes (line2d, circle2d), segmentMark2D (ticks, arrows),
+// and angleMark2D decorations (ticks, dots). Each case is one scene rendered
+// by BOTH backends side by side (threejs left, svg right) with a shared
+// camera, so pan/zoom stays in sync and any visual difference between the
+// backends is immediately obvious.
 //
 // General checks that apply to every case:
 // - both backends look identical
-// - pan and zoom stay smooth, the curve never shimmers while panning
-// - zooming in never exposes polygon corners; zooming out never leaves gaps
+// - dash rhythm and mark sizes behave under pan/zoom as described
+// - dragging any handle keeps everything attached, nothing lags or detaches
 
 type SliderSpec = {
   label: string;
@@ -58,310 +58,320 @@ function baseScene(center = vec2(0, 0), zoom = 1) {
 
 const CASES: BenchCase[] = [
   {
-    id: "reciprocal",
-    title: "1/x — auto asymptote",
+    id: "dashed-lines",
+    title: "Dashed lines",
     notes: [
-      "No declared discontinuities: the pole at x=0 is detected automatically",
-      "Two branches, no vertical wall connecting them",
-      "Branches hug the y-axis and run off-screen steeply, not at a shallow angle",
-      "Zoom in near the pole: the plunge stays steep and smooth",
+      "Dash length scales with thickness: thicker rows have longer dashes",
+      "Zoom in/out: the on-screen dash rhythm stays constant, like thickness",
+      "Drag the yellow handle: dashes recompute while the segment stretches",
+      "The 'dashed' slider toggles the red line between solid and dashed",
+      "Solid top row is the reference: caps round, dashed rows cut flat",
     ],
     build: () => {
       const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: (x: number) => 1 / x,
-        domain: "infinite",
+      scene.create("line2d", {
+        start: vec2(-4, 3),
+        end: vec2(4, 3),
         color: "#4f9cf9",
         thickness: 2,
       });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "pole",
-    title: "1/(x−c) — declared pole",
-    notes: [
-      "The pole is declared via `discontinuities` and follows the slider",
-      "Gap slides along smoothly, never a vertical wall",
-      "Compare with the 1/x case: declared and auto-detected should look alike",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      const poleAtom = scene.atom(1);
-      scene.create("function2d", {
-        f: scene.atom((get) => {
-          const c = get(poleAtom);
-          return (x: number) => 1 / (x - c);
-        }),
-        discontinuities: scene.atom((get) => [get(poleAtom)]),
-        domain: "infinite",
-        color: "#f97583",
-        thickness: 2,
+      scene.create("line2d", {
+        start: vec2(-4, 2),
+        end: vec2(4, 2),
+        color: "#4f9cf9",
+        thickness: 1,
+        dashed: true,
       });
-      return {
-        scene,
-        camera,
-        sliders: [{ label: "pole c", atom: poleAtom, min: -3, max: 3, step: 0.05 }],
-      };
-    },
-  },
-  {
-    id: "tan",
-    title: "tan(x) — many asymptotes",
-    notes: [
-      "Every branch separate, no connector walls, nothing declared by hand",
-      "Each branch runs off both the top and the bottom of the screen",
-      "Zoom way out: branches become near-vertical strokes but stay separate",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: Math.tan,
-        domain: "infinite",
-        color: "#34d399",
+      scene.create("line2d", {
+        start: vec2(-4, 1),
+        end: vec2(4, 1),
+        color: "#4f9cf9",
         thickness: 2,
+        dashed: true,
       });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "log",
-    title: "log(x) — domain edge",
-    notes: [
-      "Curve plunges down the y-axis at x=0 instead of stopping short",
-      "Nothing drawn for x < 0 (f is NaN there)",
-      "Zoom in around the origin: the plunge keeps following the axis",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene(vec2(2, 0));
-      scene.create("function2d", {
-        f: Math.log,
-        domain: "infinite",
+      scene.create("line2d", {
+        start: vec2(-4, 0),
+        end: vec2(4, 0),
+        color: "#4f9cf9",
+        thickness: 4,
+        dashed: true,
+      });
+
+      const handle = scene.create("point2d", {
+        coords: vec2(3, -1.5),
+        color: "#ffd166",
+      });
+      scene.create("line2d", {
+        start: vec2(-4, -1.5),
+        end: handle.coords,
         color: "#ffd166",
         thickness: 2,
+        dashed: true,
       });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "sinax",
-    title: "sin(ax) — high frequency",
-    notes: [
-      "Crank `a` to the max: the wave stays smooth, no jagged corners",
-      "No aliasing: the curve never collapses into a flat or misshapen line",
-      "Extremely high a degrades to a dense band, never to garbage",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      const freqAtom = scene.atom(5);
-      scene.create("function2d", {
-        f: scene.atom((get) => {
-          const a = get(freqAtom);
-          return (x: number) => 2 * Math.sin(a * x);
-        }),
-        domain: "infinite",
-        color: "#4f9cf9",
-        thickness: 1.5,
+
+      const dashedToggle = scene.atom(1);
+      scene.create("line2d", {
+        start: vec2(-4, -3),
+        end: vec2(4, -3),
+        color: "#f97583",
+        thickness: 2,
+        dashed: scene.atom((get) => get(dashedToggle) > 0.5),
       });
       return {
         scene,
         camera,
-        sliders: [{ label: "a", atom: freqAtom, min: 1, max: 120, step: 1 }],
+        sliders: [
+          { label: "dashed", atom: dashedToggle, min: 0, max: 1, step: 1 },
+        ],
       };
     },
   },
   {
-    id: "sinrecip",
-    title: "sin(1/x) — infinite oscillation",
+    id: "dashed-circles",
+    title: "Dashed circles + arcs",
     notes: [
-      "Oscillates infinitely fast toward x=0: must stay responsive, no freeze",
-      "Away from 0 the wave is clean; near 0 it degrades to a dense scribble",
-      "Zoom into the chaos region: detail keeps resolving as far as it can",
+      "Grow the radius: dash count increases, dash length stays put on screen",
+      "The arc dashes along its curve only; the sector fill is untouched",
+      "Solid circle is the reference for stroke weight and color",
+      "Zoom: circle dashes and line dashes share one rhythm at equal thickness",
     ],
     build: () => {
       const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: (x: number) => Math.sin(1 / x),
-        domain: "infinite",
-        color: "#a78bfa",
-        thickness: 1.5,
+      const radiusAtom = scene.atom(2);
+      scene.create("circle2d", {
+        center: vec2(-2, 0.5),
+        radius: radiusAtom,
+        strokeColor: "#4f9cf9",
+        strokeThickness: 2,
+        strokeDashed: true,
       });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "floor",
-    title: "floor(x) — jumps",
-    notes: [
-      "Flat treads with clean breaks: no vertical risers at the integers",
-      "Each tread runs the full unit right up to both jumps",
-      "Zoomed far out the treads merge visually but never grow risers",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: Math.floor,
-        domain: "infinite",
-        color: "#f59e0b",
-        thickness: 2,
+      scene.create("circle2d", {
+        center: vec2(2.5, 1),
+        radius: 1.5,
+        thetaStart: 0,
+        thetaEnd: Math.PI * 1.25,
+        color: "#34d399",
+        opacity: 0.12,
+        strokeColor: "#34d399",
+        strokeThickness: 3,
+        strokeDashed: true,
       });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "roots",
-    title: "√x and ∛x — vertical tangents",
-    notes: [
-      "Steep but continuous: neither curve breaks at its vertical tangent",
-      "√x starts exactly at the origin, nothing drawn for x < 0",
-      "∛x passes through the origin in one unbroken S-curve",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: Math.sqrt,
-        domain: "infinite",
+      scene.create("circle2d", {
+        center: vec2(2.5, -2),
+        radius: 1,
+        strokeColor: "#f97583",
+        strokeThickness: 2,
+      });
+      scene.create("line2d", {
+        start: vec2(-4.5, -2.5),
+        end: vec2(0.5, -2.5),
         color: "#4f9cf9",
         thickness: 2,
+        dashed: true,
       });
-      scene.create("function2d", {
-        f: Math.cbrt,
-        domain: "infinite",
-        color: "#f97583",
-        thickness: 2,
-      });
-      return { scene, camera, sliders: [] };
+      return {
+        scene,
+        camera,
+        sliders: [
+          { label: "radius", atom: radiusAtom, min: 0.5, max: 3.5, step: 0.05 },
+        ],
+      };
     },
   },
   {
-    id: "sinc",
-    title: "sin(x)/x — removable hole",
+    id: "segment-ticks",
+    title: "Segment marks: ticks",
     notes: [
-      "Undefined only at x=0: the curve still looks continuous through it",
-      "Zoom into (0, 1) as far as you can: any gap stays below a pixel",
+      "Isosceles setup: the two green double-ticked sides, single blue on base",
+      "Drag any vertex: marks stay centered and perpendicular to their side",
+      "Marks are world-sized: they zoom with the figure, unlike dash patterns",
+      "The size slider scales tick length and the fan spacing together",
     ],
     build: () => {
       const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: (x: number) => Math.sin(x) / x,
-        domain: "infinite",
+      const sizeAtom = scene.atom(0.3);
+      const a = scene.create("point2d", { coords: vec2(-3, -2), color: "#ffd166" });
+      const b = scene.create("point2d", { coords: vec2(3, -2), color: "#ffd166" });
+      const c = scene.create("point2d", { coords: vec2(0, 2.5), color: "#ffd166" });
+      scene.create("line2d", { start: a.coords, end: b.coords, color: "#ccc", thickness: 2 });
+      scene.create("line2d", { start: b.coords, end: c.coords, color: "#ccc", thickness: 2 });
+      scene.create("line2d", { start: c.coords, end: a.coords, color: "#ccc", thickness: 2 });
+      segmentMark2D(scene, {
+        a: a.coords,
+        b: c.coords,
+        count: 2,
+        size: sizeAtom,
         color: "#34d399",
         thickness: 2,
       });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "needle",
-    title: "Gaussian needle — narrow spike",
-    notes: [
-      "Shrink σ: the spike keeps its full height instead of vanishing",
-      "The spike's sides stay smooth at any zoom",
-      "At extreme σ the needle is thinner than the seed grid; finding it is",
-      "best-effort, so it may drop out at the very bottom of the range",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      const sigmaAtom = scene.atom(0.3);
-      scene.create("function2d", {
-        f: scene.atom((get) => {
-          const s = get(sigmaAtom);
-          return (x: number) => 4 * Math.exp((-x * x) / (2 * s * s));
-        }),
-        domain: "infinite",
-        color: "#ffd166",
+      segmentMark2D(scene, {
+        a: b.coords,
+        b: c.coords,
+        count: 2,
+        size: sizeAtom,
+        color: "#34d399",
+        thickness: 2,
+      });
+      segmentMark2D(scene, {
+        a: a.coords,
+        b: b.coords,
+        count: 1,
+        size: sizeAtom,
+        color: "#4f9cf9",
         thickness: 2,
       });
       return {
         scene,
         camera,
-        sliders: [{ label: "σ", atom: sigmaAtom, min: 0.002, max: 0.5, step: 0.002 }],
+        sliders: [
+          { label: "size", atom: sizeAtom, min: 0.1, max: 0.8, step: 0.01 },
+        ],
       };
     },
   },
   {
-    id: "exp",
-    title: "eˣ — runaway growth",
+    id: "segment-arrows",
+    title: "Segment marks: arrows",
     notes: [
-      "Exits the top of the screen steeply; no overflow artifacts anywhere",
-      "Pan right: the exit point follows, the curve never disappears",
-      "Coordinates blow up fast off-screen; clipping must keep things stable",
+      "Chevrons point from a to b: swap ends by dragging past each other",
+      "Double chevrons on the second pair distinguish the parallel families",
+      "Triple ticks on the vertical segment: the count fan stays centered",
+      "Drag handles: chevrons keep their heading along the segment",
     ],
     build: () => {
       const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: Math.exp,
-        domain: "infinite",
-        color: "#f97583",
-        thickness: 2,
-      });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "finite",
-    title: "x² on [−3, 3] — finite domain",
-    notes: [
-      "Ends exactly at x=±3",
-      "Zoom deep into the curve: it stays smooth (finite domains resample on",
-      "zoom too, there is no fixed sample count to run out of)",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      scene.create("function2d", {
-        f: (x: number) => x * x,
-        domain: [-3, 3],
+      const a1 = scene.create("point2d", { coords: vec2(-4, 2), color: "#ffd166" });
+      const b1 = scene.create("point2d", { coords: vec2(1, 3), color: "#ffd166" });
+      scene.create("line2d", { start: a1.coords, end: b1.coords, color: "#ccc", thickness: 2 });
+      segmentMark2D(scene, {
+        a: a1.coords,
+        b: b1.coords,
+        variant: "arrow",
         color: "#4f9cf9",
         thickness: 2,
+        size: 0.3,
       });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "astroid",
-    title: "Parametric: astroid + spiral",
-    notes: [
-      "The astroid's four cusps stay razor sharp at any zoom",
-      "The spiral runs far off-screen: the visible part stays smooth and the",
-      "off-screen part is clipped away",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      scene.create("parametricfunction2d", {
-        f: (t: number) => vec2(3 * Math.cos(t) ** 3, 3 * Math.sin(t) ** 3),
-        tStart: 0,
-        tEnd: Math.PI * 2,
+      scene.create("line2d", { start: vec2(-4, 0.5), end: vec2(1, 1.5), color: "#ccc", thickness: 2 });
+      segmentMark2D(scene, {
+        a: vec2(-4, 0.5),
+        b: vec2(1, 1.5),
+        variant: "arrow",
+        color: "#4f9cf9",
+        thickness: 2,
+        size: 0.3,
+      });
+
+      scene.create("line2d", { start: vec2(-3, -3), end: vec2(2, -1), color: "#ccc", thickness: 2 });
+      segmentMark2D(scene, {
+        a: vec2(-3, -3),
+        b: vec2(2, -1),
+        variant: "arrow",
+        count: 2,
         color: "#34d399",
         thickness: 2,
+        size: 0.3,
       });
-      scene.create("parametricfunction2d", {
-        f: (t: number) =>
-          vec2(0.05 * Math.exp(0.25 * t) * Math.cos(t), 0.05 * Math.exp(0.25 * t) * Math.sin(t)),
-        tStart: 0,
-        tEnd: Math.PI * 8,
-        color: "#a78bfa",
-        thickness: 1.5,
+      scene.create("line2d", { start: vec2(3.5, -3), end: vec2(3.5, 3), color: "#ccc", thickness: 2 });
+      segmentMark2D(scene, {
+        a: vec2(3.5, -3),
+        b: vec2(3.5, 3),
+        count: 3,
+        color: "#f97583",
+        thickness: 2,
+        size: 0.3,
       });
       return { scene, camera, sliders: [] };
     },
   },
   {
-    id: "ptan",
-    title: "Parametric: (t, tan t)",
+    id: "angle-marks",
+    title: "Angle marks: ticks & dots",
     notes: [
-      "Same tan picture as the function case, drawn as a parametric curve",
-      "Branches split automatically, no connector walls",
+      "Plain arc at the top right: no marker unless one is asked for",
+      "Bisector setup: both halves at the vertex carry a single-ticked arc",
+      "Drag an arm: ticks stay on the arc midline, dots stay inside the angle",
+      "Make a marked angle exactly 90°: the square appears, markers hide",
+      "The radius slider scales the arcs; the dotted mark keeps its own",
+      "markerSize, so its dots stay put while its arc grows",
     ],
     build: () => {
-      const { scene, camera } = baseScene();
-      scene.create("parametricfunction2d", {
-        f: (t: number) => vec2(t, Math.tan(t)),
-        tStart: -8,
-        tEnd: 8,
-        color: "#f59e0b",
-        thickness: 2,
+      const { scene, camera } = baseScene(vec2(0.5, 0.5));
+      const radiusAtom = scene.atom(0.8);
+      const vertex = vec2(-2, -2);
+      const armA = scene.create("point2d", { coords: vec2(2.5, -1), color: "#ffd166" });
+      const armB = scene.create("point2d", { coords: vec2(-1, 2.5), color: "#ffd166" });
+      // Bisector direction: sum of the unit vectors toward the two arms.
+      const bisectorEnd = scene.atom((get) => {
+        const a = get(armA.coords);
+        const b = get(armB.coords);
+        const ma = Math.hypot(a.x - vertex.x, a.y - vertex.y) || 1;
+        const mb = Math.hypot(b.x - vertex.x, b.y - vertex.y) || 1;
+        const dx = (a.x - vertex.x) / ma + (b.x - vertex.x) / mb;
+        const dy = (a.y - vertex.y) / ma + (b.y - vertex.y) / mb;
+        const m = Math.hypot(dx, dy) || 1;
+        return vec2(vertex.x + (dx / m) * 4, vertex.y + (dy / m) * 4);
       });
-      return { scene, camera, sliders: [] };
+      scene.create("line2d", { start: vertex, end: armA.coords, color: "#ccc", thickness: 2 });
+      scene.create("line2d", { start: vertex, end: armB.coords, color: "#ccc", thickness: 2 });
+      scene.create("line2d", {
+        start: vertex,
+        end: bisectorEnd,
+        color: "#f97583",
+        thickness: 2,
+        dashed: true,
+      });
+      angleMark2D(scene, {
+        vertex,
+        a: armA.coords,
+        b: bisectorEnd,
+        radius: radiusAtom,
+        color: "#34d399",
+        marker: "tick",
+      });
+      angleMark2D(scene, {
+        vertex,
+        a: bisectorEnd,
+        b: armB.coords,
+        radius: scene.atom((get) => get(radiusAtom) * 1.35),
+        color: "#34d399",
+        marker: "tick",
+      });
+
+      // A second, independent angle marked with double dots of a fixed size.
+      const dotVertex = vec2(3, -1);
+      const dotArm = scene.create("point2d", { coords: vec2(4.5, -3), color: "#ffd166" });
+      scene.create("line2d", { start: dotVertex, end: dotArm.coords, color: "#ccc", thickness: 2 });
+      scene.create("line2d", { start: dotVertex, end: vec2(1.5, -3), color: "#ccc", thickness: 2 });
+      angleMark2D(scene, {
+        vertex: dotVertex,
+        a: dotArm.coords,
+        b: vec2(1.5, -3),
+        radius: radiusAtom,
+        color: "#a78bfa",
+        marker: "dot",
+        markerCount: 2,
+        markerSize: 0.12,
+      });
+
+      // And a plain, unmarked arc: the default look.
+      const plainVertex = vec2(3, 2);
+      const plainArm = scene.create("point2d", { coords: vec2(4.8, 3), color: "#ffd166" });
+      scene.create("line2d", { start: plainVertex, end: plainArm.coords, color: "#ccc", thickness: 2 });
+      scene.create("line2d", { start: plainVertex, end: vec2(1.5, 3.5), color: "#ccc", thickness: 2 });
+      angleMark2D(scene, {
+        vertex: plainVertex,
+        a: plainArm.coords,
+        b: vec2(1.5, 3.5),
+        radius: radiusAtom,
+        color: "#4f9cf9",
+      });
+      return {
+        scene,
+        camera,
+        sliders: [
+          { label: "radius", atom: radiusAtom, min: 0.3, max: 1.6, step: 0.02 },
+        ],
+      };
     },
   },
 ];
@@ -440,7 +450,7 @@ export default function Demo1() {
         }}
       >
         <div style={{ color: "#ccc", fontSize: 12, fontWeight: 600 }}>
-          Sampling torture bench
+          Dash & mark test bench
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {CASES.map((c) => (

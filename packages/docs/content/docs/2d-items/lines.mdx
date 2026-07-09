@@ -76,6 +76,22 @@ scene.create("line2d", {
 
 This is handy for de-emphasizing construction or guide lines without hiding them entirely.
 
+### Dashed
+
+Set `dashed` to draw the segment with a dashed stroke:
+
+```typescript
+scene.create("line2d", {
+  start: vec2(0, 0),
+  end: vec2(4, 3),
+  color: "cyan",
+  thickness: 2,
+  dashed: true,
+});
+```
+
+The dash pattern is derived from the thickness, so thicker lines get proportionally longer dashes, and it keeps a constant on-screen rhythm at any zoom, just like the thickness itself. Dashed strokes are the usual convention for auxiliary geometry: extensions of a side, implied segments, construction lines.
+
 ## Examples
 
 ### Connecting Two Points
@@ -156,6 +172,7 @@ line.opacity.set(0.5);
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `dashed` | `boolean` | `false` | Draw a dashed stroke (pattern derived from `thickness`) |
 | `visible` | `boolean` | `true` | Whether the line is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the line receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
@@ -170,6 +187,7 @@ line.opacity.set(0.5);
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |
+| `dashed` | `BoundAtom<boolean>` | Dashed stroke atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

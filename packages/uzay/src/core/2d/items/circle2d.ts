@@ -24,6 +24,9 @@ export type Circle2DFields = {
   strokeColor: Color;
   strokeOpacity: number;
   strokeThickness: number;
+  // Draw the outline with a dashed stroke. The dash pattern is derived from
+  // the stroke thickness and keeps a constant on-screen rhythm at any zoom.
+  strokeDashed: boolean;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -44,6 +47,7 @@ export const circle2dDefinition = defineItem2D({
     strokeColor: field<Color>("white"),
     strokeOpacity: field(1),
     strokeThickness: field(2),
+    strokeDashed: field(false),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },

@@ -52,6 +52,17 @@ scene.create("circle2d", {
 
 Setting `strokeThickness` or `strokeOpacity` to `0` hides the outline.
 
+`strokeDashed` draws the outline dashed, with the pattern derived from `strokeThickness` and a constant on-screen rhythm at any zoom, the same behavior as a dashed [line2d](/docs/2d-items/lines). With an angular span it dashes just the arc, which suits implied or auxiliary arcs:
+
+```typescript
+scene.create("circle2d", {
+  center: vec2(0, 0),
+  radius: 2,
+  strokeColor: "white",
+  strokeDashed: true,
+});
+```
+
 ### Fill
 
 `color` and `opacity` control the filled disk. Raise `opacity` above `0` to shade it:
@@ -169,6 +180,7 @@ circle.strokeColor.set("seagreen");
 | `strokeColor` | `string` | `"white"` | Outline color |
 | `strokeOpacity` | `number` | `1` | Outline opacity (0 hides the outline) |
 | `strokeThickness` | `number` | `2` | Outline width |
+| `strokeDashed` | `boolean` | `false` | Draw a dashed outline (pattern derived from `strokeThickness`) |
 | `visible` | `boolean` | `true` | Whether the circle is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the circle receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
@@ -187,6 +199,7 @@ circle.strokeColor.set("seagreen");
 | `strokeColor` | `BoundAtom<string>` | Stroke color atom |
 | `strokeOpacity` | `BoundAtom<number>` | Stroke opacity atom |
 | `strokeThickness` | `BoundAtom<number>` | Stroke width atom |
+| `strokeDashed` | `BoundAtom<boolean>` | Dashed outline atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

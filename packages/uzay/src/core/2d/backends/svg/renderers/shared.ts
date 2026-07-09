@@ -2,6 +2,7 @@ import type { ItemKind } from "../../../types/item-registry";
 import type { ItemRenderer2D } from "../../../backend";
 import type { FunctionSamplingPlan } from "../../../math/function-sampling";
 import type { ParametricSamplingPlan } from "../../../math/parametric-sampling";
+import { dashPatternPx } from "../../../math/dash-pattern";
 import {
   warnIfRgbaColor,
   type Color,
@@ -46,6 +47,9 @@ export type SvgSceneTypes = {
   line2d: {
     kind: "line2d";
     line: SVGLineElement;
+    // worldPerPixel the dashed stroke was last laid out at, null while the
+    // stroke is solid (or before the first layout pass).
+    dashWorldPerPixel: number | null;
   };
   vector2d: {
     kind: "vector2d";
@@ -62,6 +66,9 @@ export type SvgSceneTypes = {
     kind: "circle2d";
     fill: SVGPathElement | SVGCircleElement;
     stroke: SVGPathElement | SVGCircleElement | null;
+    // worldPerPixel the dashed stroke was last laid out at, null while the
+    // stroke is solid (or before the first layout pass).
+    dashWorldPerPixel: number | null;
   };
   parametricfunction2d: {
     kind: "parametricfunction2d";
@@ -138,6 +145,37 @@ export function applyStrokePx(
     "vector-effect": "non-scaling-stroke",
     fill: "none",
   });
+}
+
+// Dashed stroke styling. Dashes bypass non-scaling-stroke: browsers disagree
+// on which coordinate space dash lengths live in under that vector effect, so
+// the stroke is drawn in plain user (world) units instead, with the width and
+// dash pattern converted from pixels against the current zoom. The item's
+// layout() hook re-applies this whenever worldPerPixel changes, keeping the
+// on-screen rhythm constant. Butt caps match the three backend's hard dash
+// cuts.
+export function applyStrokeDashedWorld(
+  el: SVGElement,
+  color: Color,
+  thickness: number,
+  opacity: number,
+  worldPerPixel: number
+): void {
+  const { dashPx, gapPx } = dashPatternPx(thickness);
+  setAttrs(el, {
+    stroke: cssColor(color),
+    "stroke-width": thickness * worldPerPixel,
+    "stroke-opacity": opacity,
+    "stroke-dasharray": `${dashPx * worldPerPixel} ${gapPx * worldPerPixel}`,
+    "stroke-linecap": "butt",
+    "stroke-linejoin": "round",
+    fill: "none",
+  });
+  el.removeAttribute("vector-effect");
+}
+
+export function clearDashedStroke(el: SVGElement): void {
+  el.removeAttribute("stroke-dasharray");
 }
 
 export function polylinePathD(

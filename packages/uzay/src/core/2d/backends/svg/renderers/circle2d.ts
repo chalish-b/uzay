@@ -1,6 +1,14 @@
 import type { ItemSnapshot } from "../../../types/item-registry";
 import type { SvgItemRenderer, SvgSceneTypes } from "./shared";
-import { applyStrokePx, cssColor, setAttrs, setVisible, svgEl } from "./shared";
+import {
+  applyStrokeDashedWorld,
+  applyStrokePx,
+  clearDashedStroke,
+  cssColor,
+  setAttrs,
+  setVisible,
+  svgEl,
+} from "./shared";
 
 const FULL_SPAN_EPSILON = 1e-9;
 
@@ -47,9 +55,36 @@ function shouldShowStroke(item: ItemSnapshot<"circle2d">): boolean {
   return item.strokeThickness > 0 && item.strokeOpacity > 0;
 }
 
+function applyStroke(
+  item: ItemSnapshot<"circle2d">,
+  stroke: SVGElement,
+  dashWorldPerPixel: number | null
+): void {
+  if (item.strokeDashed && dashWorldPerPixel !== null) {
+    applyStrokeDashedWorld(
+      stroke,
+      item.strokeColor,
+      item.strokeThickness,
+      item.strokeOpacity,
+      dashWorldPerPixel
+    );
+  } else {
+    // Solid, or dashed but not laid out yet: layout() runs later in the same
+    // frame and applies the dash pattern before the browser paints.
+    applyStrokePx(
+      stroke,
+      item.strokeColor,
+      item.strokeThickness,
+      item.strokeOpacity
+    );
+    clearDashedStroke(stroke);
+  }
+}
+
 function build(
   item: ItemSnapshot<"circle2d">,
-  container: { g: SVGGElement }
+  container: { g: SVGGElement },
+  dashWorldPerPixel: number | null
 ): Pick<SvgSceneTypes["circle2d"], "fill" | "stroke"> {
   const full = isFullSpan(item);
 
@@ -77,12 +112,7 @@ function build(
       stroke = svgEl("path");
       stroke.setAttribute("d", arcD(item));
     }
-    applyStrokePx(
-      stroke,
-      item.strokeColor,
-      item.strokeThickness,
-      item.strokeOpacity
-    );
+    applyStroke(item, stroke, dashWorldPerPixel);
     setVisible(stroke, item.visible);
     container.g.appendChild(stroke);
   }
@@ -92,8 +122,8 @@ function build(
 
 export const circle2dSvgRenderer: SvgItemRenderer<"circle2d"> = {
   create(item, container) {
-    const { fill, stroke } = build(item, container);
-    return { kind: "circle2d", fill, stroke };
+    const { fill, stroke } = build(item, container, null);
+    return { kind: "circle2d", fill, stroke, dashWorldPerPixel: null };
   },
 
   // The fill element's tag depends on the span (circle vs wedge path), so the
@@ -101,9 +131,20 @@ export const circle2dSvgRenderer: SvgItemRenderer<"circle2d"> = {
   update(item, obj, container) {
     obj.fill.remove();
     obj.stroke?.remove();
-    const { fill, stroke } = build(item, container);
+    const { fill, stroke } = build(item, container, obj.dashWorldPerPixel);
     obj.fill = fill;
     obj.stroke = stroke;
+  },
+
+  layout(item, obj, ctx) {
+    if (!item.strokeDashed) {
+      obj.dashWorldPerPixel = null;
+      return;
+    }
+    const wpp = ctx.viewport.worldPerPixel;
+    if (wpp <= 0 || wpp === obj.dashWorldPerPixel) return;
+    obj.dashWorldPerPixel = wpp;
+    if (obj.stroke) applyStroke(item, obj.stroke, wpp);
   },
 
   dispose(obj) {
