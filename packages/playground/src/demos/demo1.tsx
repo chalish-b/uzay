@@ -1,19 +1,22 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Scene2D, angleMark2D, functionPoint2D, segmentMark2D, vec2, type WritableBoundAtom } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
-// Dash & mark test bench.
+// Reactive mark options sandbox.
 //
-// Exercises dashed strokes (line2d, circle2d), segmentMark2D (ticks, arrows),
-// angleMark2D decorations (ticks, dots), and the constructions' shared
-// `visible` option. Each case is one scene rendered by BOTH backends side by
-// side (threejs left, svg right) with a shared camera, so pan/zoom stays in
-// sync and any visual difference between the backends is immediately obvious.
+// Every construction option here is an atom: the sliders retarget marks live.
+// - variant flips the segment mark between ticks and chevrons; count fans 1-3
+// - marker cycles the green angle through none / tick / dot; its markers
+//   reuse the count slider
+// - sweep walks minor / major / ccw / cw on the green angle: the arc swaps
+//   sides and grows through 180°
+// - square toggles squareRightAngle on the red right angle
+// - domain widens/narrows the purple curve handle's reach: drag it against
+//   the bound
 //
-// General checks that apply to every case:
-// - both backends look identical
-// - dash rhythm and mark sizes behave under pan/zoom as described
-// - dragging any handle keeps everything attached, nothing lags or detaches
+// The scene renders in BOTH backends side by side (threejs left, svg right)
+// with a shared camera, so pan/zoom stays in sync and any visual difference
+// between the backends is immediately obvious.
 
 type SliderSpec = {
   label: string;
@@ -23,20 +26,9 @@ type SliderSpec = {
   step: number;
 };
 
-type BenchCase = {
-  id: string;
-  title: string;
-  notes: string[];
-  build: () => {
-    scene: Scene2D;
-    camera: ReturnType<Scene2D["create"]>;
-    sliders: SliderSpec[];
-  };
-};
-
-function baseScene(center = vec2(0, 0), zoom = 1) {
+function buildScene() {
   const scene = new Scene2D();
-  const camera = scene.create("camera2d", { center, zoom });
+  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 1 });
   scene.create("grid2d", {
     rangeX: true,
     rangeY: true,
@@ -53,405 +45,86 @@ function baseScene(center = vec2(0, 0), zoom = 1) {
     tickStep: "auto",
     labels: true,
   });
-  return { scene, camera };
+
+  const variantToggle = scene.atom(0);
+  const countSlider = scene.atom(1);
+  const markerSlider = scene.atom(0);
+  const sweepSlider = scene.atom(0);
+  const squareToggle = scene.atom(1);
+  const domainSlider = scene.atom(3);
+
+  // A marked segment whose variant and count are both atoms.
+  const segA = scene.create("point2d", { coords: vec2(-4.5, 2.5), color: "#ffd166" });
+  const segB = scene.create("point2d", { coords: vec2(-0.5, 3.2), color: "#ffd166" });
+  scene.create("line2d", { start: segA.coords, end: segB.coords, color: "#ccc", thickness: 2 });
+  segmentMark2D(scene, {
+    a: segA.coords,
+    b: segB.coords,
+    variant: scene.atom((get) =>
+      get(variantToggle) > 0.5 ? ("arrow" as const) : ("tick" as const)
+    ),
+    count: scene.atom((get) => Math.round(get(countSlider)) as 1 | 2 | 3),
+    color: "#4f9cf9",
+    thickness: 2,
+    size: 0.3,
+  });
+
+  // An angle whose marker, marker count, and sweep are atoms.
+  const SWEEPS = ["minor", "major", "ccw", "cw"] as const;
+  const MARKERS = ["none", "tick", "dot"] as const;
+  const vertex = vec2(2.5, 1);
+  const arm = scene.create("point2d", { coords: vec2(4.5, 2.5), color: "#ffd166" });
+  scene.create("line2d", { start: vertex, end: arm.coords, color: "#ccc", thickness: 2 });
+  scene.create("line2d", { start: vertex, end: vec2(0.8, 3), color: "#ccc", thickness: 2 });
+  angleMark2D(scene, {
+    vertex,
+    a: arm.coords,
+    b: vec2(0.8, 3),
+    radius: 0.7,
+    color: "#34d399",
+    marker: scene.atom((get) => MARKERS[Math.round(get(markerSlider))]),
+    markerCount: scene.atom((get) => Math.round(get(countSlider)) as 1 | 2 | 3),
+    sweep: scene.atom((get) => SWEEPS[Math.round(get(sweepSlider))]),
+  });
+
+  // A right angle whose squareRightAngle flag is an atom.
+  const sqVertex = vec2(-3.5, -1.5);
+  const sqArm = scene.create("point2d", { coords: vec2(-1.5, -1.5), color: "#ffd166" });
+  scene.create("line2d", { start: sqVertex, end: sqArm.coords, color: "#ccc", thickness: 2 });
+  scene.create("line2d", { start: sqVertex, end: vec2(-3.5, 0.5), color: "#ccc", thickness: 2 });
+  angleMark2D(scene, {
+    vertex: sqVertex,
+    a: sqArm.coords,
+    b: vec2(-3.5, 0.5),
+    radius: 0.6,
+    color: "#f97583",
+    squareRightAngle: scene.atom((get) => get(squareToggle) > 0.5),
+  });
+
+  // A curve handle whose domain clamp is an atom. The clamp applies while
+  // dragging, so tighten it and the handle stops at the new bound.
+  const f = (x: number) => Math.sin(x * 1.4) * 0.6 - 3.2;
+  scene.create("function2d", { f, domain: "infinite", color: "#a78bfa", thickness: 2 });
+  functionPoint2D(scene, {
+    f,
+    x: 1,
+    color: "#a78bfa",
+    domain: scene.atom(
+      (get) => [-get(domainSlider), get(domainSlider)] as [number, number]
+    ),
+  });
+
+  const sliders: SliderSpec[] = [
+    { label: "variant", atom: variantToggle, min: 0, max: 1, step: 1 },
+    { label: "count", atom: countSlider, min: 1, max: 3, step: 1 },
+    { label: "marker", atom: markerSlider, min: 0, max: 2, step: 1 },
+    { label: "sweep", atom: sweepSlider, min: 0, max: 3, step: 1 },
+    { label: "square", atom: squareToggle, min: 0, max: 1, step: 1 },
+    { label: "domain", atom: domainSlider, min: 0.5, max: 5, step: 0.1 },
+  ];
+
+  return { scene, camera, sliders };
 }
-
-const CASES: BenchCase[] = [
-  {
-    id: "dashed-lines",
-    title: "Dashed lines",
-    notes: [
-      "Dash length scales with thickness: thicker rows have longer dashes",
-      "Zoom in/out: the on-screen dash rhythm stays constant, like thickness",
-      "Drag the yellow handle: dashes recompute while the segment stretches",
-      "The 'dashed' slider toggles the red line between solid and dashed",
-      "Solid top row is the reference: caps round, dashed rows cut flat",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      scene.create("line2d", {
-        start: vec2(-4, 3),
-        end: vec2(4, 3),
-        color: "#4f9cf9",
-        thickness: 2,
-      });
-      scene.create("line2d", {
-        start: vec2(-4, 2),
-        end: vec2(4, 2),
-        color: "#4f9cf9",
-        thickness: 1,
-        dashed: true,
-      });
-      scene.create("line2d", {
-        start: vec2(-4, 1),
-        end: vec2(4, 1),
-        color: "#4f9cf9",
-        thickness: 2,
-        dashed: true,
-      });
-      scene.create("line2d", {
-        start: vec2(-4, 0),
-        end: vec2(4, 0),
-        color: "#4f9cf9",
-        thickness: 4,
-        dashed: true,
-      });
-
-      const handle = scene.create("point2d", {
-        coords: vec2(3, -1.5),
-        color: "#ffd166",
-      });
-      scene.create("line2d", {
-        start: vec2(-4, -1.5),
-        end: handle.coords,
-        color: "#ffd166",
-        thickness: 2,
-        dashed: true,
-      });
-
-      const dashedToggle = scene.atom(1);
-      scene.create("line2d", {
-        start: vec2(-4, -3),
-        end: vec2(4, -3),
-        color: "#f97583",
-        thickness: 2,
-        dashed: scene.atom((get) => get(dashedToggle) > 0.5),
-      });
-      return {
-        scene,
-        camera,
-        sliders: [
-          { label: "dashed", atom: dashedToggle, min: 0, max: 1, step: 1 },
-        ],
-      };
-    },
-  },
-  {
-    id: "dashed-circles",
-    title: "Dashed circles + arcs",
-    notes: [
-      "Grow the radius: dash count increases, dash length stays put on screen",
-      "The arc dashes along its curve only; the sector fill is untouched",
-      "Solid circle is the reference for stroke weight and color",
-      "Zoom: circle dashes and line dashes share one rhythm at equal thickness",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      const radiusAtom = scene.atom(2);
-      scene.create("circle2d", {
-        center: vec2(-2, 0.5),
-        radius: radiusAtom,
-        strokeColor: "#4f9cf9",
-        strokeThickness: 2,
-        strokeDashed: true,
-      });
-      scene.create("circle2d", {
-        center: vec2(2.5, 1),
-        radius: 1.5,
-        thetaStart: 0,
-        thetaEnd: Math.PI * 1.25,
-        color: "#34d399",
-        opacity: 0.12,
-        strokeColor: "#34d399",
-        strokeThickness: 3,
-        strokeDashed: true,
-      });
-      scene.create("circle2d", {
-        center: vec2(2.5, -2),
-        radius: 1,
-        strokeColor: "#f97583",
-        strokeThickness: 2,
-      });
-      scene.create("line2d", {
-        start: vec2(-4.5, -2.5),
-        end: vec2(0.5, -2.5),
-        color: "#4f9cf9",
-        thickness: 2,
-        dashed: true,
-      });
-      return {
-        scene,
-        camera,
-        sliders: [
-          { label: "radius", atom: radiusAtom, min: 0.5, max: 3.5, step: 0.05 },
-        ],
-      };
-    },
-  },
-  {
-    id: "segment-ticks",
-    title: "Segment marks: ticks",
-    notes: [
-      "Isosceles setup: the two green double-ticked sides, single blue on base",
-      "Drag any vertex: marks stay centered and perpendicular to their side",
-      "Marks are world-sized: they zoom with the figure, unlike dash patterns",
-      "The size slider scales tick length and the fan spacing together",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      const sizeAtom = scene.atom(0.3);
-      const a = scene.create("point2d", { coords: vec2(-3, -2), color: "#ffd166" });
-      const b = scene.create("point2d", { coords: vec2(3, -2), color: "#ffd166" });
-      const c = scene.create("point2d", { coords: vec2(0, 2.5), color: "#ffd166" });
-      scene.create("line2d", { start: a.coords, end: b.coords, color: "#ccc", thickness: 2 });
-      scene.create("line2d", { start: b.coords, end: c.coords, color: "#ccc", thickness: 2 });
-      scene.create("line2d", { start: c.coords, end: a.coords, color: "#ccc", thickness: 2 });
-      segmentMark2D(scene, {
-        a: a.coords,
-        b: c.coords,
-        count: 2,
-        size: sizeAtom,
-        color: "#34d399",
-        thickness: 2,
-      });
-      segmentMark2D(scene, {
-        a: b.coords,
-        b: c.coords,
-        count: 2,
-        size: sizeAtom,
-        color: "#34d399",
-        thickness: 2,
-      });
-      segmentMark2D(scene, {
-        a: a.coords,
-        b: b.coords,
-        count: 1,
-        size: sizeAtom,
-        color: "#4f9cf9",
-        thickness: 2,
-      });
-      return {
-        scene,
-        camera,
-        sliders: [
-          { label: "size", atom: sizeAtom, min: 0.1, max: 0.8, step: 0.01 },
-        ],
-      };
-    },
-  },
-  {
-    id: "segment-arrows",
-    title: "Segment marks: arrows",
-    notes: [
-      "Chevrons point from a to b: swap ends by dragging past each other",
-      "Double chevrons on the second pair distinguish the parallel families",
-      "Triple ticks on the vertical segment: the count fan stays centered",
-      "Drag handles: chevrons keep their heading along the segment",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      const a1 = scene.create("point2d", { coords: vec2(-4, 2), color: "#ffd166" });
-      const b1 = scene.create("point2d", { coords: vec2(1, 3), color: "#ffd166" });
-      scene.create("line2d", { start: a1.coords, end: b1.coords, color: "#ccc", thickness: 2 });
-      segmentMark2D(scene, {
-        a: a1.coords,
-        b: b1.coords,
-        variant: "arrow",
-        color: "#4f9cf9",
-        thickness: 2,
-        size: 0.3,
-      });
-      scene.create("line2d", { start: vec2(-4, 0.5), end: vec2(1, 1.5), color: "#ccc", thickness: 2 });
-      segmentMark2D(scene, {
-        a: vec2(-4, 0.5),
-        b: vec2(1, 1.5),
-        variant: "arrow",
-        color: "#4f9cf9",
-        thickness: 2,
-        size: 0.3,
-      });
-
-      scene.create("line2d", { start: vec2(-3, -3), end: vec2(2, -1), color: "#ccc", thickness: 2 });
-      segmentMark2D(scene, {
-        a: vec2(-3, -3),
-        b: vec2(2, -1),
-        variant: "arrow",
-        count: 2,
-        color: "#34d399",
-        thickness: 2,
-        size: 0.3,
-      });
-      scene.create("line2d", { start: vec2(3.5, -3), end: vec2(3.5, 3), color: "#ccc", thickness: 2 });
-      segmentMark2D(scene, {
-        a: vec2(3.5, -3),
-        b: vec2(3.5, 3),
-        count: 3,
-        color: "#f97583",
-        thickness: 2,
-        size: 0.3,
-      });
-      return { scene, camera, sliders: [] };
-    },
-  },
-  {
-    id: "angle-marks",
-    title: "Angle marks: ticks & dots",
-    notes: [
-      "Plain arc at the top right: no marker unless one is asked for",
-      "Bisector setup: both halves at the vertex carry a single-ticked arc",
-      "Drag an arm: ticks stay on the arc midline, dots stay inside the angle",
-      "Make a marked angle exactly 90°: the square appears, markers hide",
-      "The radius slider scales the arcs; the dotted mark keeps its own",
-      "markerSize, so its dots stay put while its arc grows",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene(vec2(0.5, 0.5));
-      const radiusAtom = scene.atom(0.8);
-      const vertex = vec2(-2, -2);
-      const armA = scene.create("point2d", { coords: vec2(2.5, -1), color: "#ffd166" });
-      const armB = scene.create("point2d", { coords: vec2(-1, 2.5), color: "#ffd166" });
-      // Bisector direction: sum of the unit vectors toward the two arms.
-      const bisectorEnd = scene.atom((get) => {
-        const a = get(armA.coords);
-        const b = get(armB.coords);
-        const ma = Math.hypot(a.x - vertex.x, a.y - vertex.y) || 1;
-        const mb = Math.hypot(b.x - vertex.x, b.y - vertex.y) || 1;
-        const dx = (a.x - vertex.x) / ma + (b.x - vertex.x) / mb;
-        const dy = (a.y - vertex.y) / ma + (b.y - vertex.y) / mb;
-        const m = Math.hypot(dx, dy) || 1;
-        return vec2(vertex.x + (dx / m) * 4, vertex.y + (dy / m) * 4);
-      });
-      scene.create("line2d", { start: vertex, end: armA.coords, color: "#ccc", thickness: 2 });
-      scene.create("line2d", { start: vertex, end: armB.coords, color: "#ccc", thickness: 2 });
-      scene.create("line2d", {
-        start: vertex,
-        end: bisectorEnd,
-        color: "#f97583",
-        thickness: 2,
-        dashed: true,
-      });
-      angleMark2D(scene, {
-        vertex,
-        a: armA.coords,
-        b: bisectorEnd,
-        radius: radiusAtom,
-        color: "#34d399",
-        marker: "tick",
-      });
-      angleMark2D(scene, {
-        vertex,
-        a: bisectorEnd,
-        b: armB.coords,
-        radius: scene.atom((get) => get(radiusAtom) * 1.35),
-        color: "#34d399",
-        marker: "tick",
-      });
-
-      // A second, independent angle marked with double dots of a fixed size.
-      const dotVertex = vec2(3, -1);
-      const dotArm = scene.create("point2d", { coords: vec2(4.5, -3), color: "#ffd166" });
-      scene.create("line2d", { start: dotVertex, end: dotArm.coords, color: "#ccc", thickness: 2 });
-      scene.create("line2d", { start: dotVertex, end: vec2(1.5, -3), color: "#ccc", thickness: 2 });
-      angleMark2D(scene, {
-        vertex: dotVertex,
-        a: dotArm.coords,
-        b: vec2(1.5, -3),
-        radius: radiusAtom,
-        color: "#a78bfa",
-        marker: "dot",
-        markerCount: 2,
-        markerSize: 0.12,
-      });
-
-      // And a plain, unmarked arc: the default look.
-      const plainVertex = vec2(3, 2);
-      const plainArm = scene.create("point2d", { coords: vec2(4.8, 3), color: "#ffd166" });
-      scene.create("line2d", { start: plainVertex, end: plainArm.coords, color: "#ccc", thickness: 2 });
-      scene.create("line2d", { start: plainVertex, end: vec2(1.5, 3.5), color: "#ccc", thickness: 2 });
-      angleMark2D(scene, {
-        vertex: plainVertex,
-        a: plainArm.coords,
-        b: vec2(1.5, 3.5),
-        radius: radiusAtom,
-        color: "#4f9cf9",
-      });
-      return {
-        scene,
-        camera,
-        sliders: [
-          { label: "radius", atom: radiusAtom, min: 0.3, max: 1.6, step: 0.02 },
-        ],
-      };
-    },
-  },
-  {
-    id: "construction-visible",
-    title: "Construction visibility",
-    notes: [
-      "The visible slider toggles every construction as one unit; the plain gray segments and gold handles stay put",
-      "The angle opens at exactly 90°: toggling hides the right-angle square, not just the arc",
-      "Drag the gold arm off 90° and toggle again: the arc and its tick marker hide together",
-      "Segment ticks and chevrons hide while their host segments stay",
-      "While hidden, the curve point should not be grabbable",
-    ],
-    build: () => {
-      const { scene, camera } = baseScene();
-      const visibleToggle = scene.atom(1);
-      const visibleAtom = scene.atom((get) => get(visibleToggle) > 0.5);
-
-      // An angle opening at exactly 90°, so the toggle gates the right-angle
-      // square as well as the arc and its marker.
-      const vertex = vec2(-3.5, 0.5);
-      const arm = scene.create("point2d", { coords: vec2(-1, 0.5), color: "#ffd166" });
-      scene.create("line2d", { start: vertex, end: arm.coords, color: "#ccc", thickness: 2 });
-      scene.create("line2d", { start: vertex, end: vec2(-3.5, 3), color: "#ccc", thickness: 2 });
-      angleMark2D(scene, {
-        vertex,
-        a: arm.coords,
-        b: vec2(-3.5, 3),
-        radius: 0.7,
-        color: "#34d399",
-        marker: "tick",
-        visible: visibleAtom,
-      });
-
-      // Marked segments: the marks listen to visible, their host lines don't.
-      scene.create("line2d", { start: vec2(0.5, 2), end: vec2(4.5, 3), color: "#ccc", thickness: 2 });
-      segmentMark2D(scene, {
-        a: vec2(0.5, 2),
-        b: vec2(4.5, 3),
-        count: 2,
-        color: "#4f9cf9",
-        thickness: 2,
-        size: 0.3,
-        visible: visibleAtom,
-      });
-      scene.create("line2d", { start: vec2(0.5, 0.5), end: vec2(4.5, 1.5), color: "#ccc", thickness: 2 });
-      segmentMark2D(scene, {
-        a: vec2(0.5, 0.5),
-        b: vec2(4.5, 1.5),
-        variant: "arrow",
-        color: "#f97583",
-        thickness: 2,
-        size: 0.3,
-        visible: visibleAtom,
-      });
-
-      // A curve-riding handle whose point hides with the toggle.
-      const f = (x: number) => Math.sin(x * 1.4) - 2.2;
-      scene.create("function2d", {
-        f,
-        domain: "infinite",
-        color: "#a78bfa",
-        thickness: 2,
-      });
-      functionPoint2D(scene, {
-        f,
-        x: 1,
-        color: "#ffd166",
-        visible: visibleAtom,
-      });
-
-      return {
-        scene,
-        camera,
-        sliders: [
-          { label: "visible", atom: visibleToggle, min: 0, max: 1, step: 1 },
-        ],
-      };
-    },
-  },
-];
 
 function Slider({ spec }: { spec: SliderSpec }) {
   const [value, setValue] = useAtomState(spec.atom);
@@ -507,73 +180,33 @@ function ViewPane({
 }
 
 export default function Demo1() {
-  const [caseId, setCaseId] = useState(CASES[0].id);
-  const activeCase = CASES.find((c) => c.id === caseId) ?? CASES[0];
-  const { scene, camera, sliders } = useMemo(() => activeCase.build(), [activeCase]);
+  const { scene, camera, sliders } = useMemo(buildScene, []);
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", fontFamily: "system-ui, sans-serif" }}>
-      <div
-        style={{
-          width: 300,
-          flexShrink: 0,
-          overflowY: "auto",
-          padding: 14,
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-          backgroundColor: "#161616",
-          borderRight: "1px solid #2a2a2a",
-        }}
-      >
-        <div style={{ color: "#ccc", fontSize: 12, fontWeight: 600 }}>
-          Dash & mark test bench
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {CASES.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setCaseId(c.id)}
-              style={{
-                textAlign: "left",
-                padding: "5px 8px",
-                border: "1px solid #333",
-                borderRadius: 4,
-                backgroundColor: c.id === caseId ? "#26364d" : "#1d1d1d",
-                color: c.id === caseId ? "#dbe9ff" : "#aaa",
-                fontSize: 11,
-                cursor: "pointer",
-              }}
-            >
-              {c.title}
-            </button>
-          ))}
-        </div>
-
-        {sliders.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {sliders.map((spec) => (
-              <Slider key={spec.label} spec={spec} />
-            ))}
-          </div>
-        )}
-
-        <div style={{ color: "#ccc", fontSize: 11, fontWeight: 600 }}>What to check</div>
-        <ul style={{ margin: 0, paddingLeft: 16, color: "#888", fontSize: 11, lineHeight: 1.5 }}>
-          {activeCase.notes.map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-        </ul>
-        <div style={{ color: "#666", fontSize: 10, lineHeight: 1.5 }}>
-          Both panes share one camera: pan/zoom in either and compare. The two
-          backends must look identical.
-        </div>
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
+    <div style={{ width: "100%", height: "100%", position: "relative", fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex" }}>
         <ViewPane scene={scene} camera={camera} renderer="threejs" />
         <div style={{ width: 1, backgroundColor: "#2a2a2a" }} />
         <ViewPane scene={scene} camera={camera} renderer="svg" />
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 12,
+          left: 12,
+          width: 260,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: 12,
+          borderRadius: 6,
+          backgroundColor: "rgba(22, 22, 22, 0.9)",
+          border: "1px solid #2a2a2a",
+        }}
+      >
+        {sliders.map((spec) => (
+          <Slider key={spec.label} spec={spec} />
+        ))}
       </div>
     </div>
   );

@@ -16,9 +16,9 @@ type SegmentMark2DOptions = {
   //    equal lengths. The tick count distinguishes equality families.
   //  - "arrow": chevrons along the segment pointing from a to b, the convention
   //    for parallel segments.
-  variant?: "tick" | "arrow";
+  variant?: AtomLikeInput<"tick" | "arrow">;
   // How many strokes/chevrons to draw, fanned around the midpoint.
-  count?: 1 | 2 | 3;
+  count?: AtomLikeInput<1 | 2 | 3>;
   // Size of the mark, in world units: the tick's length, or the chevron's width.
   size?: AtomLikeInput<number>;
   color?: AtomLikeInput<Color>;
@@ -28,6 +28,11 @@ type SegmentMark2DOptions = {
 };
 
 type Stroke = { start: Vec2; end: Vec2 };
+
+// The most strokes any variant/count combination needs: 3 chevrons, 2 legs
+// each. That many line2d items exist up front, so variant and count can
+// change reactively; the ones past the current stroke list stay hidden.
+const MAX_STROKES = 6;
 
 /**
  * A small mark on the segment between `a` and `b`: tick strokes crossing it
@@ -42,18 +47,21 @@ export function segmentMark2D(scene: Scene2D, options: SegmentMark2DOptions) {
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
   const thicknessAtom = ensureAtom(scene.atom, options.thickness ?? 2);
   const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
-  const variant = options.variant ?? "tick";
-  const count = options.count ?? 1;
+  const variantAtom = ensureAtom(scene.atom, options.variant ?? "tick");
+  const countAtom = ensureAtom(scene.atom, options.count ?? 1);
 
   // Every stroke endpoint, derived in one place from the segment's frame: the
   // midpoint m, the unit direction u from a to b, and its left perpendicular p.
   // Mark centers sit along u fanned around m; ticks extend along p, chevron
-  // legs sweep back from a tip on u. The array's length is fixed by variant and
-  // count, so each line2d below can safely pick its stroke by index.
+  // legs sweep back from a tip on u. The array's length follows variant and
+  // count; each line2d below picks its stroke by index and hides when its
+  // index falls past the end.
   const strokesAtom = scene.atom<Stroke[]>((get) => {
     const a = get(aAtom);
     const b = get(bAtom);
     const size = get(sizeAtom);
+    const variant = get(variantAtom);
+    const count = get(countAtom);
     const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
     const ux = (b.x - a.x) / len;
     const uy = (b.y - a.y) / len;
@@ -89,14 +97,17 @@ export function segmentMark2D(scene: Scene2D, options: SegmentMark2DOptions) {
     return strokes;
   });
 
-  const strokeCount = variant === "tick" ? count : count * 2;
-  const strokes = Array.from({ length: strokeCount }, (_, i) =>
+  // Hidden lines past the current stroke list park on a degenerate segment at
+  // the origin so their geometry stays valid.
+  const strokes = Array.from({ length: MAX_STROKES }, (_, i) =>
     scene.create("line2d", {
-      start: scene.atom((get) => get(strokesAtom)[i].start),
-      end: scene.atom((get) => get(strokesAtom)[i].end),
+      start: scene.atom((get) => get(strokesAtom)[i]?.start ?? vec2(0, 0)),
+      end: scene.atom((get) => get(strokesAtom)[i]?.end ?? vec2(0, 0)),
       color: colorAtom,
       thickness: thicknessAtom,
-      visible: visibleAtom,
+      visible: scene.atom(
+        (get) => get(visibleAtom) && i < get(strokesAtom).length
+      ),
       pointerEvents: "none",
     })
   );

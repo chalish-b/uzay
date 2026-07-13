@@ -12,7 +12,7 @@ type FunctionPoint2DOptions = {
   // Optional clamp on x. Omit it and the point slides anywhere along the graph;
   // pass [min, max] to confine it to a sub-interval (a curve with real
   // endpoints).
-  domain?: [number, number];
+  domain?: AtomLikeInput<[number, number]>;
   // The x parameter, controlled or uncontrolled. A number (or omitted) seeds an
   // atom the construction owns; a writable atom hands ownership to the caller,
   // so the same one can drive several points at once. Returned as `x`.
@@ -39,6 +39,10 @@ export function functionPoint2D(
   options: FunctionPoint2DOptions,
 ) {
   const fAtom = ensureAtom(scene.atom, options.f, "value");
+  const domainAtom =
+    options.domain !== undefined
+      ? ensureAtom(scene.atom, options.domain)
+      : null;
 
   // Lift y = f(x) into the parametric form curvePoint2D expects, parametrized by
   // x. Derived from fAtom, so swapping f reactively moves the point onto the new
@@ -50,8 +54,8 @@ export function functionPoint2D(
 
   const curve = curvePoint2D(scene, {
     f: parametric,
-    tStart: options.domain?.[0],
-    tEnd: options.domain?.[1],
+    tStart: domainAtom ? scene.atom((get) => get(domainAtom)[0]) : undefined,
+    tEnd: domainAtom ? scene.atom((get) => get(domainAtom)[1]) : undefined,
     t: options.x,
     color: options.color,
     visible: options.visible,
