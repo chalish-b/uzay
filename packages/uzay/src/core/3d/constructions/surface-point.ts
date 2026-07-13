@@ -16,6 +16,8 @@ type SurfacePointOptions = {
   // so the same one can drive several points at once. Returned as `xz`.
   xz?: WritableInput<Vec2>;
   color?: AtomLikeInput<Color>;
+  // Show or hide the whole construction, applied to every item it creates.
+  visible?: AtomLikeInput<boolean>;
 };
 
 const EPSILON = 1e-5;
@@ -94,6 +96,7 @@ export function surfacePoint(scene: Scene3D, options: SurfacePointOptions) {
   const xRangeAtom = ensureAtom(scene.atom, options.xRange ?? [-5, 5] as [number, number]);
   const zRangeAtom = ensureAtom(scene.atom, options.zRange ?? [-5, 5] as [number, number]);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
+  const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
 
   const xzAtom = ensureWritableAtom(scene.atom, options.xz ?? vec2(0, 0));
 
@@ -106,6 +109,7 @@ export function surfacePoint(scene: Scene3D, options: SurfacePointOptions) {
     coords: coordsAtom,
     color: colorAtom,
     draggable: "custom",
+    visible: visibleAtom,
   });
 
   point.on("drag", (event) => {

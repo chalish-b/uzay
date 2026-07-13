@@ -12,6 +12,8 @@ type SurfaceNormalOptions = {
   xz: AtomLikeInput<Vec2>;
   color?: AtomLikeInput<Color>;
   scale?: AtomLikeInput<number>;
+  // Show or hide the whole construction, applied to every item it creates.
+  visible?: AtomLikeInput<boolean>;
 };
 
 const EPSILON = 1e-5;
@@ -21,6 +23,7 @@ export function surfaceNormal(scene: Scene3D, options: SurfaceNormalOptions) {
   const xzAtom = ensureAtom(scene.atom, options.xz);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
   const scaleAtom = ensureAtom(scene.atom, options.scale ?? 1);
+  const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
 
   const normalAtom = scene.atom((get) => {
     const xz = get(xzAtom);
@@ -45,6 +48,7 @@ export function surfaceNormal(scene: Scene3D, options: SurfaceNormalOptions) {
     origin: originAtom,
     vector: scaledNormalAtom,
     color: colorAtom,
+    visible: visibleAtom,
   });
 
   return {

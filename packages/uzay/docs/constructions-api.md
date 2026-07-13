@@ -100,6 +100,12 @@ This mirrors how item definitions mark function-valued fields with `atomize: "va
 - **Common style knobs** that apply to the construction as a whole: expose with sensible defaults (`color`, `length`, `opacity`). One `color` option that applies to all sub-items is better than `pointColor`, `lineColor`, `labelColor`.
 - **Fine-grained style props** for individual sub-items: don't expose as options. Users access the returned item handles instead (`tangent.point.radius.set(5)`).
 
+One whole-construction knob is part of the convention itself, the options-side counterpart of `dispose()`:
+
+- **`visible?: AtomLikeInput<boolean>`**, defaulting to `true`. Every construction accepts it and applies it to every item it creates. It must be an option rather than something set through returned item handles, because a construction may bind internal visibility logic to its items (angleMark2D swaps an arc and a right-angle square through derived visibility atoms); those bindings are read-only from outside, so the user's intent has to be ANDed in. It also composes with narrower toggles: tangentLine's point shows only when both `visible` and `showPoint` are true.
+
+Note that when an option drives several sub-items, they are bound to the same atom. Setting that field through one item's handle (`tangent.line.color.set("red")`) writes the shared atom, so the other items follow, including an atom the caller passed in. Accepted, not defended against: control such fields through the option, and if per-item control keeps coming up, add a dedicated option (the way `showPoint` covers the tangent point).
+
 The rule of thumb: if you'd need more than ~8-10 options to cover everything, you're exposing too much. Keep the options object small, let item handles be the escape hatch for fine-tuning.
 
 ### Read inputs vs. writable state
@@ -213,6 +219,7 @@ The structural fix is usually to own the source at the caller and pass it as the
 | Function-valued fields | `ensureAtom(scene.atom, value, "value")` | Prevents Jotai from misinterpreting functions as derived atoms |
 | Required vs optional | Math inputs required, style optional with defaults | Users always have a specific function/point/direction |
 | Style granularity | One `color` for the whole construction, not per-sub-item | Keep options small, use item handles for fine-tuning |
+| Visibility | `visible?: AtomLikeInput<boolean>` on every construction, default `true`, applied to all its items | Whole-construction toggle; composes with internally derived visibility, which item handles can't override |
 | Return: items | All items, by name | Users can tweak fields, attach handlers, compose further |
 | Return: atoms | Construction-owned atoms (writable or derived), not option atoms | Users access option values via item fields; construction atoms are new state or computed values |
 | Return: dispose | Always | Cleanup for all items the construction created |

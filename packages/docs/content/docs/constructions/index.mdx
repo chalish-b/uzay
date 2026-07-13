@@ -39,6 +39,15 @@ const tAtom = scene.atom(0.5);
 tangentLine(scene, { f, t: tAtom, color: "yellow" });
 ```
 
+One option is universal: every construction accepts **`visible`** (default `true`) and applies it to every item it creates, so a whole mark or figure piece can be shown and hidden as one unit. Pass an atom to toggle it reactively:
+
+```typescript
+const showMark = scene.atom(true);
+angleMark2D(scene, { vertex, a, b, visible: showMark });
+```
+
+It composes with any visibility the construction manages internally (an angle mark still swaps between its arc and its right-angle square while visible) and with narrower toggles like `tangentLine`'s `showPoint`.
+
 A few options are the construction's own **state**: the parameter it reads and writes and returns in the handle, like `t` in `curvePoint` or `xz` in `surfacePoint`. Pass a plain value and the construction owns that atom (uncontrolled). Pass a *writable* atom and you own it: the construction reads and writes it, and you can hand the same one to several constructions so dragging any of them drives the rest (controlled). A read-only atom is rejected here, since the construction needs to write.
 
 ### The returned handle
@@ -62,6 +71,8 @@ tangent.tangent.sub((dir) => console.log("tangent direction:", dir));
 // Clean up
 tangent.dispose();
 ```
+
+One caveat: when an option drives several sub-items (one `color` styling a construction's point and line), those items share its atom, so setting that field on one item's handle restyles them all. Control such fields through the option itself.
 
 ### State: owned or shared
 

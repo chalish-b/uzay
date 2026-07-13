@@ -117,6 +117,7 @@ p.dispose();
 | `tEnd` | `number` | `Infinity` | End of the parameter range; unbounded by default |
 | `t` | `WritableInput<number>` | `0` | The parameter. A plain value the construction owns, or a writable atom you own to control and share it across points. |
 | `color` | `string` | `"white"` | CSS color string |
+| `visible` | `boolean` | `true` | Show or hide the whole construction, applied to every item it creates |
 
 All options accept a plain value or an atom. `t` is the construction's state: a plain value (the construction owns it) or a writable atom (you own it, to control and share it).
 

@@ -134,6 +134,7 @@ sp.point.color.set("gold");
 | `zRange` | `[number, number]` | `[-5, 5]` | Bounds for the z parameter during dragging |
 | `xz` | `WritableInput<Vec2>` | `vec2(0, 0)` | The parameter. A plain value the construction owns, or a writable atom you own to control and share it across points. |
 | `color` | `string` | `"white"` | CSS color string |
+| `visible` | `boolean` | `true` | Show or hide the whole construction, applied to every item it creates |
 
 All options accept a plain value or an atom. `xz` is the construction's state: a plain value (the construction owns it) or a writable atom (you own it, to control and share it).
 

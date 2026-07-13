@@ -37,6 +37,8 @@ type AngleMark2DOptions = {
   // Marker size in world units: the tick stroke's length, or the dot's
   // diameter. Defaults scale with the arc radius.
   markerSize?: AtomLikeInput<number>;
+  // Show or hide the whole construction, applied to every item it creates.
+  visible?: AtomLikeInput<boolean>;
 };
 
 // How close to 90° counts as a right angle. ±0.5° so the square appears exactly
@@ -61,6 +63,7 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
   const radiusAtom = ensureAtom(scene.atom, options.radius ?? 0.4);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
   const thicknessAtom = ensureAtom(scene.atom, options.thickness ?? 2);
+  const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
   const sweep = options.sweep ?? "minor";
 
   // Direction to arm a, and the signed sweep from a to b that lands on b's
@@ -112,9 +115,11 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
     ? scene.atom((get) => Math.abs((get(measure) * 180) / Math.PI - 90) < RIGHT_ANGLE_TOL_DEG)
     : null;
 
+  // The arc and square each show only while the construction itself is
+  // visible; `visible` gates both sides of the 90° swap.
   const arcVisible = rightAngle
-    ? scene.atom((get) => !get(rightAngle))
-    : true;
+    ? scene.atom((get) => get(visibleAtom) && !get(rightAngle))
+    : visibleAtom;
 
   const arc = scene.create("circle2d", {
     center: vertexAtom,
@@ -151,14 +156,17 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
     };
   });
 
-  const squareSides = rightAngle
+  const squareVisible = rightAngle
+    ? scene.atom((get) => get(visibleAtom) && get(rightAngle))
+    : null;
+  const squareSides = squareVisible
     ? [
         scene.create("line2d", {
           start: scene.atom((get) => get(corner).p1),
           end: scene.atom((get) => get(corner).p2),
           color: colorAtom,
           thickness: thicknessAtom,
-          visible: rightAngle,
+          visible: squareVisible,
           pointerEvents: "none",
         }),
         scene.create("line2d", {
@@ -166,7 +174,7 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
           end: scene.atom((get) => get(corner).p3),
           color: colorAtom,
           thickness: thicknessAtom,
-          visible: rightAngle,
+          visible: squareVisible,
           pointerEvents: "none",
         }),
       ]

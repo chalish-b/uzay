@@ -23,6 +23,8 @@ type SegmentMark2DOptions = {
   size?: AtomLikeInput<number>;
   color?: AtomLikeInput<Color>;
   thickness?: AtomLikeInput<number>;
+  // Show or hide the whole construction, applied to every item it creates.
+  visible?: AtomLikeInput<boolean>;
 };
 
 type Stroke = { start: Vec2; end: Vec2 };
@@ -39,6 +41,7 @@ export function segmentMark2D(scene: Scene2D, options: SegmentMark2DOptions) {
   const sizeAtom = ensureAtom(scene.atom, options.size ?? 0.25);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
   const thicknessAtom = ensureAtom(scene.atom, options.thickness ?? 2);
+  const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
   const variant = options.variant ?? "tick";
   const count = options.count ?? 1;
 
@@ -93,6 +96,7 @@ export function segmentMark2D(scene: Scene2D, options: SegmentMark2DOptions) {
       end: scene.atom((get) => get(strokesAtom)[i].end),
       color: colorAtom,
       thickness: thicknessAtom,
+      visible: visibleAtom,
       pointerEvents: "none",
     })
   );

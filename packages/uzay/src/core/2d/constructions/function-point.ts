@@ -18,6 +18,8 @@ type FunctionPoint2DOptions = {
   // so the same one can drive several points at once. Returned as `x`.
   x?: WritableInput<number>;
   color?: AtomLikeInput<Color>;
+  // Show or hide the whole construction, applied to every item it creates.
+  visible?: AtomLikeInput<boolean>;
 };
 
 /**
@@ -52,6 +54,7 @@ export function functionPoint2D(
     tEnd: options.domain?.[1],
     t: options.x,
     color: options.color,
+    visible: options.visible,
   });
 
   return {

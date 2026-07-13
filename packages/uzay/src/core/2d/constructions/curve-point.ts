@@ -19,6 +19,8 @@ type CurvePoint2DOptions = {
   // so the same one can drive several points at once. Returned as `t`.
   t?: WritableInput<number>;
   color?: AtomLikeInput<Color>;
+  // Show or hide the whole construction, applied to every item it creates.
+  visible?: AtomLikeInput<boolean>;
 };
 
 const EPSILON = 1e-5;
@@ -71,6 +73,7 @@ export function curvePoint2D(scene: Scene2D, options: CurvePoint2DOptions) {
   const tStartAtom = ensureAtom(scene.atom, options.tStart ?? -Infinity);
   const tEndAtom = ensureAtom(scene.atom, options.tEnd ?? Infinity);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "white");
+  const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
 
   const tAtom = ensureWritableAtom(scene.atom, options.t ?? 0);
 
@@ -80,6 +83,7 @@ export function curvePoint2D(scene: Scene2D, options: CurvePoint2DOptions) {
     coords: coordsAtom,
     color: colorAtom,
     draggable: "custom",
+    visible: visibleAtom,
   });
 
   point.on("drag", (event) => {

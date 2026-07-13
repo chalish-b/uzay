@@ -12,6 +12,9 @@ type TangentLineOptions = {
   length?: AtomLikeInput<number>;
   color?: AtomLikeInput<Color>;
   showPoint?: AtomLikeInput<boolean>;
+  // Show or hide the whole construction, applied to every item it creates.
+  // The point still honors showPoint: it shows only when both are true.
+  visible?: AtomLikeInput<boolean>;
 };
 
 const EPSILON = 1e-5;
@@ -31,6 +34,8 @@ export function tangentLine(scene: Scene3D, options: TangentLineOptions) {
   const tAtom = ensureAtom(scene.atom, options.t);
   const lengthAtom = ensureAtom(scene.atom, options.length ?? 2);
   const colorAtom = ensureAtom(scene.atom, options.color ?? "yellow");
+  const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
+  const showPointAtom = ensureAtom(scene.atom, options.showPoint ?? true);
 
   const positionAtom = scene.atom((get) => get(fAtom)(get(tAtom)));
 
@@ -56,13 +61,14 @@ export function tangentLine(scene: Scene3D, options: TangentLineOptions) {
     coords: positionAtom,
     color: colorAtom,
     draggable: "none",
-    visible: options.showPoint ?? true,
+    visible: scene.atom((get) => get(visibleAtom) && get(showPointAtom)),
   });
 
   const line = scene.create("line3d", {
     start: startAtom,
     end: endAtom,
     color: colorAtom,
+    visible: visibleAtom,
   });
 
   return {

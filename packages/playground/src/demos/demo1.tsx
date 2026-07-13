@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
-import { Scene2D, angleMark2D, segmentMark2D, vec2, type WritableBoundAtom } from "uzay";
+import { Scene2D, angleMark2D, functionPoint2D, segmentMark2D, vec2, type WritableBoundAtom } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
 // Dash & mark test bench.
 //
 // Exercises dashed strokes (line2d, circle2d), segmentMark2D (ticks, arrows),
-// and angleMark2D decorations (ticks, dots). Each case is one scene rendered
-// by BOTH backends side by side (threejs left, svg right) with a shared
-// camera, so pan/zoom stays in sync and any visual difference between the
-// backends is immediately obvious.
+// angleMark2D decorations (ticks, dots), and the constructions' shared
+// `visible` option. Each case is one scene rendered by BOTH backends side by
+// side (threejs left, svg right) with a shared camera, so pan/zoom stays in
+// sync and any visual difference between the backends is immediately obvious.
 //
 // General checks that apply to every case:
 // - both backends look identical
@@ -370,6 +370,83 @@ const CASES: BenchCase[] = [
         camera,
         sliders: [
           { label: "radius", atom: radiusAtom, min: 0.3, max: 1.6, step: 0.02 },
+        ],
+      };
+    },
+  },
+  {
+    id: "construction-visible",
+    title: "Construction visibility",
+    notes: [
+      "The visible slider toggles every construction as one unit; the plain gray segments and gold handles stay put",
+      "The angle opens at exactly 90°: toggling hides the right-angle square, not just the arc",
+      "Drag the gold arm off 90° and toggle again: the arc and its tick marker hide together",
+      "Segment ticks and chevrons hide while their host segments stay",
+      "While hidden, the curve point should not be grabbable",
+    ],
+    build: () => {
+      const { scene, camera } = baseScene();
+      const visibleToggle = scene.atom(1);
+      const visibleAtom = scene.atom((get) => get(visibleToggle) > 0.5);
+
+      // An angle opening at exactly 90°, so the toggle gates the right-angle
+      // square as well as the arc and its marker.
+      const vertex = vec2(-3.5, 0.5);
+      const arm = scene.create("point2d", { coords: vec2(-1, 0.5), color: "#ffd166" });
+      scene.create("line2d", { start: vertex, end: arm.coords, color: "#ccc", thickness: 2 });
+      scene.create("line2d", { start: vertex, end: vec2(-3.5, 3), color: "#ccc", thickness: 2 });
+      angleMark2D(scene, {
+        vertex,
+        a: arm.coords,
+        b: vec2(-3.5, 3),
+        radius: 0.7,
+        color: "#34d399",
+        marker: "tick",
+        visible: visibleAtom,
+      });
+
+      // Marked segments: the marks listen to visible, their host lines don't.
+      scene.create("line2d", { start: vec2(0.5, 2), end: vec2(4.5, 3), color: "#ccc", thickness: 2 });
+      segmentMark2D(scene, {
+        a: vec2(0.5, 2),
+        b: vec2(4.5, 3),
+        count: 2,
+        color: "#4f9cf9",
+        thickness: 2,
+        size: 0.3,
+        visible: visibleAtom,
+      });
+      scene.create("line2d", { start: vec2(0.5, 0.5), end: vec2(4.5, 1.5), color: "#ccc", thickness: 2 });
+      segmentMark2D(scene, {
+        a: vec2(0.5, 0.5),
+        b: vec2(4.5, 1.5),
+        variant: "arrow",
+        color: "#f97583",
+        thickness: 2,
+        size: 0.3,
+        visible: visibleAtom,
+      });
+
+      // A curve-riding handle whose point hides with the toggle.
+      const f = (x: number) => Math.sin(x * 1.4) - 2.2;
+      scene.create("function2d", {
+        f,
+        domain: "infinite",
+        color: "#a78bfa",
+        thickness: 2,
+      });
+      functionPoint2D(scene, {
+        f,
+        x: 1,
+        color: "#ffd166",
+        visible: visibleAtom,
+      });
+
+      return {
+        scene,
+        camera,
+        sliders: [
+          { label: "visible", atom: visibleToggle, min: 0, max: 1, step: 1 },
         ],
       };
     },

@@ -23,6 +23,8 @@ type FunctionArea2DOptions = {
   strokeColorBelow?: AtomLikeInput<Color>;
   strokeOpacity?: AtomLikeInput<number>;
   strokeThickness?: AtomLikeInput<number>;
+  // Show or hide the whole construction, applied to every item it creates.
+  visible?: AtomLikeInput<boolean>;
 };
 
 const MIN_SAMPLES = 2;
@@ -60,6 +62,7 @@ export function functionArea2D(scene: Scene2D, options: FunctionArea2DOptions) {
       : strokeColorAtom;
   const strokeOpacityAtom = ensureAtom(scene.atom, options.strokeOpacity ?? 0);
   const strokeThicknessAtom = ensureAtom(scene.atom, options.strokeThickness ?? 1);
+  const visibleAtom = ensureAtom(scene.atom, options.visible ?? true);
 
   // One simple polygon per lobe, split where the curve crosses the baseline.
   // A single polygon would self-intersect there and break triangulation.
@@ -146,6 +149,7 @@ export function functionArea2D(scene: Scene2D, options: FunctionArea2DOptions) {
     strokeColor: strokeColorAtom,
     strokeOpacity: strokeOpacityAtom,
     strokeThickness: strokeThicknessAtom,
+    visible: visibleAtom,
     pointerEvents: "none",
   });
 
@@ -156,6 +160,7 @@ export function functionArea2D(scene: Scene2D, options: FunctionArea2DOptions) {
     strokeColor: strokeColorBelowAtom,
     strokeOpacity: strokeOpacityAtom,
     strokeThickness: strokeThicknessAtom,
+    visible: visibleAtom,
     pointerEvents: "none",
   });
 
