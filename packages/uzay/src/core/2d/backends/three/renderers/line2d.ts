@@ -6,7 +6,7 @@ import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { checkedColor } from "../../../../shared/types/colors";
-import { dashPatternPx } from "../../../math/dash-pattern";
+import { dashPatternPx } from "../../../../shared/math/dash-pattern";
 
 function buildLineGeometry(
   start: { x: number; y: number },

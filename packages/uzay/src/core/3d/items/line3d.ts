@@ -10,6 +10,10 @@ import { defineItem3D } from "../types/define-item";
 
 export type PointerEvents = "auto" | "none";
 
+// "tube" renders a lit 3D tube; "flat" renders an unlit screen-space stroke
+// with pixel thickness, like the 2D renderer's lines.
+export type LineStyle3D = "tube" | "flat";
+
 export type Line3DFields = {
   tags: ItemTags;
   start: Vec3;
@@ -17,6 +21,8 @@ export type Line3DFields = {
   color: Color;
   thickness: number;
   opacity: number;
+  style: LineStyle3D;
+  dashed: boolean;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -31,6 +37,9 @@ export const line3dDefinition = defineItem3D({
     color: field<Color>("white"),
     thickness: field(1),
     opacity: field(1),
+    style: field<LineStyle3D>("tube"),
+    // Only applies to the "flat" style.
+    dashed: field(false),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },

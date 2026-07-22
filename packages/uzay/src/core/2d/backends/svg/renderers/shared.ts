@@ -2,7 +2,7 @@ import type { ItemKind } from "../../../types/item-registry";
 import type { ItemRenderer2D } from "../../../backend";
 import type { FunctionSamplingPlan } from "../../../math/function-sampling";
 import type { ParametricSamplingPlan } from "../../../math/parametric-sampling";
-import { dashPatternPx } from "../../../math/dash-pattern";
+import { dashPatternPx } from "../../../../shared/math/dash-pattern";
 import {
   warnIfRgbaColor,
   type Color,

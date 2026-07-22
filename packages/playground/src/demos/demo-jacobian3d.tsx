@@ -139,7 +139,7 @@ const PRESETS: Preset[] = [
   },
   {
     key: "wild",
-    title: "The Counterexample",
+    title: "An interesting example",
     formula: String.raw`\begin{aligned} u &= 1 + xy \\ X &= u^3\,z + y^2\,u\,(4 + 3xy) \\ Y &= y + 3x\,u^2\,z + 3x\,y^2\,(4 + 3xy) \\ Z &= 2x - 3x^2\,y - x^3\,z \end{aligned}`,
     params: [],
     makeF: () => (x, y, z) => {
@@ -151,7 +151,7 @@ const PRESETS: Preset[] = [
       );
     },
     detText: () => String.raw`\det J = -2\ \text{(constant)}`,
-    explainer: String.raw`The degree-7 map that settled the conjecture (Alpöge with Claude, July 2026). $\det J$ is exactly $-2$ at every point, yet the three marked points $p_1, p_2, p_3$ all land on $(-1/4,\ 0,\ 0)$: a 3-to-1 fiber, so no inverse exists and constant nonzero $\det J$ does not force invertibility. Ease the morph slider up from $0$ and watch the three bright points meet.`,
+    explainer: String.raw`A degree-7 map. $\det J$ is exactly $-2$ at every point, and the three marked points $p_1, p_2, p_3$ all land on $(-1/4,\ 0,\ 0)$: a 3-to-1 fiber, so no inverse exists and constant nonzero $\det J$ does not force invertibility. Ease the morph slider up from $0$ and watch the three bright points meet.`,
   },
 ];
 
@@ -167,7 +167,7 @@ function buildScene() {
     y: true,
     z: true,
     color: "#555",
-    thickness: 0.2,
+    thickness: 1,
   });
 
   const presetIndex = scene.atom(0);
@@ -214,8 +214,9 @@ function buildScene() {
           tEnd: EXTENT,
           samples: CURVE_SAMPLES,
           color: plane.color,
-          thickness: isAxis ? 0.2 : 0.35,
+          thickness: isAxis ? 2 : 1.25,
           opacity: isAxis ? 0.6 : 0.5,
+          style: "flat",
           visible: planeOn[plane.key],
           pointerEvents: "none",
         });
@@ -247,8 +248,9 @@ function buildScene() {
           tEnd: EXTENT,
           samples: 48,
           color: "white",
-          thickness: 0.3,
+          thickness: 1,
           opacity: 0.12,
+          style: "flat",
           visible: latticeOn,
           pointerEvents: "none",
         });
@@ -286,7 +288,8 @@ function buildScene() {
     start: vec3(0, 0, -EXTENT - 1),
     end: vec3(0, 0, EXTENT + 1),
     color: COLORS.critical,
-    thickness: 0.5,
+    thickness: 1.5,
+    style: "flat",
     visible: scene.atom(
       (get) => PRESETS[get(presetIndex)].criticalZAxis === true
     ),
@@ -320,8 +323,9 @@ function buildScene() {
       start: p,
       end: image,
       color: tp.color,
-      thickness: 0.3,
+      thickness: 1,
       opacity: 0.25,
+      style: "flat",
       pointerEvents: "none",
     });
     scene.create("overlay3d", {
@@ -470,7 +474,7 @@ export default function DemoJacobian3D() {
         </div>
         <div style={{ fontSize: 11.5, color: "#888" }}>
           <Prose
-            text={String.raw`A polynomial map $F$ sends each point $(x, y, z)$ to a new point given by three polynomials. Its Jacobian determinant $\det J$ measures how $F$ scales volume near a point. Keller (1939) conjectured: if $\det J$ is a nonzero constant, $F$ has a polynomial inverse. After 87 years, an explicit counterexample in dimension 3 disproved it in July 2026; it is the last preset below. Dimension 2 remains open.`}
+            text={String.raw`A polynomial map $F$ sends each point $(x, y, z)$ to a new point given by three polynomials. Its Jacobian determinant $\det J$ measures how $F$ scales volume near a point. Keller (1939) conjectured: if $\det J$ is a nonzero constant, $F$ has a polynomial inverse.`}
           />
         </div>
 

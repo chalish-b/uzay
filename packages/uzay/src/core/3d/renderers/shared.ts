@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import type { ItemKind, ItemSnapshot } from "../types/item-registry";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
@@ -8,7 +10,29 @@ import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 // Shared constants for renderers
 // Since these things are in world units, a value of 1 takes up a space of 1 unit, which is huge
 export const pointScaleDown = 25;
-export const lineThicknessScaleDown = 25;
+// Calibrated so a tube's on-screen diameter is close to `thickness` in CSS
+// pixels at a typical framing (camera ~16 units from its target, fov 60,
+// ~900px-tall viewport), keeping thickness values roughly interchangeable
+// with the pixel-based flat style and the 2D renderers.
+export const lineThicknessScaleDown = 100;
+
+// Scene objects for the two line rendering styles shared by line3d and
+// parametricfunction3d. "tube" is a lit tube mesh with world-unit radius,
+// "flat" is a screen-space stroke (Line2) with pixel thickness.
+export type TubeStyleObjects = {
+  style: "tube";
+  curve: THREE.CatmullRomCurve3;
+  geometry: THREE.TubeGeometry;
+  material: THREE.MeshPhongMaterial;
+  mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshPhongMaterial>;
+};
+export type FlatStyleObjects = {
+  style: "flat";
+  geometry: LineGeometry;
+  material: LineMaterial;
+  mesh: Line2;
+};
+export type LineStyleObjects = TubeStyleObjects | FlatStyleObjects;
 
 // Type definitions for Three.js scene objects per item kind
 export type ThreeSceneTypes = {
@@ -20,20 +44,14 @@ export type ThreeSceneTypes = {
   };
   line3d: {
     kind: "line3d";
-    curve: THREE.CatmullRomCurve3;
-    geometry: THREE.TubeGeometry;
-    material: THREE.MeshPhongMaterial;
-    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshPhongMaterial>;
+    impl: LineStyleObjects;
   };
   camera3d: {
     kind: "camera3d";
   };
   parametricfunction3d: {
     kind: "parametricfunction3d";
-    curve: THREE.CatmullRomCurve3;
-    geometry: THREE.TubeGeometry;
-    material: THREE.MeshPhongMaterial;
-    mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshPhongMaterial>;
+    impl: LineStyleObjects;
   };
   axes3d: {
     kind: "axes3d";

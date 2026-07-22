@@ -6,7 +6,7 @@ import type { ItemSnapshot } from "../../../types/item-registry";
 import type { Circle2DStrokeObject, ItemRenderer, ThreeSceneTypes } from "./shared";
 import { Z_REGION, Z_REGION_STROKE } from "./shared";
 import { checkedColor } from "../../../../shared/types/colors";
-import { dashPatternPx } from "../../../math/dash-pattern";
+import { dashPatternPx } from "../../../../shared/math/dash-pattern";
 
 // Tessellation of a full circle's disk fill and outline polyline. High enough
 // that a viewport-filling circle reads as smooth, cheap enough to rebuild on

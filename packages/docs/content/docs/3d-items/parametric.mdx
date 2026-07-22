@@ -97,6 +97,25 @@ scene.create("parametricfunction3d", {
 });
 ```
 
+## Line Style
+
+Curves render as shaded 3D tubes by default. Set `style: "flat"` for an unshaded flat stroke that keeps a constant pixel width at any camera distance, and pair it with `dashed` for a dashed curve:
+
+```typescript
+scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.cos(t) * 3, t * 0.25, Math.sin(t) * 3),
+  tStart: 0,
+  tEnd: Math.PI * 6,
+  color: "cyan",
+  thickness: 1.5,
+  style: "flat",
+  dashed: true,
+  samples: 200,
+});
+```
+
+The flat style is also much cheaper to render, which matters for dense curve families (lattices, field lines, images of grids under a map): a scene can hold hundreds of flat curves and update them live without stuttering. See [Lines](/docs/3d-items/lines#tube-or-flat) for a full comparison of the two styles.
+
 ## Opacity
 
 Curves support transparency via the `opacity` property (0 = fully transparent, 1 = fully opaque):
@@ -305,6 +324,8 @@ function findNearestTOnCurve(
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `style` | `"tube" \| "flat"` | `"tube"` | Shaded 3D tube or flat screen-space stroke |
+| `dashed` | `boolean` | `false` | Draw a dashed stroke (flat style only) |
 | `visible` | `boolean` | `true` | Whether the curve is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the curve receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
@@ -321,6 +342,8 @@ function findNearestTOnCurve(
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |
+| `style` | `BoundAtom<"tube" \| "flat">` | Style atom |
+| `dashed` | `BoundAtom<boolean>` | Dashed stroke atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

@@ -8,6 +8,7 @@ import {
   type ItemHandleFromDefinition,
 } from "../../shared/item-definition";
 import { defineItem3D } from "../types/define-item";
+import type { LineStyle3D } from "./line3d";
 
 type ParametricFunction3DFunc = (t: number) => Vec3;
 
@@ -22,6 +23,8 @@ export type ParametricFunction3DFields = {
   thickness: number;
   opacity: number;
   samples: number;
+  style: LineStyle3D;
+  dashed: boolean;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -44,6 +47,9 @@ export const parametricFunction3dDefinition = defineItem3D({
     thickness: field(1),
     opacity: field(1),
     samples: field(64),
+    style: field<LineStyle3D>("tube"),
+    // Only applies to the "flat" style.
+    dashed: field(false),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },

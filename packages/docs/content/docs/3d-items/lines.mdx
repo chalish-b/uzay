@@ -32,6 +32,25 @@ const line = scene.create("line3d", {
 
 ## Styling Lines
 
+### Tube or Flat
+
+A line renders in one of two styles, chosen with the `style` option:
+
+```typescript
+scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(5, 3, 2),
+  style: "flat", // or "tube" (the default)
+});
+```
+
+- `"tube"` (default) draws a solid 3D tube. It is shaded by the scene lighting, so it reads as an object in space: it tapers with distance and grows on screen as the camera moves in.
+- `"flat"` draws an unshaded flat stroke, like the lines in the 2D renderer. Its thickness is in pixels and stays constant on screen at any distance or zoom level.
+
+Both styles use comparable thickness values: `thickness: 2` looks about the same in either style at a typical camera distance. The difference shows as the camera moves, since a tube's on-screen width changes with distance while a flat line's never does.
+
+Reach for tubes when the line is primary geometry the viewer should perceive as part of the 3D scene. Reach for flat when you want subtle, thin, or dashed lines (guides, annotations, lattices), or when a scene contains many lines: flat lines are much cheaper to render, so dense line families stay smooth.
+
 ### Color
 
 Any CSS color string:
@@ -61,6 +80,23 @@ scene.create("line3d", {
   thickness: 2, // Thick
 });
 ```
+
+### Dashed
+
+Flat lines can be drawn with a dashed stroke:
+
+```typescript
+scene.create("line3d", {
+  start: vec3(0, 0, 0),
+  end: vec3(4, 3, 1),
+  color: "cyan",
+  style: "flat",
+  thickness: 2,
+  dashed: true,
+});
+```
+
+The dash pattern is derived from the thickness, so thicker lines get proportionally longer dashes. Dashes are laid out along the line in world units, so they foreshorten with perspective like everything else in the scene. Dashing requires the flat style; tube lines ignore `dashed`.
 
 ### Opacity
 
@@ -161,6 +197,8 @@ line.opacity.set(0.5);
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `style` | `"tube" \| "flat"` | `"tube"` | Shaded 3D tube or flat screen-space stroke |
+| `dashed` | `boolean` | `false` | Draw a dashed stroke (flat style only) |
 | `visible` | `boolean` | `true` | Whether the line is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the line receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
@@ -175,6 +213,8 @@ line.opacity.set(0.5);
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |
+| `style` | `BoundAtom<"tube" \| "flat">` | Style atom |
+| `dashed` | `BoundAtom<boolean>` | Dashed stroke atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |
