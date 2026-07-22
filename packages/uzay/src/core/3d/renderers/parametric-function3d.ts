@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { lineThicknessScaleDown } from "./shared";
+import { applyOpacityMaterialState } from "./material-transparency";
 import { checkedColor } from "../../shared/types/colors";
 
 export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> = {
@@ -25,6 +26,7 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
     const material = new THREE.MeshPhongMaterial({
       color: checkedColor(item.color, "ParametricFunction3D.color"), specular: 0xAAAAAA, shininess: 5
     });
+    applyOpacityMaterialState(material, item.opacity);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.visible = item.visible;
     mesh.userData.itemId = item.id;
@@ -41,6 +43,7 @@ export const parametricFunction3dRenderer: ItemRenderer<"parametricfunction3d"> 
   update(item: ItemSnapshot<"parametricfunction3d">, obj: ThreeSceneTypes["parametricfunction3d"]): void {
     // Update stuff that can be updated before recreating the geometry
     obj.material.color.set(checkedColor(item.color, "ParametricFunction3D.color"));
+    applyOpacityMaterialState(obj.material, item.opacity);
 
     // Calculate all the points based on the sample count
     // We need to create a new curve here

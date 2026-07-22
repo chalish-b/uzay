@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { lineThicknessScaleDown } from "./shared";
+import { applyOpacityMaterialState } from "./material-transparency";
 import { checkedColor } from "../../shared/types/colors";
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -16,6 +17,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
       specular: 0xaaaaaa,
       shininess: 5,
     });
+    applyOpacityMaterialState(material, item.opacity);
 
     const { shaftGeometry, headGeometry, shaftLen, headLength, length } =
       buildGeometries(item);
@@ -49,6 +51,7 @@ export const vector3dRenderer: ItemRenderer<"vector3d"> = {
     obj: ThreeSceneTypes["vector3d"]
   ): void {
     obj.material.color.set(checkedColor(item.color, "Vector3D.color"));
+    applyOpacityMaterialState(obj.material, item.opacity);
 
     // Rebuild geometries
     obj.shaftGeometry.dispose();

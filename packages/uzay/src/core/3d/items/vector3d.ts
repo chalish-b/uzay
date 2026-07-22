@@ -24,6 +24,7 @@ export type Vector3DFields = {
   draggable: PointDraggableDir;
   color: Color;
   thickness: number;
+  opacity: number;
   headLength: number;
   headWidth: number;
   visible: boolean;
@@ -45,6 +46,7 @@ export const vector3dDefinition = defineItem3D({
     draggable: field<PointDraggableDir>("xyz"),
     color: field<Color>("white"),
     thickness: field(1),
+    opacity: field(1),
     headLength: field(0.2),
     headWidth: field(0.1),
     visible: field(true),

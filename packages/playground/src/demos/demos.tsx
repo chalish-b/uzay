@@ -6,6 +6,8 @@ import Demo8 from "./demo8";
 import Demo11 from "./demo11";
 import Demo12 from "./demo12";
 import Demo2D from "./demo2d";
+import DemoJacobian from "./demo-jacobian";
+import DemoJacobian3D from "./demo-jacobian3d";
 
 const demos = {
   demo1: {
@@ -35,6 +37,14 @@ const demos = {
   demo2d: {
     title: "2D Sandbox",
     component: <Demo2D />,
+  },
+  jacobian: {
+    title: "Jacobian Conjecture",
+    component: <DemoJacobian />,
+  },
+  jacobian3d: {
+    title: "Jacobian 3D",
+    component: <DemoJacobian3D />,
   },
 };
 

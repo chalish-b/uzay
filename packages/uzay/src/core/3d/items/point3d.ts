@@ -23,6 +23,7 @@ export type Point3DFields = {
   draggable: PointDraggableDir;
   color: Color;
   radius: number;
+  opacity: number;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -41,6 +42,7 @@ export const point3dDefinition = defineItem3D({
     draggable: field<PointDraggableDir>("xyz"),
     color: field<Color>("white"),
     radius: field(2),
+    opacity: field(1),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },
