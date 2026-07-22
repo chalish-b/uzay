@@ -4,6 +4,7 @@ description: 3D point items
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
+import { TransparencyWarning } from "@/components/transparency-warning";
 import PointsDemo from "@/components/demos/points-demo";
 
 ## What is a Point3D?
@@ -51,6 +52,22 @@ scene.create("point3d", { coords: vec3(0, 0, 0), radius: 1 });  // Small
 scene.create("point3d", { coords: vec3(2, 0, 0), radius: 3 });  // Medium
 scene.create("point3d", { coords: vec3(4, 0, 0), radius: 5 });  // Large
 ```
+
+### Opacity
+
+Points support transparency via the `opacity` property (0 = fully transparent, 1 = fully opaque):
+
+```typescript
+scene.create("point3d", {
+  coords: vec3(0, 0, 0),
+  color: "gold",
+  opacity: 0.4, // Semi-transparent
+});
+```
+
+This is handy for de-emphasizing reference points without hiding them entirely.
+
+<TransparencyWarning />
 
 ## Examples
 
@@ -154,6 +171,7 @@ You can also listen for drag, click, and hover events. See [Interactions](/docs/
 | `coords` | `Vec3` | `{ x: 0, y: 0, z: 0 }` | Position in 3D space |
 | `color` | `string` | `"white"` | CSS color string |
 | `radius` | `number` | `2` | Visual size of the sphere |
+| `opacity` | `number` | `1` | Opacity (0 to 1) |
 | `draggable` | `"xyz" \| "xy" \| "xz" \| "yz" \| "x" \| "y" \| "z" \| "none"` | `"xyz"` | Axes the point can be dragged along |
 | `visible` | `boolean` | `true` | Whether the point is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the point receives pointer events |
@@ -169,6 +187,7 @@ The `scene.create("point3d", options)` call returns a `Point3D` item with these 
 | `coords` | `BoundAtom<Vec3>` | Position atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `radius` | `BoundAtom<number>` | Size atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
 | `draggable` | `BoundAtom<...>` | Draggable constraint atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |

@@ -3,6 +3,7 @@ title: Parametric Curves
 description: 3D curves defined by parametric equations
 ---
 
+import { TransparencyWarning } from "@/components/transparency-warning";
 import ParametricDemo from "@/components/demos/parametric-demo";
 
 ## What is a Parametric Curve?
@@ -95,6 +96,24 @@ scene.create("parametricfunction3d", {
   samples: 256,
 });
 ```
+
+## Opacity
+
+Curves support transparency via the `opacity` property (0 = fully transparent, 1 = fully opaque):
+
+```typescript
+scene.create("parametricfunction3d", {
+  f: (t) => vec3(Math.cos(t) * 3, Math.sin(t) * 3, t * 0.3),
+  tStart: 0,
+  tEnd: Math.PI * 6,
+  color: "cyan",
+  opacity: 0.3, // Semi-transparent
+});
+```
+
+This is handy for rendering dense families of guide curves faintly, keeping the main curves readable on top.
+
+<TransparencyWarning />
 
 ## Examples
 
@@ -285,6 +304,7 @@ function findNearestTOnCurve(
 | `samples` | `number` | `64` | Number of sample points |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
+| `opacity` | `number` | `1` | Opacity (0 to 1) |
 | `visible` | `boolean` | `true` | Whether the curve is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the curve receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
@@ -300,6 +320,7 @@ function findNearestTOnCurve(
 | `samples` | `BoundAtom<number>` | Sample count atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

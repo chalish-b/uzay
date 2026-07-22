@@ -4,6 +4,7 @@ description: 3D vector arrows
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
+import { TransparencyWarning } from "@/components/transparency-warning";
 import VectorsDemo from "@/components/demos/vectors-demo";
 
 ## What is a Vector3D?
@@ -58,6 +59,20 @@ scene.create("vector3d", {
   thickness: 2, // Thick
 });
 ```
+
+### Opacity
+
+Vectors support transparency via the `opacity` property (0 = fully transparent, 1 = fully opaque). The shaft and head fade together:
+
+```typescript
+scene.create("vector3d", {
+  vector: vec3(2, 3, 0),
+  color: "cyan",
+  opacity: 0.4, // Semi-transparent
+});
+```
+
+<TransparencyWarning />
 
 ### Arrow Head
 
@@ -175,6 +190,7 @@ v.thickness.set(2);
 | `draggable` | `"xyz" \| "xy" \| "xz" \| "yz" \| "x" \| "y" \| "z" \| "none"` | `"xyz"` | Axes the arrow tip can be dragged along |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Shaft width |
+| `opacity` | `number` | `1` | Opacity (0 to 1) |
 | `headLength` | `number` | `0.2` | Length of the arrowhead |
 | `headWidth` | `number` | `0.1` | Width of the arrowhead |
 | `visible` | `boolean` | `true` | Whether the vector is shown |
@@ -191,6 +207,7 @@ v.thickness.set(2);
 | `draggable` | `BoundAtom<...>` | Drag constraint atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
 | `headLength` | `BoundAtom<number>` | Head length atom |
 | `headWidth` | `BoundAtom<number>` | Head width atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
