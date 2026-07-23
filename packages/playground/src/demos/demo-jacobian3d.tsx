@@ -22,7 +22,7 @@ import { Scene3DView, useAtomState, useAtomValue } from "uzay/react";
 const EXTENT = 2;
 const GRID_STEP = 0.5;
 const LATTICE_STEP = 1;
-const CURVE_SAMPLES = 80;
+const CURVE_SAMPLES = 200;
 
 const COLORS = {
   planeXY: "#38bdf8",

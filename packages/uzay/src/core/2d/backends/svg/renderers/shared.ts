@@ -2,6 +2,7 @@ import type { ItemKind } from "../../../types/item-registry";
 import type { ItemRenderer2D } from "../../../backend";
 import type { FunctionSamplingPlan } from "../../../math/function-sampling";
 import type { ParametricSamplingPlan } from "../../../math/parametric-sampling";
+import { arrowHeadTriangle } from "../../../math/arrow-math";
 import { dashPatternPx } from "../../../../shared/math/dash-pattern";
 import {
   warnIfRgbaColor,
@@ -46,7 +47,10 @@ export type SvgSceneTypes = {
   };
   line2d: {
     kind: "line2d";
+    group: SVGGElement;
     line: SVGLineElement;
+    headStart: SVGPathElement;
+    headEnd: SVGPathElement;
     // worldPerPixel the dashed stroke was last laid out at, null while the
     // stroke is solid (or before the first layout pass).
     dashWorldPerPixel: number | null;
@@ -189,4 +193,20 @@ export function polylinePathD(
   }
   if (close) parts.push("Z");
   return parts.join(" ");
+}
+
+// Path data for an arrowhead with its tip at `tip`, pointing along `dir`.
+// Sizes are CSS pixels, resolved against the current zoom, so the head stays
+// screen-constant like a non-scaling stroke. Empty when the direction is
+// degenerate, which erases the path.
+export function arrowHeadD(
+  tip: { x: number; y: number },
+  dir: { x: number; y: number },
+  headLength: number,
+  headWidth: number,
+  worldPerPixel: number
+): string {
+  const tri = arrowHeadTriangle(tip, dir, headLength, headWidth, worldPerPixel);
+  if (!tri) return "";
+  return polylinePathD([tri.tip, tri.baseLeft, tri.baseRight], true);
 }

@@ -3,6 +3,10 @@ import type { AtomLikeInput } from "../../shared/atom-wrapper";
 import { ensureAtom } from "../../shared/atom-wrapper";
 import type { Color } from "../../shared/types/colors";
 import { Vec2, vec2 } from "../../shared/types/vec2";
+import {
+  ANNOTATION_HEAD_LENGTH,
+  ANNOTATION_HEAD_WIDTH,
+} from "../math/arrow-math";
 
 type AngleMark2DOptions = {
   // The angle's vertex and the two points its arms point at. Read-only: the
@@ -24,6 +28,14 @@ type AngleMark2DOptions = {
   //    "minor"/"major", which always pick by size, these hold one side as b
   //    travels around the vertex, so the mark grows continuously through 180°.
   sweep?: AtomLikeInput<"minor" | "major" | "ccw" | "cw">;
+  // Tangent arrowheads at the arc's ends:
+  //  - "none" (default): a plain arc.
+  //  - "end": one head at the arc's far end, pointing along the sweep, the
+  //    convention for a directed angle or a rotation direction.
+  //  - "both": heads at both ends pointing outward, turning the mark into a
+  //    span indicator (e.g. a central-angle mark dimensioning its arc).
+  // Arrows hide while the mark renders as the right-angle square, like markers.
+  arcArrows?: AtomLikeInput<"none" | "end" | "both">;
   // A marker on the arc asserting this angle equals others carrying the same
   // marker, the textbook convention for equal-angle families:
   //  - "tick": short radial strokes crossing the arc.
@@ -55,7 +67,9 @@ const MAX_MARKER_COUNT = 3;
  * A small mark for the angle at `vertex` between the arms to `a` and `b`. A bare
  * arc (a circle2d) sweeping the angle chosen by `sweep` (the smaller angle by
  * default), which by convention becomes the right-angle square whenever that
- * angle is 90° (pass `squareRightAngle: false` to keep the arc). The measured
+ * angle is 90° (pass `squareRightAngle: false` to keep the arc). `arcArrows`
+ * adds tangent arrowheads at the arc's ends, marking the sweep direction
+ * ("end") or dimensioning the full span ("both"). The measured
  * angle is returned as `measure`, in radians, so a readout and the mark share
  * one source of truth, and the arc's mid direction as `midDir`, the anchor
  * direction for placing a label inside the marked wedge.
@@ -185,6 +199,58 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
     }),
   ];
 
+  // The arrowheads: vectors with negligible shafts, so only the heads render,
+  // tangent to the arc at its ends. The end head points along the direction of
+  // travel from a to b; the start head mirrors it, pointing back out of the arc.
+  const arcArrowsAtom = ensureAtom(scene.atom, options.arcArrows ?? "none");
+  const ARROW_SHAFT = 1e-4;
+  const arrowFrame = scene.atom((get) => {
+    const v = get(vertexAtom);
+    const r = get(radiusAtom);
+    const { start, delta } = get(sweepAtom);
+    const s = Math.sign(delta);
+    const end = start + delta;
+    const tipAt = (theta: number) =>
+      vec2(v.x + r * Math.cos(theta), v.y + r * Math.sin(theta));
+    const travelAt = (theta: number) =>
+      vec2(-Math.sin(theta) * s, Math.cos(theta) * s);
+    return {
+      // A zero sweep has no travel direction, so the heads hide with it.
+      degenerate: delta === 0,
+      endTip: tipAt(end),
+      endDir: travelAt(end),
+      startTip: tipAt(start),
+      startDir: travelAt(start).neg(),
+    };
+  });
+  const arrows = (
+    [
+      ["endTip", "endDir", "end"],
+      ["startTip", "startDir", "both"],
+    ] as const
+  ).map(([tipKey, dirKey, minMode]) =>
+    scene.create("vector2d", {
+      origin: scene.atom((get) => {
+        const f = get(arrowFrame);
+        return f[tipKey].sub(f[dirKey].scale(ARROW_SHAFT));
+      }),
+      vector: scene.atom((get) => get(arrowFrame)[dirKey].scale(ARROW_SHAFT)),
+      color: colorAtom,
+      headLength: ANNOTATION_HEAD_LENGTH,
+      headWidth: ANNOTATION_HEAD_WIDTH,
+      visible: scene.atom(
+        (get) =>
+          get(arcVisible) &&
+          !get(arrowFrame).degenerate &&
+          (minMode === "end"
+            ? get(arcArrowsAtom) !== "none"
+            : get(arcArrowsAtom) === "both")
+      ),
+      draggable: "none",
+      pointerEvents: "none",
+    })
+  );
+
   // Marker positions, one per markerCount: unit radial directions at angles
   // fanned around the arc's midpoint. The angular step keeps a constant
   // arc-length spacing (relative to the radius) but tightens when the angle
@@ -281,6 +347,7 @@ export function angleMark2D(scene: Scene2D, options: AngleMark2DOptions) {
     dispose: () => {
       scene.remove(arc);
       for (const side of squareSides) scene.remove(side);
+      for (const arrow of arrows) scene.remove(arrow);
       for (const tick of ticks) scene.remove(tick);
       for (const dot of dots) scene.remove(dot);
     },

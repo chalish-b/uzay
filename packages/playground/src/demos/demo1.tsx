@@ -1,18 +1,21 @@
 import { useMemo } from "react";
-import { Scene2D, transformedGrid2D, vec2, type WritableBoundAtom } from "uzay";
+import { Scene2D, angleMark2D, vec2, type WritableBoundAtom } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
-// transformedGrid2D options sandbox.
+// line2d arrows sandbox.
 //
-// One transformed grid whose every option is an atom driven by a slider:
-// - map cycles shear / z² / swirl; morph lerps the identity toward it, so the
-//   grid bends live through intermediate maps
-// - extentX / extentY resize rangeX / rangeY: growing them past the initial
-//   size forces the construction to create new line items on the fly
-// - gap respaces the source lines; small gaps also grow the item pools
-// - opacity and thickness restyle every line through the shared atoms
-// - palette swaps colorX / colorY to check the family coloring stays put
-// - visible toggles the whole construction
+// Left column: one static line per arrows mode (none / start / end / both),
+// labeled, to eyeball tip placement at both endpoints.
+// Right: a line between two draggable handles, with every interacting option
+// on sliders:
+// - arrows cycles the four modes; heads must keep their tips exactly on the
+//   endpoints while the handles drag
+// - drag one handle onto the other: degenerate line, heads must hide
+// - dashed + arrows combine; thickness and opacity restyle shaft and heads
+//   together (heads follow the line's opacity)
+// - visible hides shaft and heads as one
+// Bottom left: an angleMark2D with arcArrows "both" next to a "both" line, to
+// check the annotation heads match in size (shared ANNOTATION_HEAD constant).
 //
 // The scene renders in BOTH backends side by side (threejs left, svg right)
 // with a shared camera, so pan/zoom stays in sync and any visual difference
@@ -26,29 +29,12 @@ type SliderSpec = {
   step: number;
 };
 
-const MAPS = [
-  {
-    label: "shear",
-    f: (x: number, y: number) => vec2(x + 0.4 * y * y, y),
-  },
-  {
-    label: "z²",
-    f: (x: number, y: number) => vec2((x * x - y * y) / 2, x * y),
-  },
-  {
-    label: "swirl",
-    f: (x: number, y: number) => {
-      const a = 0.5 * Math.hypot(x, y);
-      return vec2(x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a));
-    },
-  },
-];
+const ARROW_MODES = ["none", "start", "end", "both"] as const;
 
 function buildScene() {
   const scene = new Scene2D();
-  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 0.8 });
+  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 1.1 });
 
-  // Faint reference: the untransformed source plane.
   scene.create("grid2d", {
     rangeX: true,
     rangeY: true,
@@ -65,51 +51,75 @@ function buildScene() {
     tickStep: "auto",
   });
 
-  const mapSlider = scene.atom(0);
-  const morphSlider = scene.atom(1);
-  const extentXSlider = scene.atom(3);
-  const extentYSlider = scene.atom(3);
-  const gapSlider = scene.atom(0.5);
-  const opacitySlider = scene.atom(0.6);
-  const thicknessSlider = scene.atom(1);
-  const paletteToggle = scene.atom(0);
-  const visibleToggle = scene.atom(1);
-
-  const mapAtom = scene.atom((get) => {
-    const F = MAPS[Math.round(get(mapSlider))].f;
-    const t = get(morphSlider);
-    return (x: number, y: number) => vec2(x, y).lerp(F(x, y), t);
+  // The static mode column.
+  ARROW_MODES.forEach((mode, i) => {
+    const y = 2.6 - i * 0.7;
+    scene.create("line2d", {
+      start: vec2(-4.4, y),
+      end: vec2(-2.2, y),
+      color: "#38bdf8",
+      thickness: 2,
+      arrows: mode,
+    });
+    scene.create("overlay2d", {
+      position: vec2(-2, y),
+      content: mode,
+      anchor: "left",
+      className: "text-xs",
+    });
   });
 
-  transformedGrid2D(scene, {
-    map: mapAtom,
-    rangeX: scene.atom(
-      (get) => [-get(extentXSlider), get(extentXSlider)] as [number, number]
-    ),
-    rangeY: scene.atom(
-      (get) => [-get(extentYSlider), get(extentYSlider)] as [number, number]
-    ),
-    gap: gapSlider,
-    colorX: scene.atom((get) =>
-      get(paletteToggle) > 0.5 ? "#f472b6" : "#38bdf8"
-    ),
-    colorY: scene.atom((get) =>
-      get(paletteToggle) > 0.5 ? "#facc15" : "#a78bfa"
-    ),
-    opacity: opacitySlider,
+  // The draggable line, all options live.
+  const arrowsSlider = scene.atom(3);
+  const dashedToggle = scene.atom(0);
+  const thicknessSlider = scene.atom(2);
+  const opacitySlider = scene.atom(1);
+  const visibleToggle = scene.atom(1);
+
+  const a = scene.create("point2d", { coords: vec2(0.8, 1.6), color: "gold", radius: 6 });
+  const b = scene.create("point2d", { coords: vec2(4, 0.4), color: "gold", radius: 6 });
+  scene.create("line2d", {
+    start: a.coords,
+    end: b.coords,
+    color: "#f472b6",
     thickness: thicknessSlider,
+    opacity: opacitySlider,
+    dashed: scene.atom((get) => get(dashedToggle) > 0.5),
+    arrows: scene.atom((get) => ARROW_MODES[Math.round(get(arrowsSlider))]),
     visible: scene.atom((get) => get(visibleToggle) > 0.5),
+    pointerEvents: "none",
+  });
+
+  // Size-consistency check: the arc's annotation heads next to a line's.
+  const vertex = vec2(-3.2, -1.6);
+  const armA = vec2(-1.7, -1.6);
+  const armB = vec2(-3.2, -0.1);
+  for (const arm of [armA, armB]) {
+    scene.create("line2d", { start: vertex, end: arm, color: "#888", thickness: 1.5 });
+  }
+  angleMark2D(scene, {
+    vertex,
+    a: armA,
+    b: armB,
+    radius: 1.1,
+    color: "#a78bfa",
+    thickness: 2,
+    arcArrows: "both",
+    squareRightAngle: false,
+  });
+  scene.create("line2d", {
+    start: vec2(-1.2, -2.6),
+    end: vec2(1.8, -2.6),
+    color: "#a78bfa",
+    thickness: 2,
+    arrows: "both",
   });
 
   const sliders: SliderSpec[] = [
-    { label: "map", atom: mapSlider, min: 0, max: MAPS.length - 1, step: 1 },
-    { label: "morph", atom: morphSlider, min: 0, max: 1, step: 0.01 },
-    { label: "extentX", atom: extentXSlider, min: 1, max: 8, step: 0.5 },
-    { label: "extentY", atom: extentYSlider, min: 1, max: 8, step: 0.5 },
-    { label: "gap", atom: gapSlider, min: 0.25, max: 2, step: 0.25 },
+    { label: "arrows", atom: arrowsSlider, min: 0, max: 3, step: 1 },
+    { label: "dashed", atom: dashedToggle, min: 0, max: 1, step: 1 },
+    { label: "thickness", atom: thicknessSlider, min: 1, max: 5, step: 0.5 },
     { label: "opacity", atom: opacitySlider, min: 0.1, max: 1, step: 0.05 },
-    { label: "thickness", atom: thicknessSlider, min: 0.5, max: 4, step: 0.5 },
-    { label: "palette", atom: paletteToggle, min: 0, max: 1, step: 1 },
     { label: "visible", atom: visibleToggle, min: 0, max: 1, step: 1 },
   ];
 
@@ -120,8 +130,11 @@ function Slider({ spec }: { spec: SliderSpec }) {
   const [value, setValue] = useAtomState(spec.atom);
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#999" }}>
-      <span style={{ width: 64, flexShrink: 0 }}>
-        {spec.label}: {value.toFixed(spec.step >= 1 ? 0 : 2)}
+      <span style={{ width: 72, flexShrink: 0 }}>
+        {spec.label}:{" "}
+        {spec.label === "arrows"
+          ? ARROW_MODES[Math.round(value)]
+          : value.toFixed(spec.step >= 1 ? 0 : 2)}
       </span>
       <input
         type="range"
@@ -175,8 +188,9 @@ export default function Demo1() {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", fontFamily: "system-ui, sans-serif" }}>
       <div style={{ width: "100%", height: "100%", display: "flex" }}>
-        <div style={{ width: 1, backgroundColor: "#2a2a2a" }} />
         <ViewPane scene={scene} camera={camera} renderer="threejs" />
+        <div style={{ width: 1, backgroundColor: "#2a2a2a" }} />
+        <ViewPane scene={scene} camera={camera} renderer="svg" />
       </div>
       <div
         style={{

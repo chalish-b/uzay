@@ -92,6 +92,29 @@ scene.create("line2d", {
 
 The dash pattern is derived from the thickness, so thicker lines get proportionally longer dashes, and it keeps a constant on-screen rhythm at any zoom, just like the thickness itself. Dashed strokes are the usual convention for auxiliary geometry: extensions of a side, implied segments, construction lines.
 
+### Arrows
+
+`arrows` puts arrowheads at the segment's ends, with their tips exactly at the endpoints, pointing outward along the line:
+
+| `arrows` | Draws |
+|----------|-------|
+| `"none"` (default) | A plain segment |
+| `"start"` | A head at `start` |
+| `"end"` | A head at `end` |
+| `"both"` | Heads at both ends |
+
+```typescript
+// A double-headed dimension arrow marking a distance.
+scene.create("line2d", {
+  start: vec2(0, 0),
+  end: vec2(0, 3),
+  color: "cyan",
+  arrows: "both",
+});
+```
+
+`"both"` is the dimension-arrow convention for denoting lengths and distances: draw it beside the measured object and hang a label off its midpoint. The heads inherit the line's `color` and `opacity`, keep a constant on-screen size at any zoom, and hide when the segment collapses to a point. Their size is fixed, a library-wide annotation convention shared with `angleMark2D`'s `arcArrows`, so straight and curved dimension marks in one figure match. For an arrow with a configurable head, reach for [vector2d](/docs/2d-items/vectors) instead.
+
 ## Examples
 
 ### Connecting Two Points
@@ -173,6 +196,7 @@ line.opacity.set(0.5);
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
 | `dashed` | `boolean` | `false` | Draw a dashed stroke (pattern derived from `thickness`) |
+| `arrows` | `"none" \| "start" \| "end" \| "both"` | `"none"` | Arrowheads at the ends: tips at the endpoints, pointing outward |
 | `visible` | `boolean` | `true` | Whether the line is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the line receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags for grouping |
@@ -188,6 +212,7 @@ line.opacity.set(0.5);
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |
 | `dashed` | `BoundAtom<boolean>` | Dashed stroke atom |
+| `arrows` | `BoundAtom<"none" \| "start" \| "end" \| "both">` | Arrows mode atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

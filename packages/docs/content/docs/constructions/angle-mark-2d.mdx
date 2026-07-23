@@ -112,6 +112,39 @@ angleMark2D(scene, { vertex, a, b, sweep: "major" });
 
 Since a major angle is never 90°, the right-angle square does not apply when `sweep` is `"major"`.
 
+## Direction Arrows: `arcArrows`
+
+The mark's arc can carry arrowheads at its ends, drawn tangent to it:
+
+| `arcArrows` | Draws |
+|-------------|-------|
+| `"none"` (default) | A plain arc |
+| `"end"` | One head at the arc's far end, pointing along the sweep |
+| `"both"` | Heads at both ends, pointing outward |
+
+`"end"` marks a turn: the head shows the direction of travel from `a` to `b` under the current `sweep` mode, so a `"cw"` mark points its head clockwise. Reach for it when the angle is directed, like a rotation or a signed angle.
+
+`"both"` turns the mark into a span indicator, the curved cousin of a double-headed dimension arrow. One useful reading: an arc on a circle is dimensioned by marking its central angle at a radius larger than the circle's own, and `midDir` then anchors the span's label:
+
+```typescript
+// Dimension the arc from A to B on a circle centered at O.
+const guide = angleMark2D(scene, {
+  vertex: O,
+  a: A,
+  b: B,
+  radius: 2.4, // outside the circle being dimensioned
+  arcArrows: "both",
+});
+
+scene.create("overlay2d", {
+  position: scene.atom((get) => O.add(get(guide.midDir).scale(2.75))),
+  content: "\\overgroup{AB}",
+  format: "latex",
+});
+```
+
+While the mark renders as the right-angle square, the arrows hide like markers do: the square has no sweep to point along. A zero-width angle also hides them, since there is no direction of travel to show.
+
 ## Right Angles
 
 By convention a right angle is marked with a square, so that happens on its own: whenever the angle is 90° the mark draws the square (with `radius` as its side) instead of the arc, and reverts to the arc otherwise. This is reactive, so an angle dragged through 90° picks up the square right at the corner and drops it again. Pass `squareRightAngle: false` to keep the arc at every angle.
@@ -181,6 +214,7 @@ mark.dispose();
 | `thickness` | `number` | `2` | Stroke width |
 | `squareRightAngle` | `boolean` | `true` | Show a right-angle square (instead of the arc) whenever the angle is 90°; set false to keep the arc |
 | `sweep` | `"minor" \| "major" \| "ccw" \| "cw"` | `"minor"` | Which of the two angles the mark draws: smaller, larger, or a fixed counterclockwise/clockwise sweep |
+| `arcArrows` | `"none" \| "end" \| "both"` | `"none"` | Tangent arrowheads at the arc's ends: one at the far end following the sweep, or both pointing outward |
 | `marker` | `"tick" \| "dot" \| "none"` | `"none"` | Equal-angle marker on the arc: tick strokes crossing it, or dots inside it; `"none"` for a plain arc |
 | `markerCount` | `1 \| 2 \| 3` | `1` | How many markers to fan around the arc's midpoint |
 | `markerSize` | `number` | scales with `radius` | Marker size in world units: the tick stroke's length, or the dot's diameter |

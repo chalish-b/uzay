@@ -1,6 +1,6 @@
 import type { ItemSnapshot } from "../../../types/item-registry";
 import type { SvgItemRenderer, SvgSceneTypes } from "./shared";
-import { applyStrokePx, cssColor, setAttrs, setVisible, svgEl } from "./shared";
+import { applyStrokePx, arrowHeadD, cssColor, setAttrs, setVisible, svgEl } from "./shared";
 
 // Everything is written in world coordinates: the shaft as line endpoints,
 // the head as an explicit triangle path recomputed in layout (its size is in
@@ -10,33 +10,6 @@ import { applyStrokePx, cssColor, setAttrs, setVisible, svgEl } from "./shared";
 //
 // The head's tip sits at the vector's end and its base extends BACKWARD by
 // `headLength` pixels, so the pointy end stays at the mathematical tip.
-
-function vectorLength(item: ItemSnapshot<"vector2d">): number {
-  return Math.hypot(item.vector.x, item.vector.y);
-}
-
-function headD(item: ItemSnapshot<"vector2d">, worldPerPixel: number): string {
-  const length = vectorLength(item);
-  if (length < 1e-9) return "";
-
-  const tipX = item.origin.x + item.vector.x;
-  const tipY = item.origin.y + item.vector.y;
-  const dirX = item.vector.x / length;
-  const dirY = item.vector.y / length;
-  const back = item.headLength * worldPerPixel;
-  const half = (item.headWidth * worldPerPixel) / 2;
-  const baseX = tipX - dirX * back;
-  const baseY = tipY - dirY * back;
-  // Perpendicular to the direction, half a head-width to each side.
-  const perpX = -dirY * half;
-  const perpY = dirX * half;
-
-  return (
-    `M ${tipX} ${tipY} ` +
-    `L ${baseX + perpX} ${baseY + perpY} ` +
-    `L ${baseX - perpX} ${baseY - perpY} Z`
-  );
-}
 
 function apply(
   item: ItemSnapshot<"vector2d">,
@@ -77,7 +50,20 @@ export const vector2dSvgRenderer: SvgItemRenderer<"vector2d"> = {
   },
 
   layout(item, obj, ctx) {
-    obj.head.setAttribute("d", headD(item, ctx.viewport.worldPerPixel));
+    const tip = {
+      x: item.origin.x + item.vector.x,
+      y: item.origin.y + item.vector.y,
+    };
+    obj.head.setAttribute(
+      "d",
+      arrowHeadD(
+        tip,
+        item.vector,
+        item.headLength,
+        item.headWidth,
+        ctx.viewport.worldPerPixel
+      )
+    );
   },
 
   dispose(obj) {

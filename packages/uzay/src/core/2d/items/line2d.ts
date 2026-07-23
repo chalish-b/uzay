@@ -10,6 +10,8 @@ import { defineItem2D } from "../types/define-item";
 
 export type PointerEvents = "auto" | "none";
 
+export type Line2DArrows = "none" | "start" | "end" | "both";
+
 export type Line2DFields = {
   tags: ItemTags;
   start: Vec2;
@@ -20,6 +22,11 @@ export type Line2DFields = {
   // Draw the segment with a dashed stroke. The dash pattern is derived from
   // the thickness and keeps a constant on-screen rhythm at any zoom.
   dashed: boolean;
+  // Arrowheads at the segment's ends: tips exactly at the endpoints, pointing
+  // outward along the line. "both" is the double-headed dimension arrow. The
+  // heads are annotation-sized, a shared library convention; for a
+  // configurable head use vector2d.
+  arrows: Line2DArrows;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -35,6 +42,7 @@ export const line2dDefinition = defineItem2D({
     thickness: field(1),
     opacity: field(1),
     dashed: field(false),
+    arrows: field<Line2DArrows>("none"),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },

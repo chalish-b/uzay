@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import type { ItemSnapshot } from "../../../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
-import { Z_DEFAULT } from "./shared";
+import { buildUnitHeadGeometry, onHeadBeforeRender, Z_DEFAULT } from "./shared";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { getWorldPerPixel, chainOnBeforeRender } from "../screen-space";
+import { chainOnBeforeRender } from "../screen-space";
 import { checkedColor } from "../../../../shared/types/colors";
 
 // Layout: shaft and head share a Group whose +x axis points along the vector
@@ -15,20 +15,6 @@ import { checkedColor } from "../../../../shared/types/colors";
 // at the vector's mathematical tip while the wide base scales in screen
 // pixels via onBeforeRender. The shaft passing through the head's base is
 // hidden by the filled triangle since the head sits at z=0.001.
-
-// Unit head pointing along +x: tip at origin, base at (-1, ±0.5).
-function buildUnitHeadGeometry(): THREE.BufferGeometry {
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      [0, 0, 0.001, -1, 0.5, 0.001, -1, -0.5, 0.001],
-      3
-    )
-  );
-  geom.setIndex([0, 1, 2]);
-  return geom;
-}
 
 function buildShaftGeometry(length: number): LineGeometry {
   const geom = new LineGeometry();
@@ -129,15 +115,3 @@ export const vector2dRenderer: ItemRenderer<"vector2d"> = {
     obj.headMaterial.dispose();
   },
 };
-
-function onHeadBeforeRender(
-  this: THREE.Object3D,
-  renderer: THREE.WebGLRenderer,
-  camera: THREE.Camera
-) {
-  if (!(camera as THREE.OrthographicCamera).isOrthographicCamera) return;
-  const wpp = getWorldPerPixel(renderer, camera as THREE.OrthographicCamera);
-  const sx = (this.userData.headLength as number) * wpp;
-  const sy = (this.userData.headWidth as number) * wpp;
-  this.scale.set(sx, sy, 1);
-}
