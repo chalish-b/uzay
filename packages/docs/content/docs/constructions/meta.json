@@ -1,5 +1,5 @@
 {
   "title": "Constructions",
   "icon": "Blocks",
-  "pages": ["curve-point", "tangent-line", "surface-point", "surface-normal", "curve-point-2d", "function-point-2d", "function-area-2d", "angle-mark-2d", "segment-mark-2d"]
+  "pages": ["curve-point", "tangent-line", "surface-point", "surface-normal", "curve-point-2d", "function-point-2d", "function-area-2d", "angle-mark-2d", "segment-mark-2d", "transformed-grid-2d"]
 }

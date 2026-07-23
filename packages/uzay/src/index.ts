@@ -53,4 +53,4 @@ export type { ItemTags } from "./core/shared/types/tags"
 
 // Constructions
 export { tangentLine, curvePoint, surfacePoint, surfaceNormal } from "./core/3d/constructions"
-export { curvePoint2D, functionPoint2D, functionArea2D, angleMark2D, segmentMark2D } from "./core/2d/constructions"
+export { curvePoint2D, functionPoint2D, functionArea2D, angleMark2D, segmentMark2D, transformedGrid2D } from "./core/2d/constructions"

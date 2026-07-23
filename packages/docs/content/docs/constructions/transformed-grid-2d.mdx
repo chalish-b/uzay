@@ -1,0 +1,124 @@
+---
+title: Transformed Grid 2D
+description: A coordinate grid pushed through an arbitrary map
+---
+
+import TransformedGrid2DDemo from "@/components/demos/transformed-grid-2d-demo";
+
+## What is Transformed Grid 2D?
+
+`transformedGrid2D` draws the image of a coordinate grid under a map you provide: every grid line is rendered as a curve, the image of that line under the map. Linear maps keep the lines straight and show shears, rotations, and scalings acting on the whole plane; nonlinear maps bend the lines and show how the plane stretches and folds locally. It is the standard picture for visualizing change of coordinates, complex functions, and Jacobians.
+
+The two line families are colored separately, so you can still tell "lines that ran along x" from "lines that ran along y" after the map has scrambled the plane.
+
+<TransformedGrid2DDemo />
+
+A grid pushed through a swirl map. Each line is a `parametricfunction2d` tracing the image of a source grid line; the slider feeds an atom that blends the map between the identity and the swirl.
+
+## Basic Usage
+
+```typescript
+import { Scene2D, transformedGrid2D, vec2 } from "uzay";
+
+const scene = new Scene2D();
+
+scene.create("camera2d", { center: vec2(0, 0), zoom: 1 });
+
+// A shear: each horizontal line slides sideways by 0.4 * y².
+transformedGrid2D(scene, {
+  map: (x, y) => vec2(x + 0.4 * y * y, y),
+});
+```
+
+The map takes a source point's coordinates and returns where it lands, as a `Vec2`. Any function works: linear maps, polynomial maps, complex functions written out in real coordinates.
+
+```typescript
+// Complex squaring z ↦ z², in real coordinates.
+transformedGrid2D(scene, {
+  map: (x, y) => vec2(x * x - y * y, 2 * x * y),
+});
+```
+
+## Animating the Map
+
+`map` accepts an atom, so the transformation can change live. The classic move is blending between the identity and a target map with a slider-driven atom:
+
+```typescript
+const t = scene.atom(0);
+
+const F = (x: number, y: number) => vec2(x * x - y * y, 2 * x * y);
+
+transformedGrid2D(scene, {
+  map: scene.atom((get) => {
+    const s = get(t);
+    return (x: number, y: number) => vec2(x, y).lerp(F(x, y), s);
+  }),
+});
+
+t.set(1); // sweep 0 → 1 to watch the plane deform
+```
+
+## Ranges and Spacing
+
+The grid covers a finite patch of the source plane: `rangeX` and `rangeY` set its extent, and `gap` sets the spacing between lines, which sit at multiples of it. Want more of the plane? Widen the ranges.
+
+```typescript
+transformedGrid2D(scene, {
+  map: (x, y) => vec2(x + 0.4 * y * y, y),
+  rangeX: [-6, 6],
+  rangeY: [-2, 2],
+  gap: 1,
+});
+```
+
+All three accept atoms, so the covered patch and the line density can also change reactively.
+
+## Styling
+
+`colorX` styles the lines that run along the x direction (the source lines y = c), `colorY` the ones that run along y (x = c). `opacity` and `thickness` apply to every line:
+
+```typescript
+transformedGrid2D(scene, {
+  map: (x, y) => vec2(x + 0.4 * y * y, y),
+  colorX: "orange",
+  colorY: "turquoise",
+  opacity: 0.8,
+  thickness: 1.5,
+});
+```
+
+## Cleanup
+
+The returned handle removes every line the construction created:
+
+```typescript
+const grid = transformedGrid2D(scene, { map });
+
+grid.dispose();
+```
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `map` | `(x, y) => Vec2` | (required) | The map applied to the grid; each grid line renders as its image under it |
+| `rangeX` | `[number, number]` | `[-4, 4]` | Source-plane extent along x |
+| `rangeY` | `[number, number]` | `[-4, 4]` | Source-plane extent along y |
+| `gap` | `number` | `0.5` | Spacing between adjacent source lines; lines sit at multiples of it |
+| `colorX` | `string` | `"#38bdf8"` | Color of the lines running along the x direction (source lines y = c) |
+| `colorY` | `string` | `"#a78bfa"` | Color of the lines running along the y direction (source lines x = c) |
+| `opacity` | `number` | `0.5` | Opacity of every line |
+| `thickness` | `number` | `1` | Thickness of every line |
+| `visible` | `boolean` | `true` | Show or hide the whole construction, applied to every line it creates |
+
+All options accept either a plain value or an atom.
+
+### Returned Handle
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `linesX` | `ParametricFunction2D[]` | The curve items for the lines running along the x direction |
+| `linesY` | `ParametricFunction2D[]` | The curve items for the lines running along the y direction |
+| `dispose` | `() => void` | Removes the grid from the scene |

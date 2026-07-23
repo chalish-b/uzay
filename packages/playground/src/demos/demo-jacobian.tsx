@@ -1,6 +1,12 @@
 import { useMemo, type CSSProperties } from "react";
 import katex from "katex";
-import { Scene2D, vec2, type Vec2, type WritableBoundAtom } from "uzay";
+import {
+  Scene2D,
+  transformedGrid2D,
+  vec2,
+  type Vec2,
+  type WritableBoundAtom,
+} from "uzay";
 import { Scene2DView, useAtomState, useAtomValue } from "uzay/react";
 
 // The Jacobian conjecture, hands on.
@@ -19,9 +25,8 @@ import { Scene2DView, useAtomState, useAtomValue } from "uzay/react";
 // - Fold: det J varies, vanishes on two lines, the plane folds (no inverse)
 // - z^2: det J = 0 only at the origin, yet the map is 2-to-1
 //
-// Everything specific to this demo (the transformed-grid "construction", the
-// numeric Jacobian probe) lives in this file on purpose, as a staging ground
-// for what could later move into the library.
+// The grid is the library's transformedGrid2D construction; the numeric
+// Jacobian probe is demo-specific and lives in this file.
 
 const EXTENT = 4;
 const GRID_STEP = 0.5;
@@ -166,35 +171,31 @@ function buildScene() {
   });
 
   // The transformed grid: every line of the source grid becomes a parametric
-  // curve through the current map. Lines through the origin are the images
-  // of the axes and render heavier.
-  for (let i = -EXTENT / GRID_STEP; i <= EXTENT / GRID_STEP; i++) {
-    const c = i * GRID_STEP;
-    const isAxis = i === 0;
-    // Horizontal source line y = c.
+  // curve through the current map.
+  transformedGrid2D(scene, {
+    map: mapAtom,
+    rangeX: [-EXTENT, EXTENT],
+    rangeY: [-EXTENT, EXTENT],
+    gap: GRID_STEP,
+    colorX: COLORS.horizontal,
+    colorY: COLORS.vertical,
+    opacity: 0.5,
+  });
+
+  // The images of the two axes, rendered heavier on top of the grid.
+  for (const axis of ["x", "y"] as const) {
     scene.create("parametricfunction2d", {
       f: scene.atom((get) => {
         const F = get(mapAtom);
-        return (s: number) => F(s, c);
+        return axis === "x"
+          ? (s: number) => F(s, 0)
+          : (s: number) => F(0, s);
       }),
       tStart: -EXTENT,
       tEnd: EXTENT,
-      color: COLORS.horizontal,
-      thickness: isAxis ? 2.5 : 1,
-      opacity: isAxis ? 0.95 : 0.5,
-      pointerEvents: "none",
-    });
-    // Vertical source line x = c.
-    scene.create("parametricfunction2d", {
-      f: scene.atom((get) => {
-        const F = get(mapAtom);
-        return (s: number) => F(c, s);
-      }),
-      tStart: -EXTENT,
-      tEnd: EXTENT,
-      color: COLORS.vertical,
-      thickness: isAxis ? 2.5 : 1,
-      opacity: isAxis ? 0.95 : 0.5,
+      color: axis === "x" ? COLORS.horizontal : COLORS.vertical,
+      thickness: 2.5,
+      opacity: 0.95,
       pointerEvents: "none",
     });
   }
