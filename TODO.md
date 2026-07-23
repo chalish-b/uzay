@@ -1,8 +1,6 @@
 ## Features
 
 - A fullscreen button for the demos. But idk whether that should be handled by whatever "wrapper" the user makes instead of the library itself.
-- Reusable themes. Can be attached to the view object, dark and light variants etc.
-  - Or instead of the library managing dark and light, the theme itself can be reactive and the user can update it however they want.
 - Add a dedicated examples section in documentation
   - Show more patterns like:
     - How to constrain points to be on a sphere, on a plane etc.
@@ -23,8 +21,6 @@
   - The arrow heads are kind of a problem though if we're going with the 2D Line approach. We can use a texture or something, or maybe a custom shader
 - Groups
   - Items can be added to groups instead of the scene. The group has a coordinate. The child items' coordinates are relative to the group
-- Unify the "thickness" values for axes and grid.
-  - Since grid uses Line2 instead of a 3D geometry, its thickness is different (pixels vs. world units).
 - Documentation improvements
   - Add an "examples" section that shows demos and their source code.
   - In addition to a separate examples section, add small examples inside the pages themselves. Currently we do this, but the examples are kind of mixed with the explanations.
@@ -37,25 +33,19 @@
   - More granular customization, like a function plot having a color gradient for the curve (not just a single color)
     - For simplicity, we can start off by making `color` also able to be a function of `t` and somehow handle this idk
     - Or have a separate thing like `colorMap` which is a function that takes point coordinates (in world coords) as the argument and returns a color. Idk if three.js supports per-vertex coloring or we need a custom shader though.
-- Helper functions to encapsulate some complex logic
-  - For vanilla library these are functions that can take the scene object, and some options, and set up some complex scenarios.
-  - Basically just helper functions that you can technically do yourself, but provided for common use cases.
-  - I think this could simplify some of the stuff, and help us move things from the renderer / scene to the application logic.
-    - For example, maybe an "Axis" object could just be a single axis. But we can create a helper function to create three different axes at the same time for common configs
-    - Same with grids, a grid could just be a 2D plane, and we can have a function to set up a common grid + axes scene.
-  - Ideas:
-    - Function plot with area under it filled in
-    - Line with two points at the ends
-    - Point on a sphere, point on a function, basically points constrained to some surface or path
-    - Get some more ideas from GeoGebra:
-      - Showing the intersection of two surfaces
 - Edit mode
   - Being able to click on an object, and directly changing its properties and atoms on the interface
 
-  ## Bugs
+### More construction ideas
+
+- The 3D equivalent of `transformedGrid2D`. There are 2 different things in the 3D case though: The 2D grids (basically like how we have `grid3D`), and then there is the "lattice" structure which is actually a 3D structure. idk whether the lattice is worth doing a construction
+- Point on a sphere, point on a function, basically points constrained to some surface or path
+- Get some more ideas from GeoGebra:
+    - Showing the intersection of two surfaces
+
+## Bugs
 
 - Explicitly typed atoms (`scene.atom<T>()`) don't get autocomplete. The type checking still works, but for things like string types, it would be nice if it provided autocomplete.
-- This whole thing with Vec3 type and Vec3 namespace is bad. We need to import Vec3 namespace as Vec3Utils just for this and causes confusions.
 
 ## 2D
 
