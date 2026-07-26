@@ -1,5 +1,5 @@
 {
   "title": "3D Items",
   "icon": "Box",
-  "pages": ["points", "lines", "vectors", "parametric", "surfaces", "spheres", "planes", "overlays", "axes", "grid", "camera"]
+  "pages": ["points", "lines", "vectors", "parametric", "surfaces", "spheres", "planes", "polygons", "overlays", "axes", "grid", "camera"]
 }

@@ -1,25 +1,26 @@
 import { useMemo } from "react";
-import { Scene2D, angleMark2D, vec2, type WritableBoundAtom } from "uzay";
-import { Scene2DView, useAtomState } from "uzay/react";
+import { Scene3D, vec3, type Vec3, type WritableBoundAtom } from "uzay";
+import { Scene3DView, useAtomState } from "uzay/react";
 
-// line2d arrows sandbox.
+// polygon3d sandbox.
 //
-// Left column: one static line per arrows mode (none / start / end / both),
-// labeled, to eyeball tip placement at both endpoints.
-// Right: a line between two draggable handles, with every interacting option
-// on sliders:
-// - arrows cycles the four modes; heads must keep their tips exactly on the
-//   endpoints while the handles drag
-// - drag one handle onto the other: degenerate line, heads must hide
-// - dashed + arrows combine; thickness and opacity restyle shaft and heads
-//   together (heads follow the line's opacity)
-// - visible hides shaft and heads as one
-// Bottom left: an angleMark2D with arcArrows "both" next to a "both" line, to
-// check the annotation heads match in size (shared ANNOTATION_HEAD constant).
-//
-// The scene renders in BOTH backends side by side (threejs left, svg right)
-// with a shared camera, so pan/zoom stays in sync and any visual difference
-// between the backends is immediately obvious.
+// Center: a square pyramid assembled the way a real figure would be. The four
+// lateral faces are ONE polygon3d with Vec3[][] points (multi-ring), the base
+// is its own polygon3d, and the apex height rides a slider through reactive
+// points, so every drag rebuilds the fill triangulation and the strokes.
+// Sliders drive the interacting options:
+// - opacity restyles the lateral faces' fill
+// - stroke opacity / thickness control the outlines; thickness 0 or opacity 0
+//   must drop the stroke objects entirely
+// - visible hides fill and strokes as one
+// Left: a concave L-shaped hexagon embedded in a tilted (non-axis-aligned)
+// plane, checking that triangulation happens in the polygon's own plane and
+// handles concavity there. The collapse toggle replaces it with six collinear
+// points: the fill must vanish silently (degenerate ring), while its stroke
+// may still draw the line.
+// Right: a quad whose far corner the bend slider lifts out of the plane. It
+// must keep rendering as a folded surface, and the console must log the
+// non-planar warning once per crossing out of planarity, not per frame.
 
 type SliderSpec = {
   label: string;
@@ -29,98 +30,126 @@ type SliderSpec = {
   step: number;
 };
 
-const ARROW_MODES = ["none", "start", "end", "both"] as const;
-
 function buildScene() {
-  const scene = new Scene2D();
-  const camera = scene.create("camera2d", { center: vec2(0, 0), zoom: 1.1 });
-
-  scene.create("grid2d", {
-    rangeX: true,
-    rangeY: true,
-    gap: "auto",
-    color: "white",
-    opacity: 0.06,
-  });
-  scene.create("axes2d", {
-    x: true,
-    y: true,
-    color: "#666",
-    thickness: 1,
-    tickmarks: true,
-    tickStep: "auto",
+  const scene = new Scene3D();
+  const camera = scene.create("camera3d", {
+    position: vec3(8, 6, 9),
+    lookAt: vec3(0, 1, 0),
+    fov: 55,
   });
 
-  // The static mode column.
-  ARROW_MODES.forEach((mode, i) => {
-    const y = 2.6 - i * 0.7;
-    scene.create("line2d", {
-      start: vec2(-4.4, y),
-      end: vec2(-2.2, y),
-      color: "#38bdf8",
-      thickness: 2,
-      arrows: mode,
-    });
-    scene.create("overlay2d", {
-      position: vec2(-2, y),
-      content: mode,
-      anchor: "left",
-      className: "text-xs",
-    });
+  scene.create("axes3d", { x: [-8, 8], y: [-8, 8], z: [-8, 8], thickness: 0.7 });
+  scene.create("grid3d", {
+    plane: "xz",
+    range1: [-8, 8],
+    range2: [-8, 8],
+    thickness: 2,
   });
 
-  // The draggable line, all options live.
-  const arrowsSlider = scene.atom(3);
-  const dashedToggle = scene.atom(0);
-  const thicknessSlider = scene.atom(2);
-  const opacitySlider = scene.atom(1);
+  const heightSlider = scene.atom(2.5);
+  const opacitySlider = scene.atom(0.35);
+  const strokeOpacitySlider = scene.atom(1);
+  const strokeThicknessSlider = scene.atom(2);
   const visibleToggle = scene.atom(1);
+  const collapseToggle = scene.atom(0);
+  const bendSlider = scene.atom(0);
 
-  const a = scene.create("point2d", { coords: vec2(0.8, 1.6), color: "gold", radius: 6 });
-  const b = scene.create("point2d", { coords: vec2(4, 0.4), color: "gold", radius: 6 });
-  scene.create("line2d", {
-    start: a.coords,
-    end: b.coords,
+  // The square pyramid. Base corners are fixed, the apex follows the slider.
+  const A = vec3(-1.5, 0, -1.5);
+  const B = vec3(1.5, 0, -1.5);
+  const C = vec3(1.5, 0, 1.5);
+  const D = vec3(-1.5, 0, 1.5);
+  const apex = scene.atom((get) => vec3(0, get(heightSlider), 0));
+
+  scene.create("polygon3d", {
+    points: scene.atom((get) => {
+      const T = get(apex);
+      return [
+        [A, B, T],
+        [B, C, T],
+        [C, D, T],
+        [D, A, T],
+      ];
+    }),
     color: "#f472b6",
-    thickness: thicknessSlider,
     opacity: opacitySlider,
-    dashed: scene.atom((get) => get(dashedToggle) > 0.5),
-    arrows: scene.atom((get) => ARROW_MODES[Math.round(get(arrowsSlider))]),
+    strokeColor: "#f9a8d4",
+    strokeOpacity: strokeOpacitySlider,
+    strokeThickness: strokeThicknessSlider,
     visible: scene.atom((get) => get(visibleToggle) > 0.5),
-    pointerEvents: "none",
+  });
+  scene.create("polygon3d", {
+    points: [A, B, C, D],
+    color: "#38bdf8",
+    opacity: 0.25,
+    strokeColor: "#7dd3fc",
+    strokeOpacity: strokeOpacitySlider,
+    strokeThickness: strokeThicknessSlider,
+    visible: scene.atom((get) => get(visibleToggle) > 0.5),
   });
 
-  // Size-consistency check: the arc's annotation heads next to a line's.
-  const vertex = vec2(-3.2, -1.6);
-  const armA = vec2(-1.7, -1.6);
-  const armB = vec2(-3.2, -0.1);
-  for (const arm of [armA, armB]) {
-    scene.create("line2d", { start: vertex, end: arm, color: "#888", thickness: 1.5 });
-  }
-  angleMark2D(scene, {
-    vertex,
-    a: armA,
-    b: armB,
-    radius: 1.1,
+  // The concave L-shape in a tilted plane. Local (l1, l2) coordinates are
+  // embedded through an orthonormal basis that lines up with no world axis.
+  const origin = vec3(-6, 1, 2);
+  const u = vec3(1, 0.5, 0.3).unit();
+  const normal = u.cross(vec3(0, 1, 0)).unit();
+  const v = normal.cross(u);
+  const embed = (l1: number, l2: number): Vec3 =>
+    origin.add(u.scale(l1)).add(v.scale(l2));
+
+  const L_SHAPE: [number, number][] = [
+    [0, 0],
+    [2, 0],
+    [2, 1],
+    [1, 1],
+    [1, 2],
+    [0, 2],
+  ];
+  const COLLINEAR: [number, number][] = [
+    [0, 0],
+    [2, 0],
+    [3, 0],
+    [1.5, 0],
+    [0.5, 0],
+    [2.5, 0],
+  ];
+
+  scene.create("polygon3d", {
+    points: scene.atom((get) => {
+      const local = get(collapseToggle) > 0.5 ? COLLINEAR : L_SHAPE;
+      return local.map(([l1, l2]) => embed(l1, l2));
+    }),
     color: "#a78bfa",
-    thickness: 2,
-    arcArrows: "both",
-    squareRightAngle: false,
+    opacity: opacitySlider,
+    strokeColor: "#c4b5fd",
+    strokeOpacity: strokeOpacitySlider,
+    strokeThickness: strokeThicknessSlider,
   });
-  scene.create("line2d", {
-    start: vec2(-1.2, -2.6),
-    end: vec2(1.8, -2.6),
-    color: "#a78bfa",
-    thickness: 2,
-    arrows: "both",
+
+  // The bend quad. Three corners stay on the ground plane, the fourth rises
+  // with the slider, making the ring non-planar.
+  scene.create("polygon3d", {
+    points: scene.atom((get) => [
+      vec3(4, 0, -1),
+      vec3(7, 0, -1),
+      vec3(7, get(bendSlider), 2),
+      vec3(4, 0, 2),
+    ]),
+    color: "#fbbf24",
+    opacity: opacitySlider,
+    strokeColor: "#fde68a",
+    strokeOpacity: strokeOpacitySlider,
+    strokeThickness: strokeThicknessSlider,
   });
 
   const sliders: SliderSpec[] = [
-    { label: "arrows", atom: arrowsSlider, min: 0, max: 3, step: 1 },
-    { label: "dashed", atom: dashedToggle, min: 0, max: 1, step: 1 },
-    { label: "thickness", atom: thicknessSlider, min: 1, max: 5, step: 0.5 },
-    { label: "opacity", atom: opacitySlider, min: 0.1, max: 1, step: 0.05 },
+    { label: "height", atom: heightSlider, min: 0.2, max: 4, step: 0.1 },
+    { label: "bend", atom: bendSlider, min: 0, max: 2.5, step: 0.05 },
+    { label: "opacity", atom: opacitySlider, min: 0, max: 1, step: 0.05 },
+    { label: "strokeOp", atom: strokeOpacitySlider, min: 0, max: 1, step: 0.05 },
+    { label: "strokeTh", atom: strokeThicknessSlider, min: 0, max: 6, step: 0.5 },
     { label: "visible", atom: visibleToggle, min: 0, max: 1, step: 1 },
+    { label: "collapse", atom: collapseToggle, min: 0, max: 1, step: 1 },
   ];
 
   return { scene, camera, sliders };
@@ -130,11 +159,8 @@ function Slider({ spec }: { spec: SliderSpec }) {
   const [value, setValue] = useAtomState(spec.atom);
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#999" }}>
-      <span style={{ width: 72, flexShrink: 0 }}>
-        {spec.label}:{" "}
-        {spec.label === "arrows"
-          ? ARROW_MODES[Math.round(value)]
-          : value.toFixed(spec.step >= 1 ? 0 : 2)}
+      <span style={{ width: 84, flexShrink: 0 }}>
+        {spec.label}: {value.toFixed(spec.step >= 1 ? 0 : 2)}
       </span>
       <input
         type="range"
@@ -149,64 +175,38 @@ function Slider({ spec }: { spec: SliderSpec }) {
   );
 }
 
-function ViewPane({
-  scene,
-  camera,
-  renderer,
-}: {
-  scene: Scene2D;
-  camera: ReturnType<Scene2D["create"]>;
-  renderer: "threejs" | "svg";
-}) {
-  return (
-    <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-      <Scene2DView
-        scene={scene}
-        camera={camera}
-        renderer={renderer}
-        style={{ width: "100%", height: "100%" }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: 8,
-          left: 10,
-          color: "#777",
-          fontSize: 12,
-          pointerEvents: "none",
-        }}
-      >
-        {renderer}
-      </div>
-    </div>
-  );
-}
-
 export default function Demo1() {
   const { scene, camera, sliders } = useMemo(buildScene, []);
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ width: "100%", height: "100%", display: "flex" }}>
-        <ViewPane scene={scene} camera={camera} renderer="threejs" />
-        <div style={{ width: 1, backgroundColor: "#2a2a2a" }} />
-        <ViewPane scene={scene} camera={camera} renderer="svg" />
-      </div>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "relative",
+        backgroundColor: "#141414",
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
       <div
         style={{
           position: "absolute",
           bottom: 12,
           left: 12,
-          width: 260,
+          width: 280,
           display: "flex",
           flexDirection: "column",
-          gap: 8,
+          gap: 6,
           padding: 12,
           borderRadius: 6,
           backgroundColor: "rgba(22, 22, 22, 0.9)",
           border: "1px solid #2a2a2a",
         }}
       >
+        <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
+          polygon3d sandbox
+        </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />
         ))}

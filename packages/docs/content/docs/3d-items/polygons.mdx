@@ -1,0 +1,168 @@
+---
+title: Polygons
+description: Filled planar polygons in 3D space
+---
+
+import { TransparencyWarning } from "@/components/transparency-warning";
+
+## What is a Polygon3D?
+
+A `Polygon3D` renders a filled polygon (or several disjoint polygons) anywhere in space, the 3D counterpart of [Region2D](/docs/2d-items/regions). Polygons are the building block for flat-faced figures:
+
+- Faces of prisms, pyramids, and other polyhedra
+- Cross-sections and cut planes through a solid
+- Any filled planar shape, convex or concave, at any orientation
+
+## Basic Usage
+
+Pass an array of vertices and the polygon fills the shape they enclose:
+
+```typescript
+scene.create("polygon3d", {
+  points: [vec3(0, 0, 0), vec3(3, 0, 0), vec3(3, 2, 1), vec3(0, 2, 1)],
+  color: "dodgerblue",
+  opacity: 0.35,
+});
+```
+
+The polygon is closed automatically; you do not need to repeat the first vertex at the end. Vertices can sit in any plane, not just the coordinate planes.
+
+## Multiple Polygons
+
+To draw several polygons as a single item, pass an array of vertex arrays. This is what `points` accepts as its second shape, `Vec3[][]`, and it is the natural way to build the faces of a solid:
+
+```typescript
+const A = vec3(-1, 0, -1);
+const B = vec3(1, 0, -1);
+const C = vec3(1, 0, 1);
+const D = vec3(-1, 0, 1);
+const T = vec3(0, 2, 0);
+
+// All four lateral faces of a pyramid, styled and toggled as one item
+scene.create("polygon3d", {
+  points: [
+    [A, B, T],
+    [B, C, T],
+    [C, D, T],
+    [D, A, T],
+  ],
+  color: "gold",
+  opacity: 0.3,
+});
+```
+
+All faces share the same fill and stroke styling and behave as one item. Give faces their own item when they need individual colors or visibility.
+
+## Planarity
+
+Each polygon is triangulated in its own plane, so concave outlines (an L-shape, a star) fill correctly at any orientation in space.
+
+The vertices of a polygon are expected to be coplanar. A non-planar polygon still renders: it is triangulated from its flat projection, which shows up as a fold or crease across the surface, and a console warning points out the offending item. If the fold is intentional, it is safe to ignore the warning; if not, check the vertex coordinates.
+
+## Styling
+
+### Fill
+
+`color` and `opacity` control the fill. The fill is lit and double-sided, so it stays visible from both sides:
+
+```typescript
+scene.create("polygon3d", {
+  points: [vec3(0, 0, 0), vec3(4, 0, 0), vec3(2, 3, 0)],
+  color: "tomato",
+  opacity: 0.5,
+});
+```
+
+### Stroke
+
+A polygon has no outline by default (`strokeOpacity` is `0`). Set the stroke options to draw a border around each polygon:
+
+```typescript
+scene.create("polygon3d", {
+  points: [vec3(0, 0, 0), vec3(4, 0, 0), vec3(2, 3, 0)],
+  color: "tomato",
+  opacity: 0.25,
+  strokeColor: "white",
+  strokeOpacity: 0.8,
+  strokeThickness: 2,
+});
+```
+
+The stroke is a screen-space line with pixel thickness, matching the `"flat"` style of [lines](/docs/3d-items/lines).
+
+<TransparencyWarning />
+
+## Examples
+
+### Reactive Vertices
+
+Drive the vertices from atoms so the polygon follows other items:
+
+```typescript
+const apex = scene.create("point3d", { coords: vec3(0, 2, 0), color: "gold" });
+
+scene.create("polygon3d", {
+  points: scene.atom((get) => [
+    vec3(-1, 0, -1),
+    vec3(1, 0, -1),
+    get(apex.coords),
+  ]),
+  color: "gold",
+  opacity: 0.3,
+});
+```
+
+Drag the apex and the face reshapes with it.
+
+## Updating Properties
+
+```typescript
+const polygon = scene.create("polygon3d", {
+  points: [vec3(0, 0, 0), vec3(2, 0, 0), vec3(1, 2, 0)],
+  color: "white",
+});
+
+polygon.points.set([vec3(0, 0, 0), vec3(3, 0, 0), vec3(3, 0, 3), vec3(0, 0, 3)]);
+polygon.color.set("seagreen");
+polygon.opacity.set(0.5);
+```
+
+---
+
+## API Reference
+
+### Types
+
+```ts
+// A single polygon, or several disjoint polygons rendered as one item.
+type Polygon3DPoints = Vec3[] | Vec3[][];
+```
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `points` | `Vec3[] \| Vec3[][]` | a unit triangle | Polygon vertices, or an array of polygons |
+| `color` | `string` | `"white"` | Fill color |
+| `opacity` | `number` | `0.35` | Fill opacity (0 to 1) |
+| `strokeColor` | `string` | `"white"` | Outline color |
+| `strokeOpacity` | `number` | `0` | Outline opacity (0 hides the outline) |
+| `strokeThickness` | `number` | `1` | Outline width in pixels |
+| `visible` | `boolean` | `true` | Whether the polygon is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the polygon receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `points` | `BoundAtom<Polygon3DPoints>` | Vertices atom |
+| `color` | `BoundAtom<string>` | Fill color atom |
+| `opacity` | `BoundAtom<number>` | Fill opacity atom |
+| `strokeColor` | `BoundAtom<string>` | Stroke color atom |
+| `strokeOpacity` | `BoundAtom<number>` | Stroke opacity atom |
+| `strokeThickness` | `BoundAtom<number>` | Stroke width atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

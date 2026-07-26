@@ -126,6 +126,23 @@ export type ThreeSceneTypes = {
     material: THREE.MeshPhongMaterial;
     mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhongMaterial>;
   };
+  polygon3d: {
+    kind: "polygon3d";
+    geometry: THREE.BufferGeometry;
+    material: THREE.MeshPhongMaterial;
+    mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhongMaterial>;
+    strokes: Polygon3DStrokeObject[];
+    // True while the item's current points are non-planar; gates the console
+    // warning to one per planar-to-non-planar crossing.
+    warnedNonPlanar: boolean;
+  };
+};
+
+// One closed outline per polygon ring, when the polygon's stroke is shown.
+export type Polygon3DStrokeObject = {
+  geometry: LineGeometry;
+  material: LineMaterial;
+  mesh: Line2;
 };
 
 export type ThreeSceneObject<K extends ItemKind = ItemKind> =
