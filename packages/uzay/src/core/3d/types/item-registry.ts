@@ -34,6 +34,9 @@ import {
 import {
   polygon3dDefinition,
 } from "../items/polygon3d";
+import {
+  parametricSurface3dDefinition,
+} from "../items/parametric-surface3d";
 import type { AtomLikeOptions } from "../../shared/atom-wrapper";
 import type {
   DefinitionFields,
@@ -56,6 +59,7 @@ export const itemDefinitions = {
   plane3d: plane3dDefinition,
   surface3d: surface3dDefinition,
   polygon3d: polygon3dDefinition,
+  parametricsurface3d: parametricSurface3dDefinition,
 } as const;
 
 export type ItemKind = keyof typeof itemDefinitions;

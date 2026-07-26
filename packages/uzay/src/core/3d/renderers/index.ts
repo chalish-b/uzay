@@ -19,6 +19,7 @@ import { overlay3dRenderer } from "./overlay3d";
 import { plane3dRenderer } from "./plane3d";
 import { surface3dRenderer } from "./surface3d";
 import { polygon3dRenderer } from "./polygon3d";
+import { parametricSurface3dRenderer } from "./parametric-surface3d";
 
 // Registry mapping item kinds to their renderers
 export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
@@ -34,6 +35,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   plane3d: plane3dRenderer,
   surface3d: surface3dRenderer,
   polygon3d: polygon3dRenderer,
+  parametricsurface3d: parametricSurface3dRenderer,
 };
 
 // Helper function to get a typed renderer for a specific kind

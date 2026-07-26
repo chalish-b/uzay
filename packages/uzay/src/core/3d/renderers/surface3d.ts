@@ -3,60 +3,31 @@ import type { ItemSnapshot } from "../types/item-registry";
 import type { ItemRenderer, ThreeSceneTypes } from "./shared";
 import { applyOpacityMaterialState } from "./material-transparency";
 import { checkedColor } from "../../shared/types/colors";
+import {
+  createGridGeometry,
+  updateGridPositions,
+  type GridTopology,
+} from "./grid-mesh";
 
-function buildSurfaceBuffers(
-  f: (x: number, z: number) => number,
-  xRange: [number, number],
-  zRange: [number, number],
-  N: number
-) {
-  const positions = new Float32Array(N * N * 3);
-  const indices = new Uint32Array((N - 1) * (N - 1) * 6);
-
-  for (let i = 0; i < N; i++) {
-    const x = xRange[0] + ((xRange[1] - xRange[0]) * i) / (N - 1);
-    for (let j = 0; j < N; j++) {
-      const z = zRange[0] + ((zRange[1] - zRange[0]) * j) / (N - 1);
-      const y = f(x, z);
-      const idx = (i * N + j) * 3;
-      positions[idx] = x;
-      positions[idx + 1] = y;
-      positions[idx + 2] = z;
-    }
-  }
-
-  let triIdx = 0;
-  for (let i = 0; i < N - 1; i++) {
-    for (let j = 0; j < N - 1; j++) {
-      const a = i * N + j;
-      const b = (i + 1) * N + j;
-      const c = (i + 1) * N + (j + 1);
-      const d = i * N + (j + 1);
-      indices[triIdx++] = a;
-      indices[triIdx++] = c;
-      indices[triIdx++] = b;
-      indices[triIdx++] = a;
-      indices[triIdx++] = d;
-      indices[triIdx++] = c;
-    }
-  }
-
-  return { positions, indices };
+function topologyOf(item: ItemSnapshot<"surface3d">): GridTopology {
+  const N = Math.max(Math.round(item.samples), 2);
+  return { nu: N, nv: N, wrapU: false, wrapV: false };
 }
 
-function createGeometry(item: ItemSnapshot<"surface3d">, N: number): THREE.BufferGeometry {
-  const { positions, indices } = buildSurfaceBuffers(item.f, item.xRange, item.zRange, N);
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-  geometry.computeVertexNormals();
-  return geometry;
+// The heightfield sampled as a grid position: u is x, v is z, f gives y.
+function positionOf(item: ItemSnapshot<"surface3d">) {
+  const f = item.f;
+  return (x: number, z: number) => ({ x, y: f(x, z), z });
 }
 
 export const surface3dRenderer: ItemRenderer<"surface3d"> = {
   create(item: ItemSnapshot<"surface3d">, threeScene: THREE.Object3D): ThreeSceneTypes["surface3d"] {
-    const N = Math.max(Math.round(item.samples), 2);
-    const geometry = createGeometry(item, N);
+    const geometry = createGridGeometry(
+      topologyOf(item),
+      item.xRange,
+      item.zRange,
+      positionOf(item)
+    );
     const material = new THREE.MeshPhongMaterial({
       color: checkedColor(item.color, "Surface3D.color"),
       specular: 0xaaaaaa,
@@ -80,24 +51,30 @@ export const surface3dRenderer: ItemRenderer<"surface3d"> = {
     applyOpacityMaterialState(obj.material, item.opacity);
     obj.material.wireframe = item.wireframe;
 
-    const N = Math.max(Math.round(item.samples), 2);
-    const expectedVerts = N * N;
+    const topology = topologyOf(item);
+    const expectedVerts = topology.nu * topology.nv;
     const currentVerts = obj.geometry.attributes.position.count;
 
     if (expectedVerts !== currentVerts) {
       // Buffer size changed, must rebuild geometry
       obj.geometry.dispose();
-      const geometry = createGeometry(item, N);
+      const geometry = createGridGeometry(
+        topology,
+        item.xRange,
+        item.zRange,
+        positionOf(item)
+      );
       obj.geometry = geometry;
       obj.mesh.geometry = geometry;
     } else {
       // Reuse buffers, just update positions
-      const posAttr = obj.geometry.attributes.position as THREE.BufferAttribute;
-      const { positions } = buildSurfaceBuffers(item.f, item.xRange, item.zRange, N);
-      posAttr.set(positions);
-      posAttr.needsUpdate = true;
-      obj.geometry.computeVertexNormals();
-      (obj.geometry.attributes.normal as THREE.BufferAttribute).needsUpdate = true;
+      updateGridPositions(
+        obj.geometry,
+        topology,
+        item.xRange,
+        item.zRange,
+        positionOf(item)
+      );
     }
 
     obj.mesh.visible = item.visible;

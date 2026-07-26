@@ -1,0 +1,232 @@
+---
+title: Parametric Surfaces
+description: 3D surfaces defined by a function of two parameters
+---
+
+import { TransparencyWarning } from "@/components/transparency-warning";
+import ParametricSurfacesDemo from "@/components/demos/parametric-surfaces-demo";
+
+## What is a ParametricSurface3D?
+
+A parametric surface maps two parameters to a point in space:
+
+$$
+(u, v) \mapsto \big(x(u, v),\ y(u, v),\ z(u, v)\big)
+$$
+
+Where [Surface3D](/docs/3d-items/surfaces) is a heightfield (one $y$ per $(x, z)$), a parametric surface places its points freely, so it can wrap around: cylinders, spheres, tori, and any surface a heightfield cannot express. The two items relate the same way [Function2D](/docs/2d-items/functions) relates to [ParametricFunction2D](/docs/2d-items/parametric).
+
+<ParametricSurfacesDemo />
+
+The surface is one `parametricsurface3d` whose `f` is a derived atom over the slider's value, sweeping through the helicoid-catenoid family. At the catenoid end the surface joins up around $u$, and a derived `closedU` atom welds the seam.
+
+## Basic Usage
+
+```typescript
+// A cylinder of radius 2 and height 3
+scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(2 * Math.cos(u), v, 2 * Math.sin(u)),
+  uRange: [0, 2 * Math.PI],
+  vRange: [0, 3],
+  closedU: true,
+  color: "dodgerblue",
+});
+```
+
+The function is evaluated over a rectangular grid in the $(u, v)$ parameter domain, and neighboring samples are connected into triangles.
+
+## Domain and Sampling
+
+### Setting the Domain
+
+`uRange` and `vRange` bound the parameter domain:
+
+```typescript
+scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(Math.sin(v) * Math.cos(u), Math.cos(v), Math.sin(v) * Math.sin(u)),
+  uRange: [0, 2 * Math.PI],
+  vRange: [0, Math.PI],
+});
+```
+
+A partial domain gives a partial surface: end `uRange` at $\pi$ in the example above and you get half a sphere.
+
+### Per-Axis Sampling
+
+`samples` accepts a single count for both axes, or a `[uSamples, vSamples]` pair. Match the resolution to where the surface actually curves:
+
+```typescript
+// Curved around u, perfectly straight along v: 96x2 is enough
+scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(2 * Math.cos(u), v, 2 * Math.sin(u)),
+  uRange: [0, 2 * Math.PI],
+  vRange: [0, 3],
+  samples: [96, 2],
+  closedU: true,
+});
+```
+
+A cylinder at `samples: 96` would compute 9,216 vertices; `[96, 2]` gets the identical shape from 192.
+
+## Closed Surfaces
+
+Many parametric surfaces join up with themselves: a cylinder or sphere around $u$, a torus around both parameters. Setting `closedU` (or `closedV`) declares that the surface meets itself along that axis, with `f` at the range's end landing on `f` at its start for every value of the other parameter.
+
+```typescript
+// A torus: closed around both parameters
+scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(
+    (3 + Math.cos(v)) * Math.cos(u),
+    Math.sin(v),
+    (3 + Math.cos(v)) * Math.sin(u),
+  ),
+  uRange: [0, 2 * Math.PI],
+  vRange: [0, 2 * Math.PI],
+  samples: [96, 48],
+  closedU: true,
+  closedV: true,
+});
+```
+
+A closed axis is welded: the seam shares its vertices instead of duplicating the boundary column, so lighting is smooth across it. Without the flag the surface looks closed but shades with a visible crease where the parametrization starts and ends.
+
+Closing an axis identifies the end of the range with its start at equal values of the other parameter. A surface that comes back to itself with a flip, like a Möbius strip, does not fit that identification; leave it open.
+
+If a closed axis's ends do not actually meet, the surface still renders, stitched across the gap, and a console warning points out the mismatch.
+
+### Poles and Apexes
+
+Rows of the grid may collapse to a single point, like a sphere's poles or a cone's apex. This needs no flag and no special handling; the degenerate triangles vanish and the shading stays correct:
+
+```typescript
+// A cone: the v = 0 row is the apex
+scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(v * Math.cos(u), 3 - 2 * v, v * Math.sin(u)),
+  uRange: [0, 2 * Math.PI],
+  vRange: [0, 1.5],
+  samples: [96, 8],
+  closedU: true,
+});
+```
+
+## Styling
+
+```typescript
+scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(Math.cos(u) * (2 + Math.cos(v)), Math.sin(v), Math.sin(u) * (2 + Math.cos(v))),
+  color: "hotpink",
+  opacity: 0.7,
+  wireframe: false,
+});
+```
+
+<TransparencyWarning />
+
+## Examples
+
+### Reactive Parameters
+
+Make the surface respond to changing parameters using derived atoms. Swapping `f` while the grid stays the same size reuses the mesh buffers, so this stays smooth during interaction:
+
+```typescript
+const radius = scene.atom(2);
+
+scene.create("parametricsurface3d", {
+  f: scene.atom((get) => {
+    const r = get(radius);
+    return (u: number, v: number) => vec3(r * Math.cos(u), v, r * Math.sin(u));
+  }),
+  uRange: [0, 2 * Math.PI],
+  vRange: [0, 3],
+  samples: [96, 2],
+  closedU: true,
+});
+
+// The cylinder resizes automatically
+radius.set(3);
+```
+
+### Reactive Domain
+
+Sweep a bound to grow a surface, for example a sphere cap opening into a full sphere:
+
+```typescript
+const sweep = scene.atom(Math.PI / 6);
+
+scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(
+    2 * Math.sin(v) * Math.cos(u),
+    2 * Math.cos(v),
+    2 * Math.sin(v) * Math.sin(u),
+  ),
+  uRange: [0, 2 * Math.PI],
+  vRange: scene.atom((get) => [0, get(sweep)] as [number, number]),
+  closedU: true,
+});
+
+sweep.set(Math.PI); // now the full sphere
+```
+
+## Updating Properties
+
+All fields on the returned item are atoms:
+
+```typescript
+const surface = scene.create("parametricsurface3d", {
+  f: (u, v) => vec3(2 * Math.cos(u), v, 2 * Math.sin(u)),
+  uRange: [0, 2 * Math.PI],
+  vRange: [0, 3],
+});
+
+surface.color.set("crimson");
+surface.opacity.set(0.5);
+surface.wireframe.set(true);
+surface.samples.set([128, 4]);
+surface.closedU.set(true);
+```
+
+---
+
+## API Reference
+
+### Types
+
+```ts
+// A single count applies to both axes; a pair is [uSamples, vSamples].
+type ParametricSurface3DSamples = number | [number, number];
+```
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `f` | `(u: number, v: number) => Vec3` | a flat unit patch | The surface function |
+| `uRange` | `[number, number]` | `[0, 1]` | Parameter domain along u |
+| `vRange` | `[number, number]` | `[0, 1]` | Parameter domain along v |
+| `samples` | `number \| [number, number]` | `64` | Grid resolution, per axis when a pair |
+| `closedU` | `boolean` | `false` | Weld the surface's seam along u |
+| `closedV` | `boolean` | `false` | Weld the surface's seam along v |
+| `color` | `string` | `"white"` | CSS color string |
+| `opacity` | `number` | `1` | Opacity from 0 (transparent) to 1 (opaque) |
+| `wireframe` | `boolean` | `false` | Whether to render as wireframe |
+| `visible` | `boolean` | `true` | Whether the surface is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the surface receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `f` | `BoundAtom<(u: number, v: number) => Vec3>` | Function atom |
+| `uRange` | `BoundAtom<[number, number]>` | u domain atom |
+| `vRange` | `BoundAtom<[number, number]>` | v domain atom |
+| `samples` | `BoundAtom<ParametricSurface3DSamples>` | Sample count atom |
+| `closedU` | `BoundAtom<boolean>` | u weld atom |
+| `closedV` | `BoundAtom<boolean>` | v weld atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `opacity` | `BoundAtom<number>` | Opacity atom |
+| `wireframe` | `BoundAtom<boolean>` | Wireframe atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

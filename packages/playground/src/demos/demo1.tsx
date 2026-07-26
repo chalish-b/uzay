@@ -2,25 +2,89 @@ import { useMemo } from "react";
 import { Scene3D, vec3, type Vec3, type WritableBoundAtom } from "uzay";
 import { Scene3DView, useAtomState } from "uzay/react";
 
-// polygon3d sandbox.
+// parametricsurface3d sandbox.
 //
-// Center: a square pyramid assembled the way a real figure would be. The four
-// lateral faces are ONE polygon3d with Vec3[][] points (multi-ring), the base
-// is its own polygon3d, and the apex height rides a slider through reactive
-// points, so every drag rebuilds the fill triangulation and the strokes.
-// Sliders drive the interacting options:
-// - opacity restyles the lateral faces' fill
-// - stroke opacity / thickness control the outlines; thickness 0 or opacity 0
-//   must drop the stroke objects entirely
-// - visible hides fill and strokes as one
-// Left: a concave L-shaped hexagon embedded in a tilted (non-axis-aligned)
-// plane, checking that triangulation happens in the polygon's own plane and
-// handles concavity there. The collapse toggle replaces it with six collinear
-// points: the fill must vanish silently (degenerate ring), while its stroke
-// may still draw the line.
-// Right: a quad whose far corner the bend slider lifts out of the plane. It
-// must keep rendering as a folded surface, and the console must log the
-// non-planar warning once per crossing out of planarity, not per frame.
+// One surface, with a shape slider cycling through the item's interesting
+// regimes:
+// - torus: closes around both axes; flip closedU/closedV and eyeball the
+//   shading seam appearing (open) and disappearing (welded), clearest with
+//   wireframe on, where the welded seam's duplicate column vanishes
+// - sphere: closedU welds the equator seam; the v poles are degenerate rows
+//   (whole rows collapse to a point) and must shade correctly as-is; turning
+//   closedV ON here is a deliberate misuse: it welds pole to pole and must
+//   log the seam mismatch warning
+// - cylinder: the classic closedU case
+// - helicoid: open in both axes; closed flags here must warn
+// - scroll: a cylinder whose radius grows with u, so the seam has a real gap;
+//   drag param to 0 and the gap closes, then up again, and the closedU
+//   warning must fire once per crossing, not per frame
+// The param slider morphs each shape (tube/sphere/cylinder radius, helicoid
+// pitch, scroll gap) through a reactive f, exercising the buffer-reuse path.
+// uSamples/vSamples drive per-axis sampling; wireframe shows the topology.
+
+const SHAPES = ["torus", "sphere", "cylinder", "helicoid", "scroll"] as const;
+type Shape = (typeof SHAPES)[number];
+
+type SurfaceFunc = (u: number, v: number) => Vec3;
+
+const TAU = 2 * Math.PI;
+
+function shapeFunc(shape: Shape, p: number): SurfaceFunc {
+  switch (shape) {
+    case "torus": {
+      const r = 0.2 + p * 1.3;
+      return (u, v) =>
+        vec3(
+          (2.2 + r * Math.cos(v)) * Math.cos(u),
+          r * Math.sin(v),
+          (2.2 + r * Math.cos(v)) * Math.sin(u)
+        );
+    }
+    case "sphere": {
+      const r = 0.5 + p * 2;
+      return (u, v) =>
+        vec3(
+          r * Math.sin(v) * Math.cos(u),
+          r * Math.cos(v),
+          r * Math.sin(v) * Math.sin(u)
+        );
+    }
+    case "cylinder": {
+      const r = 0.5 + p * 1.5;
+      return (u, v) => vec3(r * Math.cos(u), v, r * Math.sin(u));
+    }
+    case "helicoid": {
+      const c = p;
+      return (u, v) => vec3(v * Math.cos(u), c * u, v * Math.sin(u));
+    }
+    case "scroll": {
+      const gap = p * 1.5;
+      return (u, v) =>
+        vec3(
+          (1.5 + (gap * u) / TAU) * Math.cos(u),
+          v,
+          (1.5 + (gap * u) / TAU) * Math.sin(u)
+        );
+    }
+  }
+}
+
+function shapeRanges(shape: Shape): {
+  uRange: [number, number];
+  vRange: [number, number];
+} {
+  switch (shape) {
+    case "torus":
+      return { uRange: [0, TAU], vRange: [0, TAU] };
+    case "sphere":
+      return { uRange: [0, TAU], vRange: [0, Math.PI] };
+    case "helicoid":
+      return { uRange: [-Math.PI, Math.PI], vRange: [-1.8, 1.8] };
+    case "cylinder":
+    case "scroll":
+      return { uRange: [0, TAU], vRange: [-1.5, 1.5] };
+  }
+}
 
 type SliderSpec = {
   label: string;
@@ -28,128 +92,71 @@ type SliderSpec = {
   min: number;
   max: number;
   step: number;
+  display?: (value: number) => string;
 };
 
 function buildScene() {
   const scene = new Scene3D();
   const camera = scene.create("camera3d", {
-    position: vec3(8, 6, 9),
-    lookAt: vec3(0, 1, 0),
+    position: vec3(7, 5, 8),
+    lookAt: vec3(0, 0, 0),
     fov: 55,
   });
 
-  scene.create("axes3d", { x: [-8, 8], y: [-8, 8], z: [-8, 8], thickness: 0.7 });
+  scene.create("axes3d", { x: [-6, 6], y: [-4, 4], z: [-6, 6], thickness: 0.7 });
   scene.create("grid3d", {
     plane: "xz",
-    range1: [-8, 8],
-    range2: [-8, 8],
+    range1: [-6, 6],
+    range2: [-6, 6],
+    offset: -3,
     thickness: 2,
   });
 
-  const heightSlider = scene.atom(2.5);
-  const opacitySlider = scene.atom(0.35);
-  const strokeOpacitySlider = scene.atom(1);
-  const strokeThicknessSlider = scene.atom(2);
-  const visibleToggle = scene.atom(1);
-  const collapseToggle = scene.atom(0);
-  const bendSlider = scene.atom(0);
+  const shapeSlider = scene.atom(0);
+  const paramSlider = scene.atom(0.5);
+  const uSamplesSlider = scene.atom(96);
+  const vSamplesSlider = scene.atom(48);
+  const closedUToggle = scene.atom(1);
+  const closedVToggle = scene.atom(0);
+  const wireframeToggle = scene.atom(0);
+  const opacitySlider = scene.atom(0.85);
 
-  // The square pyramid. Base corners are fixed, the apex follows the slider.
-  const A = vec3(-1.5, 0, -1.5);
-  const B = vec3(1.5, 0, -1.5);
-  const C = vec3(1.5, 0, 1.5);
-  const D = vec3(-1.5, 0, 1.5);
-  const apex = scene.atom((get) => vec3(0, get(heightSlider), 0));
+  const shape = scene.atom((get) => SHAPES[Math.round(get(shapeSlider))]);
 
-  scene.create("polygon3d", {
-    points: scene.atom((get) => {
-      const T = get(apex);
-      return [
-        [A, B, T],
-        [B, C, T],
-        [C, D, T],
-        [D, A, T],
-      ];
-    }),
+  scene.create("parametricsurface3d", {
+    f: scene.atom((get) => shapeFunc(get(shape), get(paramSlider))),
+    uRange: scene.atom((get) => shapeRanges(get(shape)).uRange),
+    vRange: scene.atom((get) => shapeRanges(get(shape)).vRange),
+    samples: scene.atom(
+      (get) =>
+        [
+          Math.round(get(uSamplesSlider)),
+          Math.round(get(vSamplesSlider)),
+        ] as [number, number]
+    ),
+    closedU: scene.atom((get) => get(closedUToggle) > 0.5),
+    closedV: scene.atom((get) => get(closedVToggle) > 0.5),
+    wireframe: scene.atom((get) => get(wireframeToggle) > 0.5),
+    opacity: opacitySlider,
     color: "#f472b6",
-    opacity: opacitySlider,
-    strokeColor: "#f9a8d4",
-    strokeOpacity: strokeOpacitySlider,
-    strokeThickness: strokeThicknessSlider,
-    visible: scene.atom((get) => get(visibleToggle) > 0.5),
-  });
-  scene.create("polygon3d", {
-    points: [A, B, C, D],
-    color: "#38bdf8",
-    opacity: 0.25,
-    strokeColor: "#7dd3fc",
-    strokeOpacity: strokeOpacitySlider,
-    strokeThickness: strokeThicknessSlider,
-    visible: scene.atom((get) => get(visibleToggle) > 0.5),
-  });
-
-  // The concave L-shape in a tilted plane. Local (l1, l2) coordinates are
-  // embedded through an orthonormal basis that lines up with no world axis.
-  const origin = vec3(-6, 1, 2);
-  const u = vec3(1, 0.5, 0.3).unit();
-  const normal = u.cross(vec3(0, 1, 0)).unit();
-  const v = normal.cross(u);
-  const embed = (l1: number, l2: number): Vec3 =>
-    origin.add(u.scale(l1)).add(v.scale(l2));
-
-  const L_SHAPE: [number, number][] = [
-    [0, 0],
-    [2, 0],
-    [2, 1],
-    [1, 1],
-    [1, 2],
-    [0, 2],
-  ];
-  const COLLINEAR: [number, number][] = [
-    [0, 0],
-    [2, 0],
-    [3, 0],
-    [1.5, 0],
-    [0.5, 0],
-    [2.5, 0],
-  ];
-
-  scene.create("polygon3d", {
-    points: scene.atom((get) => {
-      const local = get(collapseToggle) > 0.5 ? COLLINEAR : L_SHAPE;
-      return local.map(([l1, l2]) => embed(l1, l2));
-    }),
-    color: "#a78bfa",
-    opacity: opacitySlider,
-    strokeColor: "#c4b5fd",
-    strokeOpacity: strokeOpacitySlider,
-    strokeThickness: strokeThicknessSlider,
-  });
-
-  // The bend quad. Three corners stay on the ground plane, the fourth rises
-  // with the slider, making the ring non-planar.
-  scene.create("polygon3d", {
-    points: scene.atom((get) => [
-      vec3(4, 0, -1),
-      vec3(7, 0, -1),
-      vec3(7, get(bendSlider), 2),
-      vec3(4, 0, 2),
-    ]),
-    color: "#fbbf24",
-    opacity: opacitySlider,
-    strokeColor: "#fde68a",
-    strokeOpacity: strokeOpacitySlider,
-    strokeThickness: strokeThicknessSlider,
   });
 
   const sliders: SliderSpec[] = [
-    { label: "height", atom: heightSlider, min: 0.2, max: 4, step: 0.1 },
-    { label: "bend", atom: bendSlider, min: 0, max: 2.5, step: 0.05 },
-    { label: "opacity", atom: opacitySlider, min: 0, max: 1, step: 0.05 },
-    { label: "strokeOp", atom: strokeOpacitySlider, min: 0, max: 1, step: 0.05 },
-    { label: "strokeTh", atom: strokeThicknessSlider, min: 0, max: 6, step: 0.5 },
-    { label: "visible", atom: visibleToggle, min: 0, max: 1, step: 1 },
-    { label: "collapse", atom: collapseToggle, min: 0, max: 1, step: 1 },
+    {
+      label: "shape",
+      atom: shapeSlider,
+      min: 0,
+      max: SHAPES.length - 1,
+      step: 1,
+      display: (value) => SHAPES[Math.round(value)],
+    },
+    { label: "param", atom: paramSlider, min: 0, max: 1, step: 0.01 },
+    { label: "uSamples", atom: uSamplesSlider, min: 3, max: 160, step: 1 },
+    { label: "vSamples", atom: vSamplesSlider, min: 3, max: 160, step: 1 },
+    { label: "closedU", atom: closedUToggle, min: 0, max: 1, step: 1 },
+    { label: "closedV", atom: closedVToggle, min: 0, max: 1, step: 1 },
+    { label: "wireframe", atom: wireframeToggle, min: 0, max: 1, step: 1 },
+    { label: "opacity", atom: opacitySlider, min: 0.1, max: 1, step: 0.05 },
   ];
 
   return { scene, camera, sliders };
@@ -159,8 +166,11 @@ function Slider({ spec }: { spec: SliderSpec }) {
   const [value, setValue] = useAtomState(spec.atom);
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#999" }}>
-      <span style={{ width: 84, flexShrink: 0 }}>
-        {spec.label}: {value.toFixed(spec.step >= 1 ? 0 : 2)}
+      <span style={{ width: 96, flexShrink: 0 }}>
+        {spec.label}:{" "}
+        {spec.display
+          ? spec.display(value)
+          : value.toFixed(spec.step >= 1 ? 0 : 2)}
       </span>
       <input
         type="range"
@@ -194,7 +204,7 @@ export default function Demo1() {
           position: "absolute",
           bottom: 12,
           left: 12,
-          width: 280,
+          width: 300,
           display: "flex",
           flexDirection: "column",
           gap: 6,
@@ -205,7 +215,7 @@ export default function Demo1() {
         }}
       >
         <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
-          polygon3d sandbox
+          parametricsurface3d sandbox
         </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />

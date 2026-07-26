@@ -23,6 +23,7 @@ export type { Overlay3D } from "./core/3d/items/overlay3d"
 export type { Plane3D } from "./core/3d/items/plane3d"
 export type { Surface3D } from "./core/3d/items/surface3d"
 export type { Polygon3D, Polygon3DPoints } from "./core/3d/items/polygon3d"
+export type { ParametricSurface3D, ParametricSurface3DSamples } from "./core/3d/items/parametric-surface3d"
 
 // 2D item handle types
 export type { Camera2D } from "./core/2d/items/camera2d"

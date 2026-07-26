@@ -6,6 +6,7 @@ import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import type { GridTopology } from "./grid-mesh";
 
 // Shared constants for renderers
 // Since these things are in world units, a value of 1 takes up a space of 1 unit, which is huge
@@ -125,6 +126,19 @@ export type ThreeSceneTypes = {
     geometry: THREE.BufferGeometry;
     material: THREE.MeshPhongMaterial;
     mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhongMaterial>;
+  };
+  parametricsurface3d: {
+    kind: "parametricsurface3d";
+    geometry: THREE.BufferGeometry;
+    material: THREE.MeshPhongMaterial;
+    mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhongMaterial>;
+    // The grid the current geometry was built for; a change in any part of it
+    // means the buffers must be rebuilt rather than refilled.
+    topology: GridTopology;
+    // True while the matching closed axis's boundaries do not meet; gates the
+    // console warning to one per crossing into the mismatched state.
+    warnedClosedU: boolean;
+    warnedClosedV: boolean;
   };
   polygon3d: {
     kind: "polygon3d";
