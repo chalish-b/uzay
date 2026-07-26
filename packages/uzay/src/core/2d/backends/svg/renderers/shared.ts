@@ -82,6 +82,10 @@ export type SvgSceneTypes = {
   function2d: {
     kind: "function2d";
     path: SVGPathElement;
+    // Endpoint markers, rebuilt with the sampling plan. The group keeps
+    // their stacking position above the path stable across rebuilds.
+    markerGroup: SVGGElement;
+    markerCircles: SVGCircleElement[];
     plan: FunctionSamplingPlan | null;
   };
   overlay2d: {

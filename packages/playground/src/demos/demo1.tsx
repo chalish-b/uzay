@@ -1,90 +1,30 @@
 import { useMemo } from "react";
-import { Scene3D, vec3, type Vec3, type WritableBoundAtom } from "uzay";
-import { Scene3DView, useAtomState } from "uzay/react";
+import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
+import type { Function2DDiscontinuity } from "uzay";
+import { Scene2DView, useAtomState } from "uzay/react";
 
-// parametricsurface3d sandbox.
+// function2d endpoint-marker sandbox, threejs and svg side by side (shared
+// camera, so pan/zoom stays in sync for comparison).
 //
-// One surface, with a shape slider cycling through the item's interesting
-// regimes:
-// - torus: closes around both axes; flip closedU/closedV and eyeball the
-//   shading seam appearing (open) and disappearing (welded), clearest with
-//   wireframe on, where the welded seam's duplicate column vanishes
-// - sphere: closedU welds the equator seam; the v poles are degenerate rows
-//   (whole rows collapse to a point) and must shade correctly as-is; turning
-//   closedV ON here is a deliberate misuse: it welds pole to pole and must
-//   log the seam mismatch warning
-// - cylinder: the classic closedU case
-// - helicoid: open in both axes; closed flags here must warn
-// - scroll: a cylinder whose radius grows with u, so the seam has a real gap;
-//   drag param to 0 and the gap closes, then up again, and the closedU
-//   warning must fire once per crossing, not per frame
-// The param slider morphs each shape (tube/sphere/cylinder radius, helicoid
-// pitch, scroll gap) through a reactive f, exercising the buffer-reuse path.
-// uSamples/vSamples drive per-axis sampling; wireframe shows the topology.
+// - dodgerblue: piecewise jump at x = a (slider). Left side open, right side
+//   closed; the swap toggle flips them. Dragging a moves the jump and the
+//   markers must track it. Near a ≈ 1.62 the two branches meet and the ring
+//   and dot coincide (different styles are not deduped, the dot covers the
+//   ring).
+// - orange: removable hole, both sides open. The two coincident rings must
+//   dedupe into a single ring, with the grid visible through its interior
+//   and the line trimmed back to the ring edge on both sides.
+// - violet: finite domain, closed start dot and open end ring. Pan the
+//   domain edge off screen and back; markers must survive plan rebuilds.
+// - tomato: deliberate misuse, open markers declared on a vertical
+//   asymptote. Both one-sided limits diverge, so the curve must break with
+//   NO markers drawn.
+// - markerRadius / thickness / opacity sliders apply to all four curves.
+//   Zoom in and out: marker sizes and ring strokes are CSS pixel sizes and
+//   must stay visually constant, with the curve never poking into a ring's
+//   hollow interior.
 
-const SHAPES = ["torus", "sphere", "cylinder", "helicoid", "scroll"] as const;
-type Shape = (typeof SHAPES)[number];
-
-type SurfaceFunc = (u: number, v: number) => Vec3;
-
-const TAU = 2 * Math.PI;
-
-function shapeFunc(shape: Shape, p: number): SurfaceFunc {
-  switch (shape) {
-    case "torus": {
-      const r = 0.2 + p * 1.3;
-      return (u, v) =>
-        vec3(
-          (2.2 + r * Math.cos(v)) * Math.cos(u),
-          r * Math.sin(v),
-          (2.2 + r * Math.cos(v)) * Math.sin(u)
-        );
-    }
-    case "sphere": {
-      const r = 0.5 + p * 2;
-      return (u, v) =>
-        vec3(
-          r * Math.sin(v) * Math.cos(u),
-          r * Math.cos(v),
-          r * Math.sin(v) * Math.sin(u)
-        );
-    }
-    case "cylinder": {
-      const r = 0.5 + p * 1.5;
-      return (u, v) => vec3(r * Math.cos(u), v, r * Math.sin(u));
-    }
-    case "helicoid": {
-      const c = p;
-      return (u, v) => vec3(v * Math.cos(u), c * u, v * Math.sin(u));
-    }
-    case "scroll": {
-      const gap = p * 1.5;
-      return (u, v) =>
-        vec3(
-          (1.5 + (gap * u) / TAU) * Math.cos(u),
-          v,
-          (1.5 + (gap * u) / TAU) * Math.sin(u)
-        );
-    }
-  }
-}
-
-function shapeRanges(shape: Shape): {
-  uRange: [number, number];
-  vRange: [number, number];
-} {
-  switch (shape) {
-    case "torus":
-      return { uRange: [0, TAU], vRange: [0, TAU] };
-    case "sphere":
-      return { uRange: [0, TAU], vRange: [0, Math.PI] };
-    case "helicoid":
-      return { uRange: [-Math.PI, Math.PI], vRange: [-1.8, 1.8] };
-    case "cylinder":
-    case "scroll":
-      return { uRange: [0, TAU], vRange: [-1.5, 1.5] };
-  }
-}
+const SHOW_STYLES = ["open/closed", "closed/open"] as const;
 
 type SliderSpec = {
   label: string;
@@ -96,67 +36,104 @@ type SliderSpec = {
 };
 
 function buildScene() {
-  const scene = new Scene3D();
-  const camera = scene.create("camera3d", {
-    position: vec3(7, 5, 8),
-    lookAt: vec3(0, 0, 0),
-    fov: 55,
+  const scene = new Scene2D();
+  const camera = scene.create("camera2d", {
+    center: vec2(0, 0),
+    zoom: 0.9,
   });
 
-  scene.create("axes3d", { x: [-6, 6], y: [-4, 4], z: [-6, 6], thickness: 0.7 });
-  scene.create("grid3d", {
-    plane: "xz",
-    range1: [-6, 6],
-    range2: [-6, 6],
-    offset: -3,
-    thickness: 2,
+  scene.create("grid2d", {
+    rangeX: [-14, 14],
+    rangeY: [-10, 10],
+    gap: 1,
+    color: "white",
+    opacity: 0.12,
+  });
+  scene.create("axes2d", {
+    x: [-13, 13],
+    y: [-9, 9],
+    color: "white",
+    thickness: 1.2,
+    tickmarks: true,
+    tickStep: 2,
+    arrows: true,
   });
 
-  const shapeSlider = scene.atom(0);
-  const paramSlider = scene.atom(0.5);
-  const uSamplesSlider = scene.atom(96);
-  const vSamplesSlider = scene.atom(48);
-  const closedUToggle = scene.atom(1);
-  const closedVToggle = scene.atom(0);
-  const wireframeToggle = scene.atom(0);
-  const opacitySlider = scene.atom(0.85);
+  const jumpX = scene.atom(1);
+  const swapStyles = scene.atom(0);
+  const markerRadius = scene.atom(4);
+  const thickness = scene.atom(2);
+  const opacity = scene.atom(1);
 
-  const shape = scene.atom((get) => SHAPES[Math.round(get(shapeSlider))]);
+  // Piecewise jump: x + 1 below a, x^2 above it.
+  scene.create("function2d", {
+    f: scene.atom((get) => {
+      const a = get(jumpX);
+      return (x: number) => (x < a ? x + 1 : x * x);
+    }),
+    domain: [-7, 3.5],
+    discontinuities: scene.atom((get): Function2DDiscontinuity[] => {
+      const swapped = get(swapStyles) > 0.5;
+      return [
+        {
+          x: get(jumpX),
+          left: swapped ? "closed" : "open",
+          right: swapped ? "open" : "closed",
+        },
+      ];
+    }),
+    markerRadius,
+    color: "dodgerblue",
+    thickness,
+    opacity,
+  });
 
-  scene.create("parametricsurface3d", {
-    f: scene.atom((get) => shapeFunc(get(shape), get(paramSlider))),
-    uRange: scene.atom((get) => shapeRanges(get(shape)).uRange),
-    vRange: scene.atom((get) => shapeRanges(get(shape)).vRange),
-    samples: scene.atom(
-      (get) =>
-        [
-          Math.round(get(uSamplesSlider)),
-          Math.round(get(vSamplesSlider)),
-        ] as [number, number]
-    ),
-    closedU: scene.atom((get) => get(closedUToggle) > 0.5),
-    closedV: scene.atom((get) => get(closedVToggle) > 0.5),
-    wireframe: scene.atom((get) => get(wireframeToggle) > 0.5),
-    opacity: opacitySlider,
-    color: "#f472b6",
+  // Removable hole at (3, -1): both sides open, dedupes to one ring.
+  scene.create("function2d", {
+    f: (x: number) => (0.5 * (x * x - 9)) / (x - 3) - 4,
+    domain: [-2, 8],
+    discontinuities: [{ x: 3, left: "open", right: "open" }],
+    markerRadius,
+    color: "orange",
+    thickness,
+    opacity,
+  });
+
+  // Finite domain with a closed start and an open end.
+  scene.create("function2d", {
+    f: (x: number) => 2 * Math.sqrt(x + 12) - 8,
+    domain: [-12, -4],
+    endpoints: { start: "closed", end: "open" },
+    markerRadius,
+    color: "violet",
+    thickness,
+    opacity,
+  });
+
+  // Misuse case: open markers declared on a vertical asymptote.
+  scene.create("function2d", {
+    f: (x: number) => 1 / (x - 6) + 4,
+    domain: [4, 12],
+    discontinuities: [{ x: 6, left: "open", right: "open" }],
+    markerRadius,
+    color: "tomato",
+    thickness,
+    opacity,
   });
 
   const sliders: SliderSpec[] = [
+    { label: "jump x", atom: jumpX, min: -2, max: 3, step: 0.01 },
     {
-      label: "shape",
-      atom: shapeSlider,
+      label: "jump styles",
+      atom: swapStyles,
       min: 0,
-      max: SHAPES.length - 1,
+      max: 1,
       step: 1,
-      display: (value) => SHAPES[Math.round(value)],
+      display: (value) => SHOW_STYLES[Math.round(value)],
     },
-    { label: "param", atom: paramSlider, min: 0, max: 1, step: 0.01 },
-    { label: "uSamples", atom: uSamplesSlider, min: 3, max: 160, step: 1 },
-    { label: "vSamples", atom: vSamplesSlider, min: 3, max: 160, step: 1 },
-    { label: "closedU", atom: closedUToggle, min: 0, max: 1, step: 1 },
-    { label: "closedV", atom: closedVToggle, min: 0, max: 1, step: 1 },
-    { label: "wireframe", atom: wireframeToggle, min: 0, max: 1, step: 1 },
-    { label: "opacity", atom: opacitySlider, min: 0.1, max: 1, step: 0.05 },
+    { label: "markerRadius", atom: markerRadius, min: 1, max: 10, step: 0.5 },
+    { label: "thickness", atom: thickness, min: 1, max: 6, step: 0.5 },
+    { label: "opacity", atom: opacity, min: 0.2, max: 1, step: 0.05 },
   ];
 
   return { scene, camera, sliders };
@@ -166,7 +143,7 @@ function Slider({ spec }: { spec: SliderSpec }) {
   const [value, setValue] = useAtomState(spec.atom);
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#999" }}>
-      <span style={{ width: 96, flexShrink: 0 }}>
+      <span style={{ width: 110, flexShrink: 0 }}>
         {spec.label}:{" "}
         {spec.display
           ? spec.display(value)
@@ -185,6 +162,24 @@ function Slider({ spec }: { spec: SliderSpec }) {
   );
 }
 
+function PaneLabel({ text }: { text: string }) {
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: 8,
+        left: 10,
+        fontSize: 11,
+        color: "#888",
+        fontFamily: "monospace",
+        pointerEvents: "none",
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
 export default function Demo1() {
   const { scene, camera, sliders } = useMemo(buildScene, []);
 
@@ -194,17 +189,25 @@ export default function Demo1() {
         width: "100%",
         height: "100%",
         position: "relative",
+        display: "flex",
         backgroundColor: "#141414",
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <Scene3DView scene={scene} camera={camera} style={{ width: "100%", height: "100%" }} />
+      <div style={{ position: "relative", width: "50%", height: "100%", borderRight: "1px solid #2a2a2a" }}>
+        <Scene2DView scene={scene} camera={camera} renderer="threejs" style={{ width: "100%", height: "100%" }} />
+        <PaneLabel text="threejs" />
+      </div>
+      <div style={{ position: "relative", width: "50%", height: "100%" }}>
+        <Scene2DView scene={scene} camera={camera} renderer="svg" style={{ width: "100%", height: "100%" }} />
+        <PaneLabel text="svg" />
+      </div>
       <div
         style={{
           position: "absolute",
           bottom: 12,
           left: 12,
-          width: 300,
+          width: 320,
           display: "flex",
           flexDirection: "column",
           gap: 6,
@@ -215,7 +218,7 @@ export default function Demo1() {
         }}
       >
         <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
-          parametricsurface3d sandbox
+          function2d endpoint markers sandbox
         </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />

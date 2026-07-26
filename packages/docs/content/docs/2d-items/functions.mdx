@@ -57,6 +57,38 @@ scene.create("function2d", {
 });
 ```
 
+## Endpoint Markers
+
+Where a curve stops, you can mark whether the value is attained or excluded, in the usual textbook notation: `"closed"` is a filled dot, `"open"` is a hollow ring.
+
+A `discontinuities` entry can be an object with a marker style per side:
+
+```typescript
+// Jump: the left branch ends open at (1, 2), the right starts closed at (1, 1).
+scene.create("function2d", {
+  f: (x) => (x < 1 ? x + 1 : x * x),
+  discontinuities: [{ x: 1, left: "open", right: "closed" }],
+});
+
+// Hole at (1, 2): both sides open.
+scene.create("function2d", {
+  f: (x) => (x * x - 1) / (x - 1),
+  discontinuities: [{ x: 1, left: "open", right: "open" }],
+});
+```
+
+The ends of a finite domain take markers through `endpoints`, where `start` is the lower-$x$ end:
+
+```typescript
+scene.create("function2d", {
+  f: (x) => Math.sqrt(x),
+  domain: [0, 9],
+  endpoints: { start: "closed", end: "open" },
+});
+```
+
+`markerRadius` sets the marker size in CSS pixels.
+
 ## Sampling
 
 Sampling is automatic: the library decides how densely to evaluate `f` from the shape of the curve and the current zoom, so steep slopes, tight oscillations, and asymptotes render smoothly without any configuration. The only sampling control is the `discontinuities` list above.
@@ -121,7 +153,9 @@ graph.thickness.set(3);
 |----------|------|---------|-------------|
 | `f` | `(x: number) => number` | `(x) => x` | The function to plot |
 | `domain` | `"infinite" \| [number, number]` | `[-10, 10]` | Range of $x$ to draw, or `"infinite"` to follow the viewport |
-| `discontinuities` | `number[]` | `[]` | $x$ values where the curve should break |
+| `discontinuities` | `Function2DDiscontinuity[]` | `[]` | $x$ values where the curve should break, as bare numbers or `{ x, left?, right? }` objects with endpoint marker styles per side |
+| `endpoints` | `{ start?: EndpointStyle; end?: EndpointStyle }` | `{}` | Markers at the ends of a finite domain; `start` is the lower-$x$ end |
+| `markerRadius` | `number` | `4` | Endpoint marker radius in CSS pixels |
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
@@ -136,7 +170,9 @@ graph.thickness.set(3);
 | `id` | `string` | Unique identifier |
 | `f` | `BoundAtom<(x: number) => number>` | Function atom |
 | `domain` | `BoundAtom<"infinite" \| [number, number]>` | Domain atom |
-| `discontinuities` | `BoundAtom<number[]>` | Discontinuities atom |
+| `discontinuities` | `BoundAtom<Function2DDiscontinuity[]>` | Discontinuities atom |
+| `endpoints` | `BoundAtom<{ start?: EndpointStyle; end?: EndpointStyle }>` | Domain endpoint markers atom |
+| `markerRadius` | `BoundAtom<number>` | Marker radius atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |

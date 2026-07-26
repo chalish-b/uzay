@@ -35,7 +35,8 @@ export type { Vector2D } from "./core/2d/items/vector2d"
 export type { Region2D, Region2DPoints } from "./core/2d/items/region2d"
 export type { Circle2D } from "./core/2d/items/circle2d"
 export type { ParametricFunction2D } from "./core/2d/items/parametric-function2d"
-export type { Function2D } from "./core/2d/items/function2d"
+export type { Function2D, Function2DDiscontinuity, Function2DEndpoints } from "./core/2d/items/function2d"
+export type { EndpointStyle } from "./core/2d/types/endpoints"
 export type { Overlay2D } from "./core/2d/items/overlay2d"
 
 // Atom types and utilities

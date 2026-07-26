@@ -17,6 +17,8 @@ export const Z_GRID = -0.01;
 export const Z_REGION = -0.003;
 export const Z_REGION_STROKE = -0.002;
 export const Z_DEFAULT = 0;
+// Curve endpoint markers sit above their curve but below points.
+export const Z_CURVE_MARKER = 0.005;
 export const Z_POINT = 0.01;
 
 // Per-item Three.js scene object types.
@@ -92,6 +94,10 @@ export type ThreeSceneTypes = {
     geometry: LineSegmentsGeometry;
     material: LineMaterial;
     mesh: LineSegments2;
+    // Endpoint marker meshes (filled discs and hollow rings), rebuilt with
+    // the sampling plan and screen-space scaled every frame.
+    markerGroup: THREE.Group;
+    markerMeshes: THREE.Mesh[];
     plan: FunctionSamplingPlan | null;
     hasSegments: boolean;
   };
