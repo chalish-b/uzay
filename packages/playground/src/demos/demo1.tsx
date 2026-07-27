@@ -1,30 +1,28 @@
 import { useMemo } from "react";
-import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
-import type { Function2DDiscontinuity } from "uzay";
-import { Scene2DView, useAtomState } from "uzay/react";
+import { Scene2D, functionArea2D, vec2, type WritableBoundAtom } from "uzay";
+import type { FunctionArea2DBaseline, SceneAtom } from "uzay";
+import { Scene2DView, useAtomState, useAtomValue } from "uzay/react";
 
-// function2d endpoint-marker sandbox, threejs and svg side by side (shared
+// functionArea2D baseline sandbox, threejs and svg side by side (shared
 // camera, so pan/zoom stays in sync for comparison).
 //
-// - dodgerblue: piecewise jump at x = a (slider). Left side open, right side
-//   closed; the swap toggle flips them. Dragging a moves the jump and the
-//   markers must track it. Near a ≈ 1.62 the two branches meet and the ring
-//   and dot coincide (different styles are not deduped, the dot covers the
-//   ring).
-// - orange: removable hole, both sides open. The two coincident rings must
-//   dedupe into a single ring, with the grid visible through its interior
-//   and the line trimmed back to the ring edge on both sides.
-// - violet: finite domain, closed start dot and open end ring. Pan the
-//   domain edge off screen and back; markers must survive plan rebuilds.
-// - tomato: deliberate misuse, open markers declared on a vertical
-//   asymptote. Both one-sided limits diverge, so the curve must break with
-//   NO markers drawn.
-// - markerRadius / thickness / opacity sliders apply to all four curves.
-//   Zoom in and out: marker sizes and ring strokes are CSS pixel sizes and
-//   must stay visually constant, with the curve never poking into a ring's
-//   hollow interior.
+// - dodgerblue curve: f(x) = amp·sin(1.1x) + 0.5, amp reactive via slider.
+// - orange curve: the baseline. The mode slider swaps what the SAME baseline
+//   atom holds: the number 0, the number c, a line 0.4x + c, or a parabola
+//   0.25x² + c − 3. Switching number ↔ function live must restyle the fill
+//   with no rebuild; c morphs both the numeric and function baselines.
+// - fill: green lobes where f is above the baseline, tomato below, white
+//   stroke outlining every lobe. Lobes must split exactly at each crossing,
+//   for function baselines too.
+// - signed / absolute area readouts (bottom panel) must track every slider:
+//   signed = ∫(f − baseline), absolute = lobes summed unsigned. With the
+//   region fully one-sided the two must agree up to sign.
+// - edge cases to try: drag a past b (bounds swap, area unchanged), a = b
+//   (zero width, both areas 0, nothing drawn, no crash), amp = 0 with mode
+//   "constant c" and c = 0.5 (f coincides with the baseline: everything
+//   vanishes, areas 0), samples = 1 (clamps to 2, coarse but alive).
 
-const SHOW_STYLES = ["open/closed", "closed/open"] as const;
+const BASELINE_MODES = ["0", "constant c", "line 0.4x + c", "parabola"] as const;
 
 type SliderSpec = {
   label: string;
@@ -59,84 +57,93 @@ function buildScene() {
     arrows: true,
   });
 
-  const jumpX = scene.atom(1);
-  const swapStyles = scene.atom(0);
-  const markerRadius = scene.atom(4);
-  const thickness = scene.atom(2);
-  const opacity = scene.atom(1);
+  const boundA = scene.atom(-5);
+  const boundB = scene.atom(5);
+  const amp = scene.atom(1.6);
+  const baselineMode = scene.atom(3);
+  const baselineC = scene.atom(0);
+  const samples = scene.atom(128);
 
-  // Piecewise jump: x + 1 below a, x^2 above it.
+  // Reactive f: the closure is rebuilt whenever amp changes.
+  const f = scene.atom((get) => {
+    const a = get(amp);
+    return (x: number) => a * Math.sin(1.1 * x) + 0.5;
+  });
+
+  // The baseline atom holds a number OR a function depending on the mode, so
+  // the union reactivity is exercised in one place.
+  const baseline = scene.atom((get): FunctionArea2DBaseline => {
+    const mode = Math.round(get(baselineMode));
+    const c = get(baselineC);
+    switch (mode) {
+      case 0:
+        return 0;
+      case 1:
+        return c;
+      case 2:
+        return (x: number) => 0.4 * x + c;
+      default:
+        return (x: number) => 0.25 * x * x + c - 3;
+    }
+  });
+
+  const area = functionArea2D(scene, {
+    f,
+    a: boundA,
+    b: boundB,
+    baseline,
+    samples,
+    color: "mediumseagreen",
+    colorBelow: "tomato",
+    opacity: 0.4,
+    strokeColor: "white",
+    strokeOpacity: 0.5,
+    strokeThickness: 1,
+  });
+
+  scene.create("function2d", {
+    f,
+    domain: "infinite",
+    color: "dodgerblue",
+    thickness: 2.5,
+  });
+
+  // The baseline drawn as a curve, normalized to a function so the numeric
+  // modes show as a horizontal line.
   scene.create("function2d", {
     f: scene.atom((get) => {
-      const a = get(jumpX);
-      return (x: number) => (x < a ? x + 1 : x * x);
+      const b = get(baseline);
+      return typeof b === "number" ? () => b : b;
     }),
-    domain: [-7, 3.5],
-    discontinuities: scene.atom((get): Function2DDiscontinuity[] => {
-      const swapped = get(swapStyles) > 0.5;
-      return [
-        {
-          x: get(jumpX),
-          left: swapped ? "closed" : "open",
-          right: swapped ? "open" : "closed",
-        },
-      ];
-    }),
-    markerRadius,
-    color: "dodgerblue",
-    thickness,
-    opacity,
-  });
-
-  // Removable hole at (3, -1): both sides open, dedupes to one ring.
-  scene.create("function2d", {
-    f: (x: number) => (0.5 * (x * x - 9)) / (x - 3) - 4,
-    domain: [-2, 8],
-    discontinuities: [{ x: 3, left: "open", right: "open" }],
-    markerRadius,
+    domain: "infinite",
     color: "orange",
-    thickness,
-    opacity,
-  });
-
-  // Finite domain with a closed start and an open end.
-  scene.create("function2d", {
-    f: (x: number) => 2 * Math.sqrt(x + 12) - 8,
-    domain: [-12, -4],
-    endpoints: { start: "closed", end: "open" },
-    markerRadius,
-    color: "violet",
-    thickness,
-    opacity,
-  });
-
-  // Misuse case: open markers declared on a vertical asymptote.
-  scene.create("function2d", {
-    f: (x: number) => 1 / (x - 6) + 4,
-    domain: [4, 12],
-    discontinuities: [{ x: 6, left: "open", right: "open" }],
-    markerRadius,
-    color: "tomato",
-    thickness,
-    opacity,
+    thickness: 1.5,
+    opacity: 0.8,
   });
 
   const sliders: SliderSpec[] = [
-    { label: "jump x", atom: jumpX, min: -2, max: 3, step: 0.01 },
+    { label: "a", atom: boundA, min: -8, max: 8, step: 0.01 },
+    { label: "b", atom: boundB, min: -8, max: 8, step: 0.01 },
+    { label: "f amplitude", atom: amp, min: 0, max: 3, step: 0.01 },
     {
-      label: "jump styles",
-      atom: swapStyles,
+      label: "baseline",
+      atom: baselineMode,
       min: 0,
-      max: 1,
+      max: BASELINE_MODES.length - 1,
       step: 1,
-      display: (value) => SHOW_STYLES[Math.round(value)],
+      display: (value) => BASELINE_MODES[Math.round(value)],
     },
-    { label: "markerRadius", atom: markerRadius, min: 1, max: 10, step: 0.5 },
-    { label: "thickness", atom: thickness, min: 1, max: 6, step: 0.5 },
-    { label: "opacity", atom: opacity, min: 0.2, max: 1, step: 0.05 },
+    { label: "baseline c", atom: baselineC, min: -3, max: 3, step: 0.01 },
+    { label: "samples", atom: samples, min: 1, max: 300, step: 1 },
   ];
 
-  return { scene, camera, sliders };
+  return {
+    scene,
+    camera,
+    sliders,
+    signedArea: area.signedArea,
+    absoluteArea: area.absoluteArea,
+  };
 }
 
 function Slider({ spec }: { spec: SliderSpec }) {
@@ -162,6 +169,22 @@ function Slider({ spec }: { spec: SliderSpec }) {
   );
 }
 
+function AreaReadout({
+  signedArea,
+  absoluteArea,
+}: {
+  signedArea: SceneAtom<number>;
+  absoluteArea: SceneAtom<number>;
+}) {
+  const signed = useAtomValue<number>(signedArea);
+  const absolute = useAtomValue<number>(absoluteArea);
+  return (
+    <span style={{ fontSize: 11, color: "#ccc", fontFamily: "monospace" }}>
+      signed = {signed.toFixed(3)} · absolute = {absolute.toFixed(3)}
+    </span>
+  );
+}
+
 function PaneLabel({ text }: { text: string }) {
   return (
     <span
@@ -181,7 +204,10 @@ function PaneLabel({ text }: { text: string }) {
 }
 
 export default function Demo1() {
-  const { scene, camera, sliders } = useMemo(buildScene, []);
+  const { scene, camera, sliders, signedArea, absoluteArea } = useMemo(
+    buildScene,
+    []
+  );
 
   return (
     <div
@@ -218,11 +244,12 @@ export default function Demo1() {
         }}
       >
         <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
-          function2d endpoint markers sandbox
+          functionArea2D baseline sandbox
         </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />
         ))}
+        <AreaReadout signedArea={signedArea} absoluteArea={absoluteArea} />
       </div>
     </div>
   );

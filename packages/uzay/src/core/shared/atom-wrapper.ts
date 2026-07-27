@@ -80,14 +80,10 @@ export function createSceneAtom(store: Store) {
   function createValueModeAtom<Value>(
     initialValue: Value
   ): BoundAtom<ValueModeAtom<Value>> {
-    // Plain values can use Jotai's primitive atom directly.
-    if (typeof initialValue !== "function") {
-      return bindAtom(
-        jotaiAtom(initialValue) as ValueModeAtom<Value>
-      );
-    }
-
-    // Function values must be boxed so Jotai does not mistake them for atom logic.
+    // Always boxed, so a set never runs through Jotai's updater-function
+    // overload: in value mode a function is a value to store, whether it
+    // arrives at creation or through a later set (e.g. a number-or-function
+    // union atom switching shape).
     const boxedAtom = jotaiAtom<{ value: Value }>({
       value: initialValue as Value,
     });

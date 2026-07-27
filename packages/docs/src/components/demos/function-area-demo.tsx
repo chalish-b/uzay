@@ -5,11 +5,14 @@ import { Scene2DView } from "uzay/react";
 import { DemoFrame } from "./demo-frame";
 import { useDemoScene2D } from "./use-demo-scene";
 
-// The same parabola as the code blocks on the page. It dips below the x axis
-// between its roots, so the region splits into lobes and the readout can go
-// negative.
+// The same parabola as the code blocks on the page, shaded against a function
+// baseline: a tilted line g. The curves cross inside the initial interval, so
+// the region splits into lobes right away and the readout can go negative.
 function f(x: number) {
   return 0.25 * x * x - 0.5;
+}
+function g(x: number) {
+  return 0.3 * x + 0.2;
 }
 
 // Lifts on-board text off the grid lines: a light glow in light mode, a dark
@@ -54,14 +57,14 @@ export default function FunctionAreaDemo() {
     const aAtom = scene.atom((get) => get(aCoords).x);
     const bAtom = scene.atom((get) => get(bCoords).x);
 
-    // The construction: the filled region between f and the baseline. colorBelow
-    // tints the lobes under the axis differently, so the negative part of the
-    // signed area reads at a glance.
+    // The construction: the filled region between f and the function baseline
+    // g. colorBelow tints the lobes where f dips under g, so the negative part
+    // of the signed area reads at a glance.
     const area = functionArea2D(scene, {
       f,
       a: aAtom,
       b: bAtom,
-      baseline: 0,
+      baseline: g,
       samples: 160,
       color: t("secondary"),
       colorBelow: t("accent"),
@@ -77,6 +80,32 @@ export default function FunctionAreaDemo() {
       color: t("primary"),
       thickness: 3,
       pointerEvents: "none",
+    });
+
+    // The baseline drawn as its own curve, quieter than f.
+    scene.create("function2d", {
+      f: g,
+      domain: "infinite",
+      color: t("neutral"),
+      thickness: 2.5,
+      pointerEvents: "none",
+    });
+
+    scene.create("overlay2d", {
+      position: vec2(-3, f(-3)),
+      content: "f",
+      format: "latex",
+      anchor: "bottom",
+      offset: vec2(0, -8),
+      className: `pointer-events-none text-sm text-fd-muted-foreground ${boardTextShadow}`,
+    });
+    scene.create("overlay2d", {
+      position: vec2(-3, g(-3)),
+      content: "g",
+      format: "latex",
+      anchor: "bottom",
+      offset: vec2(0, -8),
+      className: `pointer-events-none text-sm text-fd-muted-foreground ${boardTextShadow}`,
     });
 
     const aPoint = scene.create("point2d", {
@@ -112,17 +141,17 @@ export default function FunctionAreaDemo() {
     });
 
     // The readout comes straight from the construction's signedArea atom, so
-    // the number always matches the drawn region, lobe splits and all.
-    // No chip background here: bare display-style math with a glow reads as
-    // part of the board, not something glued on top of it.
+    // the number always matches the drawn region, lobe splits and all. It sits
+    // above the curves, following the interval's midpoint. No chip background:
+    // bare display-style math with a glow reads as part of the board.
     scene.create("overlay2d", {
       position: scene.atom((get) => {
         const mid = (get(aAtom) + get(bAtom)) / 2;
-        return vec2(mid, Math.max(0.3, f(mid) * 0.45));
+        return vec2(mid, 3.2);
       }),
       content: scene.atom((get) => {
         const value = get(area.signedArea);
-        return `\\displaystyle\\int_a^b f(x)\\,dx = ${value.toFixed(2)}`;
+        return `\\displaystyle\\int_a^b \\big(f(x)-g(x)\\big)\\,dx = ${value.toFixed(2)}`;
       }),
       format: "latex",
       anchor: "center",
@@ -134,7 +163,7 @@ export default function FunctionAreaDemo() {
 
   return (
     <DemoFrame
-      hint="Drag a and b, the area follows"
+      hint="Drag a and b, the area between the curves follows"
       sourceFile="function-area-demo.tsx"
     >
       <Scene2DView

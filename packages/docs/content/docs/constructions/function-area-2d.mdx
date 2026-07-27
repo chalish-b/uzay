@@ -1,19 +1,19 @@
 ---
 title: Function Area 2D
-description: Filled area under a 2D function over an interval
+description: Filled area between a 2D function and a baseline over an interval
 ---
 
 import FunctionAreaDemo from "@/components/demos/function-area-demo";
 
 ## What is Function Area 2D?
 
-`functionArea2D` creates a filled 2D region between a function and a baseline over an interval. It is useful for highlighting the area under a curve, showing the visual shape of a definite integral, or marking any function-defined region without manually sampling the curve yourself. Where the curve crosses the baseline, the region splits into separate lobes, and the construction also computes the signed and absolute area of what it draws.
+`functionArea2D` creates a filled 2D region between a function and a baseline over an interval. The baseline is a constant height by default, and it can also be a second function, which shades the region between two curves. It is useful for highlighting the area under a curve, showing the visual shape of a definite integral, or marking any function-defined region without manually sampling the curve yourself. Where the curve crosses the baseline, the region splits into separate lobes, and the construction also computes the signed and absolute area of what it draws.
 
 The construction only creates the filled region. It does not create the function graph, draggable handles, guide lines, labels, or related helpers. Those are scene-specific choices that you can build with regular items.
 
 <FunctionAreaDemo />
 
-The fill is a `functionArea2D` under a `function2d`, with two `point2d` handles driving its `a` and `b`. Lobes above the baseline are tinted differently from lobes below it (via `colorBelow`), so the positive and negative parts of the signed area read apart at a glance. The integral readout in the `overlay2d` reads the construction's `signedArea` atom, so it always matches the drawn region: drag a bound past a root and watch the lobe below the axis pull the value down.
+The fill is a `functionArea2D` between two `function2d` curves, with the lower one passed as the `baseline` and two `point2d` handles driving `a` and `b`. Lobes where `f` runs above the baseline are tinted differently from lobes where it dips under (via `colorBelow`), so the positive and negative parts of the signed area read apart at a glance. The integral readout in the `overlay2d` reads the construction's `signedArea` atom, so it always matches the drawn region: drag a bound past a crossing and watch the lobe under the baseline pull the value down.
 
 ## Basic Usage
 
@@ -54,6 +54,47 @@ const area = functionArea2D(scene, {
 ```
 
 This samples `f(x)` from `a` to `b`, closes the shape down to `baseline`, and renders it as a `region2d`. This parabola is negative between its roots, so on a wide enough interval the fill splits into separate lobes above and below the baseline. You do not need to handle that case yourself.
+
+## Function Baselines
+
+The baseline does not have to be a constant. Pass a second function and the construction shades the region between the two curves:
+
+```typescript
+const f = (x: number) => Math.sin(1.1 * x) + 0.5;
+const g = (x: number) => 0.25 * x * x - 3;
+
+scene.create("function2d", { f, domain: "infinite", color: "dodgerblue" });
+scene.create("function2d", { f: g, domain: "infinite", color: "orange" });
+
+const area = functionArea2D(scene, {
+  f,
+  a: -5,
+  b: 5,
+  baseline: g,
+  color: "mediumseagreen",
+  colorBelow: "tomato",
+});
+```
+
+Both boundaries are sampled on the same x grid, and everything behaves the way it does against a constant: the fill splits into lobes wherever the curves cross, `colorBelow` tints the lobes where `f` dips under the baseline, and `signedArea` is the integral of `f(x) - g(x)`, which is the textbook "top minus bottom" area between two curves whenever `f` stays above.
+
+Like `f`, a reactive baseline is a derived atom that returns the current function:
+
+```typescript
+const tilt = scene.atom(0.3);
+
+functionArea2D(scene, {
+  f,
+  a: -5,
+  b: 5,
+  baseline: scene.atom((get) => {
+    const m = get(tilt);
+    return (x: number) => m * x;
+  }),
+});
+```
+
+Write `tilt` and the shaded region follows.
 
 ## Reactive Bounds
 
@@ -183,7 +224,7 @@ area.dispose();
 | `f` | `(x: number) => number` | (required) | Function to sample |
 | `a` | `number` | (required) | Start of the x interval |
 | `b` | `number` | (required) | End of the x interval |
-| `baseline` | `number` | `0` | Y value that closes the region |
+| `baseline` | `number \| (x: number) => number` | `0` | Lower boundary that closes the region: a constant height or a second function |
 | `samples` | `number` | `128` | Number of segments used to sample the function |
 | `color` | `string` | `"white"` | Fill color for lobes above the baseline |
 | `colorBelow` | `string` | `color` | Fill color for lobes below the baseline |
