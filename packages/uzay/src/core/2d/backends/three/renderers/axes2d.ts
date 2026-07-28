@@ -12,9 +12,7 @@ import { getWorldPerPixel, chainOnBeforeRender } from "../screen-space";
 import { checkedColor } from "../../../../shared/types/colors";
 import type { Viewport2D } from "../../../types/view-context";
 import {
-  BASE_TICK_HALF_LENGTH_PX,
-  BASE_ARROW_LENGTH_PX,
-  BASE_ARROW_HALF_WIDTH_PX,
+  arrowEndSkips,
   buildTickPositions,
   getAxisRange,
   getTickStep,
@@ -46,9 +44,9 @@ function buildTickGeometry(
   range: readonly [number, number],
   step: number,
   halfLength: number,
-  crossing: number
+  skip: readonly number[]
 ): LineSegmentsGeometry {
-  const ticks = buildTickPositions(range, step, crossing);
+  const ticks = buildTickPositions(range, step, skip);
   const positions: number[] = [];
   for (const t of ticks) {
     if (axis === "x") {
@@ -107,14 +105,14 @@ function createAxis(
   if (item.tickmarks && enabled) {
     const tickStep = getTickStep(item.tickStep, viewport);
     const tickHalfLength = viewport
-      ? item.thickness * BASE_TICK_HALF_LENGTH_PX * viewport.worldPerPixel
+      ? (item.tickLength / 2) * viewport.worldPerPixel
       : 1;
     const tickGeometry = buildTickGeometry(
       axis,
       range,
       tickStep,
       tickHalfLength,
-      crossing
+      [crossing, ...arrowEndSkips(range, item.arrows)]
     );
     const tickMaterial = new LineMaterial({
       color: checkedColor(item.color, "Axes2D.color"),
@@ -129,7 +127,7 @@ function createAxis(
     tickMesh.visible = item.visible;
     tickMesh.userData.itemId = item.id;
     tickMesh.userData.axis = axis;
-    tickMesh.userData.thickness = item.thickness;
+    tickMesh.userData.tickLength = item.tickLength;
     if (!viewport) {
       chainOnBeforeRender(tickMesh, onTickBeforeRender);
     }
@@ -142,8 +140,11 @@ function createAxis(
   ): ThreeSceneTypes["axes2d"]["x"]["arrowEnd"] => {
     if (!enabled || !hasArrowAt(item.arrows, which)) return null;
     const arrowGeometry = buildUnitArrowGeometry(axis, which);
+    // DoubleSide like the other 2D fills: the start head's triangle winds the
+    // other way and would be back-face culled otherwise.
     const arrowMaterial = new THREE.MeshBasicMaterial({
       color: checkedColor(item.color, "Axes2D.color"),
+      side: THREE.DoubleSide,
     });
     const arrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
     const at = which === "end" ? range[1] : range[0];
@@ -155,7 +156,8 @@ function createAxis(
     arrowMesh.visible = item.visible;
     arrowMesh.userData.itemId = item.id;
     arrowMesh.userData.axis = axis;
-    arrowMesh.userData.thickness = item.thickness;
+    arrowMesh.userData.headLength = item.headLength;
+    arrowMesh.userData.headWidth = item.headWidth;
     chainOnBeforeRender(arrowMesh, onArrowBeforeRender);
     threeScene.add(arrowMesh);
     return { geometry: arrowGeometry, material: arrowMaterial, mesh: arrowMesh };
@@ -216,7 +218,10 @@ function createLabels(
     const range = getAxisRange(axis, item[axis], viewport);
     const base = axis === "x" ? item.origin.y : item.origin.x;
     const crossing = axis === "x" ? item.origin.x : item.origin.y;
-    const ticks = buildTickPositions(range, tickStep, crossing);
+    const ticks = buildTickPositions(range, tickStep, [
+      crossing,
+      ...arrowEndSkips(range, item.arrows),
+    ]);
     for (const tick of ticks) {
       const { wrapper, element } = createAxisTickLabel(item, axis, tick, tickStep);
 
@@ -313,7 +318,7 @@ function onTickBeforeRender(
 ) {
   if (!(camera as THREE.OrthographicCamera).isOrthographicCamera) return;
   const wpp = getWorldPerPixel(renderer, camera as THREE.OrthographicCamera);
-  const half = (this.userData.thickness as number) * BASE_TICK_HALF_LENGTH_PX * wpp;
+  const half = ((this.userData.tickLength as number) / 2) * wpp;
   if (this.userData.axis === "x") {
     this.scale.set(1, half, 1);
   } else {
@@ -328,9 +333,8 @@ function onArrowBeforeRender(
 ) {
   if (!(camera as THREE.OrthographicCamera).isOrthographicCamera) return;
   const wpp = getWorldPerPixel(renderer, camera as THREE.OrthographicCamera);
-  const thickness = this.userData.thickness as number;
-  const lengthWorld = thickness * BASE_ARROW_LENGTH_PX * wpp;
-  const halfWidthWorld = thickness * BASE_ARROW_HALF_WIDTH_PX * wpp;
+  const lengthWorld = (this.userData.headLength as number) * wpp;
+  const halfWidthWorld = ((this.userData.headWidth as number) / 2) * wpp;
   if (this.userData.axis === "x") {
     // Unit geometry: tip (1,0), base (0, ±0.5). Scale x extends tip forward,
     // scale y stretches base width.

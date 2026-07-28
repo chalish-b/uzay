@@ -10,6 +10,7 @@ import { camera2dRenderer } from "./camera2d";
 import { point2dRenderer } from "./point2d";
 import { grid2dRenderer } from "./grid2d";
 import { axes2dRenderer } from "./axes2d";
+import { numberLine2dRenderer } from "./number-line2d";
 import { line2dRenderer } from "./line2d";
 import { vector2dRenderer } from "./vector2d";
 import { region2dRenderer } from "./region2d";
@@ -23,6 +24,7 @@ export const rendererRegistry: { [K in ItemKind]: ItemRenderer<K> } = {
   point2d: point2dRenderer,
   grid2d: grid2dRenderer,
   axes2d: axes2dRenderer,
+  numberline2d: numberLine2dRenderer,
   line2d: line2dRenderer,
   vector2d: vector2dRenderer,
   region2d: region2dRenderer,

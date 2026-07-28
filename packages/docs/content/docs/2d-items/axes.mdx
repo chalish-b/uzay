@@ -56,7 +56,9 @@ scene.create("axes2d", {
 
 ### Arrows
 
-`arrows` picks which ends of the axes carry an arrowhead: `"none"`, `"start"` (the range's min side), `"end"` (the max side), or `"both"` (the default). One value applies to both enabled axes.
+`arrows` picks which ends of the axes carry an arrowhead: `"none"`, `"start"` (the range's min side), `"end"` (the max side), or `"both"` (the default). One value applies to both enabled axes. `headLength` and `headWidth` size the heads in CSS pixels, like vector2d's fields of the same names, and `tickLength` sizes the tick marks.
+
+A tick that lands exactly on a range end carrying an arrowhead is dropped, label included: the head visually replaces it.
 
 ```typescript
 scene.create("axes2d", {
@@ -86,18 +88,7 @@ scene.create("axes2d", {
 });
 ```
 
-Off-origin single axes make number lines, e.g. stacked rows in one scene: enable one axis and place its baseline with the origin's other component.
-
-```typescript
-// A number line at height y = 1.5
-scene.create("axes2d", {
-  x: [-5, 5],
-  y: false,
-  origin: vec2(0, 1.5),
-  tickmarks: true,
-  labels: true,
-});
-```
+For a number line with its own value scale, independent of world coordinates, see [Number Line](/docs/2d-items/number-line).
 
 ## Tick Marks and Labels
 
@@ -186,6 +177,9 @@ scale.set(10);
 | `arrows` | `"none" \| "start" \| "end" \| "both"` | `"both"` | Which axis ends carry an arrowhead |
 | `tickmarks` | `boolean` | `false` | Show tick marks |
 | `tickStep` | `number \| "auto"` | `1` | Interval between ticks, or `"auto"` to adapt to zoom |
+| `tickLength` | `number` | `12` | Full tick length, CSS pixels |
+| `headLength` | `number` | `14` | Arrowhead length, CSS pixels |
+| `headWidth` | `number` | `10` | Arrowhead base width, CSS pixels |
 | `labels` | `boolean` | `false` | Show numeric labels at ticks |
 | `labelClassName` | `string` | `""` | CSS class for tick labels (replaces default label styling) |
 | `labelStyle` | `string` | `""` | Inline CSS for tick labels (replaces default label styling) |
@@ -214,6 +208,9 @@ scale.set(10);
 | `arrows` | `BoundAtom<ArrowEnds>` | Arrows atom |
 | `tickmarks` | `BoundAtom<boolean>` | Tick marks atom |
 | `tickStep` | `BoundAtom<number \| "auto">` | Tick step atom |
+| `tickLength` | `BoundAtom<number>` | Tick length atom |
+| `headLength` | `BoundAtom<number>` | Head length atom |
+| `headWidth` | `BoundAtom<number>` | Head width atom |
 | `labels` | `BoundAtom<boolean>` | Labels atom |
 | `labelClassName` | `BoundAtom<string>` | Label class atom |
 | `labelStyle` | `BoundAtom<string>` | Label style atom |

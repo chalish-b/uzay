@@ -1,13 +1,8 @@
 import type { ItemSnapshot } from "../types/item-registry";
 import type { Viewport2D } from "../types/view-context";
 import { getNiceStep } from "../types/nice-step";
+import { hasArrowAt, type ArrowEnds } from "../../shared/types/arrows";
 
-// Pixel-space sizes for axis ornaments. Multiplied by item.thickness so the
-// same dial that controls line width also scales ticks and arrowheads
-// proportionally.
-export const BASE_TICK_HALF_LENGTH_PX = 6;
-export const BASE_ARROW_LENGTH_PX = 14;
-export const BASE_ARROW_HALF_WIDTH_PX = 5;
 export const INFINITE_RANGE: readonly [number, number] = [-100, 100];
 
 export type AxisKey = "x" | "y";
@@ -25,19 +20,30 @@ export function getAxisRange(
   return INFINITE_RANGE;
 }
 
-// `skip` drops the tick under the axes' crossing point (the other axis's
-// origin coordinate), where a mark and label would collide with the crossing
-// axis line.
+// Range ends whose tick (and label) the arrowhead replaces.
+export function arrowEndSkips(
+  range: readonly [number, number],
+  arrows: ArrowEnds
+): number[] {
+  const skips: number[] = [];
+  if (hasArrowAt(arrows, "start")) skips.push(range[0]);
+  if (hasArrowAt(arrows, "end")) skips.push(range[1]);
+  return skips;
+}
+
+// `skip` drops ticks at those positions: the axes' crossing point (where a
+// mark and label would collide with the crossing axis line) and any range
+// end carrying an arrowhead (the head visually replaces the tick).
 export function buildTickPositions(
   range: readonly [number, number],
   step: number,
-  skip = 0
+  skip: readonly number[] = []
 ): number[] {
   if (step <= 0) return [];
   const positions: number[] = [];
   const start = Math.ceil(range[0] / step) * step;
   for (let v = start; v <= range[1] + 1e-9; v += step) {
-    if (Math.abs(v - skip) < 1e-9) continue;
+    if (skip.some((s) => Math.abs(v - s) < 1e-9)) continue;
     positions.push(v);
   }
   return positions;

@@ -10,6 +10,7 @@ import { camera2dSvgRenderer } from "./camera2d";
 import { point2dSvgRenderer } from "./point2d";
 import { grid2dSvgRenderer } from "./grid2d";
 import { axes2dSvgRenderer } from "./axes2d";
+import { numberLine2dSvgRenderer } from "./number-line2d";
 import { line2dSvgRenderer } from "./line2d";
 import { vector2dSvgRenderer } from "./vector2d";
 import { region2dSvgRenderer } from "./region2d";
@@ -26,6 +27,7 @@ export const svgRendererRegistry: RendererRegistry2D<
   point2d: point2dSvgRenderer,
   grid2d: grid2dSvgRenderer,
   axes2d: axes2dSvgRenderer,
+  numberline2d: numberLine2dSvgRenderer,
   line2d: line2dSvgRenderer,
   vector2d: vector2dSvgRenderer,
   region2d: region2dSvgRenderer,

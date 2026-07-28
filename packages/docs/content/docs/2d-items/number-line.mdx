@@ -1,0 +1,157 @@
+---
+title: Number Line
+description: A 1D coordinate system embedded in the plane
+---
+
+import NumberLine2DDemo from "@/components/demos/number-line-2d-demo";
+
+## What is NumberLine2D?
+
+`NumberLine2D` renders a number line: a 1D coordinate system of its own, embedded anywhere in the plane. Unlike [Axes](/docs/2d-items/axes), whose tick labels report world coordinates, a number line's ticks and labels are its own values. They travel with the line wherever it is placed, at whatever angle and scale.
+
+<NumberLine2DDemo />
+
+A `numberline2d` at an angle, with a draggable `point2d` projecting onto it. The projection foot and the value readout come from the line's value-to-world mapping, two one-liners in the demo source.
+
+## Basic Usage
+
+```typescript
+scene.create("numberline2d", {
+  position: vec2(0, 1.5), // world point where value 0 sits
+  range: [-5, 5],         // visible span, in values
+});
+```
+
+Tick marks and labels are on by default: they are the identity of a number line.
+
+## The Line's Frame
+
+Three options define the mapping between values and world points:
+
+- **`position`**: the world point where value 0 sits.
+- **`angle`**: the direction of increasing values, in radians. `0` points along +x, `Math.PI / 2` straight up.
+- **`scale`**: how many world units one value unit takes. Must be nonzero.
+
+A value `v` lands at `position + direction(angle) * scale * v`. Changing any of the three moves or reshapes the whole line, labels included, because the labels belong to the line, not to the world.
+
+```typescript
+// A vertical number line, compressed to half world scale
+scene.create("numberline2d", {
+  position: vec2(-6, 0),
+  angle: Math.PI / 2,
+  scale: 0.5,
+  range: [0, 10],
+});
+```
+
+`range` picks which values are visible. It does not have to include 0: `range: [3, 9]` draws the segment from value 3 to value 9, and `position` (where value 0 would sit) can lie outside the drawn part.
+
+## Mapping Values and World Points
+
+When a mark or handle needs to ride a line, restate its mapping in your own code, both directions are one-liners:
+
+```typescript
+const dir = vec2(Math.cos(angle), Math.sin(angle));
+
+// Where does a value sit?
+const valueToWorld = (v: number) => position.add(dir.scale(scale * v));
+
+// Which value lies under a world point? (orthogonal projection)
+const worldToValue = (p: Vec2) => p.sub(position).dot(dir) / scale;
+```
+
+The projection makes a natural write path for a draggable handle riding a number line: the drag reports a world position, the projection turns it into a value.
+
+```typescript
+const value = scene.atom(1);
+
+scene.create("point2d", {
+  coords: scene.atom(
+    (get) => valueToWorld(get(value)),
+    (_get, set, next) => set(value, worldToValue(next)),
+  ),
+  draggable: "xy",
+});
+```
+
+## Ticks and Labels
+
+`tickStep` sets the interval between ticks in value units. Pass a number for a fixed step, or `"auto"` to pick a round step that adapts to the zoom level, with the line's `scale` folded in:
+
+```typescript
+scene.create("numberline2d", {
+  range: [-5, 5],
+  tickStep: 0.5,
+});
+```
+
+Labels sit just off the line, on the clockwise side of the direction of travel (below a rightward line, to the right of an upward one). Styling follows the same contract as axes2d: `labelClassName` or `labelStyle` replaces the default label look entirely.
+
+`tickLength` sets the full tick length in CSS pixels, rendered constant across zoom.
+
+## Arrows
+
+`arrows` picks which ends carry an arrowhead: `"none"`, `"start"` (the range's min side), `"end"` (the max side), or `"both"` (the default). `headLength` and `headWidth` size the heads in CSS pixels, like vector2d's fields of the same names.
+
+A tick that lands exactly on an end carrying an arrowhead is dropped, label included: the head visually replaces it.
+
+```typescript
+// A timeline: arrowhead only in the forward direction
+scene.create("numberline2d", {
+  position: vec2(0, 2),
+  range: [0, 60],
+  scale: 0.15,
+  arrows: "end",
+});
+```
+
+---
+
+## API Reference
+
+### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `position` | `Vec2` | `vec2(0, 0)` | World point where value 0 sits |
+| `angle` | `number` | `0` | Direction of increasing values, radians |
+| `scale` | `number` | `1` | World units per value unit (nonzero) |
+| `range` | `[number, number]` | `[-5, 5]` | Visible span, in value units |
+| `color` | `string` | `"white"` | Line color |
+| `thickness` | `number` | `1` | Line width |
+| `tickmarks` | `boolean` | `true` | Show tick marks |
+| `tickStep` | `number \| "auto"` | `1` | Interval between ticks in value units, or `"auto"` |
+| `tickLength` | `number` | `12` | Full tick length, CSS pixels |
+| `headLength` | `number` | `14` | Arrowhead length, CSS pixels |
+| `headWidth` | `number` | `10` | Arrowhead base width, CSS pixels |
+| `labels` | `boolean` | `true` | Show value labels at ticks |
+| `labelClassName` | `string` | `""` | CSS class for tick labels (replaces default label styling) |
+| `labelStyle` | `string` | `""` | Inline CSS for tick labels (replaces default label styling) |
+| `arrows` | `"none" \| "start" \| "end" \| "both"` | `"both"` | Which ends carry an arrowhead |
+| `visible` | `boolean` | `true` | Whether the line is shown |
+| `pointerEvents` | `"auto" \| "none"` | `"none"` | Whether the line receives pointer events |
+| `tags` | `string[]` | `[]` | Custom tags |
+
+### Returned Item
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique identifier |
+| `position` | `BoundAtom<Vec2>` | Position atom |
+| `angle` | `BoundAtom<number>` | Angle atom |
+| `scale` | `BoundAtom<number>` | Scale atom |
+| `range` | `BoundAtom<[number, number]>` | Range atom |
+| `color` | `BoundAtom<string>` | Color atom |
+| `thickness` | `BoundAtom<number>` | Thickness atom |
+| `tickmarks` | `BoundAtom<boolean>` | Tick marks atom |
+| `tickStep` | `BoundAtom<number \| "auto">` | Tick step atom |
+| `tickLength` | `BoundAtom<number>` | Tick length atom |
+| `headLength` | `BoundAtom<number>` | Head length atom |
+| `headWidth` | `BoundAtom<number>` | Head width atom |
+| `labels` | `BoundAtom<boolean>` | Labels atom |
+| `labelClassName` | `BoundAtom<string>` | Label class atom |
+| `labelStyle` | `BoundAtom<string>` | Label style atom |
+| `arrows` | `BoundAtom<ArrowEnds>` | Arrows atom |
+| `visible` | `BoundAtom<boolean>` | Visibility atom |
+| `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
+| `tags` | `BoundAtom<string[]>` | Tags atom |

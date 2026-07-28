@@ -45,6 +45,11 @@ export type SvgSceneTypes = {
     labels: SvgAxesLabel[];
     layoutKey: string | null;
   };
+  numberline2d: {
+    kind: "numberline2d";
+    labels: SvgAxesLabel[];
+    layoutKey: string | null;
+  };
   line2d: {
     kind: "line2d";
     group: SVGGElement;

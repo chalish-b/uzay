@@ -29,6 +29,12 @@ export type Axes2DFields = {
   pointerEvents: PointerEvents;
   tickmarks: boolean;
   tickStep: TickStep;
+  // Ornament sizes in CSS pixels, rendered constant across zoom (same
+  // convention as vector2d's head fields). Full tick length, head measured
+  // from base to tip / across the base.
+  tickLength: number;
+  headLength: number;
+  headWidth: number;
   labels: boolean;
   /**
    * CSS class for tick labels. Providing this (or labelStyle) removes the
@@ -64,6 +70,9 @@ export const axes2dDefinition = defineItem2D({
     pointerEvents: field<PointerEvents>("none"),
     tickmarks: field(false),
     tickStep: field<TickStep>(1),
+    tickLength: field(12),
+    headLength: field(14),
+    headWidth: field(10),
     labels: field(false),
     labelClassName: field(""),
     labelStyle: field(""),

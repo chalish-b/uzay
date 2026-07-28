@@ -2,6 +2,7 @@ import { camera2dDefinition } from "../items/camera2d";
 import { point2dDefinition } from "../items/point2d";
 import { grid2dDefinition } from "../items/grid2d";
 import { axes2dDefinition } from "../items/axes2d";
+import { numberLine2dDefinition } from "../items/number-line2d";
 import { line2dDefinition } from "../items/line2d";
 import { vector2dDefinition } from "../items/vector2d";
 import { region2dDefinition } from "../items/region2d";
@@ -23,6 +24,7 @@ export const itemDefinitions = {
   point2d: point2dDefinition,
   grid2d: grid2dDefinition,
   axes2d: axes2dDefinition,
+  numberline2d: numberLine2dDefinition,
   line2d: line2dDefinition,
   vector2d: vector2dDefinition,
   region2d: region2dDefinition,

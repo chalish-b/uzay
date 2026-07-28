@@ -2,9 +2,7 @@ import type { ItemSnapshot } from "../../../types/item-registry";
 import type { Viewport2D } from "../../../types/view-context";
 import { vec2 } from "../../../../shared/types/vec2";
 import {
-  BASE_TICK_HALF_LENGTH_PX,
-  BASE_ARROW_LENGTH_PX,
-  BASE_ARROW_HALF_WIDTH_PX,
+  arrowEndSkips,
   buildTickPositions,
   getAxisRange,
   getTickStep,
@@ -51,9 +49,12 @@ function buildAxis(
 
   if (item.tickmarks) {
     const tickStep = getTickStep(item.tickStep, viewport);
-    const half = item.thickness * BASE_TICK_HALF_LENGTH_PX * wpp;
+    const half = (item.tickLength / 2) * wpp;
     const parts: string[] = [];
-    for (const tick of buildTickPositions(range, tickStep, crossing)) {
+    for (const tick of buildTickPositions(range, tickStep, [
+      crossing,
+      ...arrowEndSkips(range, item.arrows),
+    ])) {
       parts.push(
         axis === "x"
           ? `M ${tick} ${base - half} L ${tick} ${base + half}`
@@ -69,8 +70,8 @@ function buildAxis(
   // Unit arrows pointing along the axis, scaled into pixel-sized world units
   // with the BASE at the axis endpoint so ticks at integer positions stay
   // clear of the tip. "end" is the range's max side, "start" the min side.
-  const lengthWorld = item.thickness * BASE_ARROW_LENGTH_PX * wpp;
-  const halfWidthWorld = item.thickness * BASE_ARROW_HALF_WIDTH_PX * wpp;
+  const lengthWorld = item.headLength * wpp;
+  const halfWidthWorld = (item.headWidth / 2) * wpp;
   const heads: { which: "start" | "end"; d: string; at: number }[] = [
     {
       which: "end",
@@ -118,7 +119,10 @@ function buildLabels(
     const range = getAxisRange(axis, item[axis], viewport);
     const base = axis === "x" ? item.origin.y : item.origin.x;
     const crossing = axis === "x" ? item.origin.x : item.origin.y;
-    for (const tick of buildTickPositions(range, tickStep, crossing)) {
+    for (const tick of buildTickPositions(range, tickStep, [
+      crossing,
+      ...arrowEndSkips(range, item.arrows),
+    ])) {
       const { wrapper } = createAxisTickLabel(item, axis, tick, tickStep);
       wrapper.style.position = "absolute";
       overlay.appendChild(wrapper);

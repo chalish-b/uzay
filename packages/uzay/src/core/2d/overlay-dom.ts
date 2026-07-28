@@ -53,30 +53,54 @@ const AXIS_LABEL_DEFAULT_STYLE = [
 
 // A tick label as a wrapper + inner element pair: the wrapper is what the
 // backend positions at the tick's world point (its center lands on the
-// point), the inner element carries the text, the user styling, and the
-// axis-dependent anchor offset that pushes it clear of the axis line.
-export function createAxisTickLabel(
-  item: ItemSnapshot<"axes2d">,
-  axis: AxisKey,
-  tick: number,
-  tickStep: number
+// point), the inner element carries the text, the user styling, and an
+// optional transform that pushes it clear of the line it labels.
+function createTickLabel(
+  text: string,
+  styling: { labelClassName: string; labelStyle: string },
+  elementTransform: string
 ): { wrapper: HTMLDivElement; element: HTMLDivElement } {
   const wrapper = document.createElement("div");
   wrapper.style.width = "max-content";
   wrapper.style.zIndex = "0";
 
   const element = document.createElement("div");
-  element.textContent = formatTick(tick, tickStep);
-  element.className = item.labelClassName;
+  element.textContent = text;
+  element.className = styling.labelClassName;
   element.style.cssText =
-    item.labelStyle || item.labelClassName
-      ? `${AXIS_LABEL_BASE_STYLE};${item.labelStyle}`
+    styling.labelStyle || styling.labelClassName
+      ? `${AXIS_LABEL_BASE_STYLE};${styling.labelStyle}`
       : `${AXIS_LABEL_BASE_STYLE};${AXIS_LABEL_DEFAULT_STYLE}`;
-  element.style.transform =
-    axis === "x"
-      ? `${anchorToTranslate("top")} translate(0px, 10px)`
-      : `${anchorToTranslate("right")} translate(-10px, 0px)`;
+  if (elementTransform) element.style.transform = elementTransform;
   wrapper.appendChild(element);
 
   return { wrapper, element };
+}
+
+// Axis tick label: the anchor offset pushing it clear of the axis line
+// depends on which axis it belongs to.
+export function createAxisTickLabel(
+  item: ItemSnapshot<"axes2d">,
+  axis: AxisKey,
+  tick: number,
+  tickStep: number
+): { wrapper: HTMLDivElement; element: HTMLDivElement } {
+  return createTickLabel(
+    formatTick(tick, tickStep),
+    item,
+    axis === "x"
+      ? `${anchorToTranslate("top")} translate(0px, 10px)`
+      : `${anchorToTranslate("right")} translate(-10px, 0px)`
+  );
+}
+
+// Number line tick label: the backends position the wrapper at an already
+// offset world point (pushed off the line along its normal), so the element
+// just centers on it.
+export function createNumberLineTickLabel(
+  item: ItemSnapshot<"numberline2d">,
+  value: number,
+  tickStep: number
+): { wrapper: HTMLDivElement; element: HTMLDivElement } {
+  return createTickLabel(formatTick(value, tickStep), item, "");
 }

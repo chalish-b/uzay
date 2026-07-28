@@ -1,29 +1,44 @@
 import { useMemo } from "react";
-import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
+import { Scene2D, vec2, type Vec2, type WritableBoundAtom } from "uzay";
 import type { ArrowEnds } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
-// axes2d origin + arrows sandbox, threejs and svg side by side (shared
-// camera, so pan/zoom stays in sync for comparison).
+// The line's value-to-world mapping, restated demo-side: a value v lands at
+// position + direction(angle) · scale · v, and a world point projects back
+// to a value via the dot product with the direction.
+const valueToWorld = (position: Vec2, angle: number, scale: number, value: number) =>
+  position.add(vec2(Math.cos(angle), Math.sin(angle)).scale(scale * value));
+const worldToValue = (position: Vec2, angle: number, scale: number, point: Vec2) =>
+  point.sub(position).dot(vec2(Math.cos(angle), Math.sin(angle))) / scale;
+
+// numberLine2d sandbox, threejs and svg side by side (shared camera, so
+// pan/zoom stays in sync for comparison).
 //
-// - white axes: the main pair, viewport-backed (x: true, y: true) with ticks
-//   and labels. The ox / oy sliders move its origin live: lines, ticks,
-//   labels and arrowheads must all shift together, and the tick under the
-//   crossing point must stay skipped (watch it hop as ox/oy pass integers).
-//   The arrows slider cycles none / start / end / both on BOTH axes.
-// - skyblue row: a lone x-axis number line at origin (0, 4), range [-8, 8],
-//   arrows "end" only. The head must sit at the max side.
-// - orange row: number line at origin (2, 6), range [-4, 8], arrows "both".
-//   Its origin.x is 2, so the tick and label at x = 2 are skipped even
-//   though no y-axis crosses there (current crossing-skip semantics).
-// - mediumseagreen column: a lone y-axis at origin (-7, 0), range [-3, 7],
-//   arrows "both". Tests the vertical offset path; the y = 0 tick is
-//   skipped (crossing = origin.y = 0).
-// - edge cases to try: drag the origin far off screen (viewport-backed
-//   ranges must keep covering the view), zoom in/out (tick re-stepping and
-//   pixel-sized arrowheads/ticks at offset positions), pan while zoomed.
+// - orange line: the main number line, fully reactive. Sliders drive its
+//   position, angle, scale, range, tick step, and arrow mode. Ticks and
+//   labels are the line's OWN values: move/rotate/scale it and they travel
+//   with it. scale stretches tick spacing in world space while the values
+//   stay put; range controls which values are visible.
+// - hotpink point: draggable anywhere. It projects orthogonally onto the
+//   main line; the white foot marker sits at the projected value and the
+//   label reads it. This checks the demo-side mapping stays consistent with
+//   the item's own rendering under every slider (the foot must ride the
+//   drawn line exactly, its label matching the tick labels).
+// - skyblue line: a fixed vertical number line (angle π/2, scale 0.5) with
+//   no controls, to check an off-axis orientation stays correct while the
+//   main one changes.
+// - the faint white axes2d pair is world scaffolding, for seeing that the
+//   number lines' labels are independent of world coordinates.
+// - a tick landing on an end that carries an arrowhead is dropped, label
+//   included (the head replaces it); switch arrows to none to get it back.
+//   tick length / head length / head width are the px size dials.
+// - edge cases to try: scale close to 0.2 with tickStep 0.5 (dense ticks),
+//   angle full circle (labels flip sides at ±90°), range min > max is not
+//   guarded and draws nothing, zoom in/out (pixel-constant ticks, arrows,
+//   label offsets), "auto" tick step re-stepping under zoom.
 
 const ARROW_MODES: ArrowEnds[] = ["none", "start", "end", "both"];
+const TICK_STEPS: (number | "auto")[] = [0.5, 1, 2, "auto"];
 
 type SliderSpec = {
   label: string;
@@ -37,7 +52,7 @@ type SliderSpec = {
 function buildScene() {
   const scene = new Scene2D();
   const camera = scene.create("camera2d", {
-    center: vec2(0, 2),
+    center: vec2(0, 1),
     zoom: 0.55,
   });
 
@@ -46,74 +61,125 @@ function buildScene() {
     rangeY: [-10, 12],
     gap: 1,
     color: "white",
-    opacity: 0.12,
+    opacity: 0.1,
   });
-
-  const originX = scene.atom(0);
-  const originY = scene.atom(0);
-  const arrowMode = scene.atom(3);
-
-  // The main axes: viewport-backed, origin and arrows fully reactive.
   scene.create("axes2d", {
     x: true,
     y: true,
-    origin: scene.atom((get) => vec2(get(originX), get(originY))),
     color: "white",
-    thickness: 1.2,
-    tickmarks: true,
-    tickStep: 1,
-    labels: true,
-    arrows: scene.atom((get) => ARROW_MODES[Math.round(get(arrowMode))]),
+    thickness: 1,
+    arrows: "none",
   });
 
-  // Number line rows: lone x-axes at fixed off-origin positions.
-  scene.create("axes2d", {
-    x: [-8, 8],
-    y: false,
-    origin: vec2(0, 4),
+  const posX = scene.atom(0);
+  const posY = scene.atom(3);
+  const angle = scene.atom(0);
+  const scale = scene.atom(1);
+  const rangeMin = scene.atom(-5);
+  const rangeMax = scene.atom(5);
+  const tickStepIndex = scene.atom(1);
+  const arrowMode = scene.atom(3);
+  const tickLength = scene.atom(12);
+  const headLength = scene.atom(14);
+  const headWidth = scene.atom(10);
+
+  scene.create("numberline2d", {
+    position: scene.atom((get) => vec2(get(posX), get(posY))),
+    angle,
+    scale,
+    range: scene.atom((get): [number, number] => [get(rangeMin), get(rangeMax)]),
+    tickStep: scene.atom((get) => TICK_STEPS[Math.round(get(tickStepIndex))]),
+    arrows: scene.atom((get) => ARROW_MODES[Math.round(get(arrowMode))]),
+    tickLength,
+    headLength,
+    headWidth,
+    color: "orange",
+    thickness: 1.5,
+  });
+
+  // The fixed off-axis line: vertical, half world scale.
+  scene.create("numberline2d", {
+    position: vec2(-9, -2),
+    angle: Math.PI / 2,
+    scale: 0.5,
+    range: [-4, 8],
     color: "skyblue",
-    thickness: 1.2,
-    tickmarks: true,
-    tickStep: 1,
-    labels: true,
+    thickness: 1.5,
     arrows: "end",
   });
-  scene.create("axes2d", {
-    x: [-4, 8],
-    y: false,
-    origin: vec2(2, 6),
-    color: "orange",
-    thickness: 1.2,
-    tickmarks: true,
-    tickStep: 1,
-    labels: true,
-    arrows: "both",
-  });
 
-  // A lone y-axis column, offset horizontally.
-  scene.create("axes2d", {
-    x: false,
-    y: [-3, 7],
-    origin: vec2(-7, 0),
-    color: "mediumseagreen",
-    thickness: 1.2,
-    tickmarks: true,
-    tickStep: 1,
-    labels: true,
-    arrows: "both",
+  // A free point projecting onto the main line.
+  const freePoint = scene.atom(vec2(3, 6));
+  const projectedValue = scene.atom((get) =>
+    worldToValue(vec2(get(posX), get(posY)), get(angle), get(scale), get(freePoint)),
+  );
+  const foot = scene.atom((get) =>
+    valueToWorld(vec2(get(posX), get(posY)), get(angle), get(scale), get(projectedValue)),
+  );
+
+  scene.create("line2d", {
+    start: freePoint,
+    end: foot,
+    color: "white",
+    thickness: 1,
+    dashed: true,
+    opacity: 0.5,
+    pointerEvents: "none",
+  });
+  scene.create("point2d", {
+    coords: foot,
+    draggable: "none",
+    color: "white",
+    radius: 4,
+    pointerEvents: "none",
+  });
+  scene.create("overlay2d", {
+    position: foot,
+    content: scene.atom((get) => `value: ${get(projectedValue).toFixed(2)}`),
+    format: "text",
+    anchor: "bottom-left",
+    offset: vec2(10, -10),
+    style: "color: #eee; font-size: 12px; text-shadow: 0 1px 2px black;",
+  });
+  scene.create("point2d", {
+    coords: freePoint,
+    draggable: "xy",
+    color: "hotpink",
   });
 
   const sliders: SliderSpec[] = [
-    { label: "origin x", atom: originX, min: -5, max: 5, step: 0.01 },
-    { label: "origin y", atom: originY, min: -5, max: 5, step: 0.01 },
+    { label: "position x", atom: posX, min: -8, max: 8, step: 0.01 },
+    { label: "position y", atom: posY, min: -6, max: 8, step: 0.01 },
+    {
+      label: "angle",
+      atom: angle,
+      min: -Math.PI,
+      max: Math.PI,
+      step: 0.01,
+      display: (v) => `${((v * 180) / Math.PI).toFixed(0)}°`,
+    },
+    { label: "scale", atom: scale, min: 0.2, max: 3, step: 0.01 },
+    { label: "range min", atom: rangeMin, min: -10, max: 0, step: 0.5 },
+    { label: "range max", atom: rangeMax, min: 0, max: 10, step: 0.5 },
+    {
+      label: "tick step",
+      atom: tickStepIndex,
+      min: 0,
+      max: TICK_STEPS.length - 1,
+      step: 1,
+      display: (v) => `${TICK_STEPS[Math.round(v)]}`,
+    },
     {
       label: "arrows",
       atom: arrowMode,
       min: 0,
       max: ARROW_MODES.length - 1,
       step: 1,
-      display: (value) => ARROW_MODES[Math.round(value)],
+      display: (v) => ARROW_MODES[Math.round(v)],
     },
+    { label: "tick length", atom: tickLength, min: 4, max: 24, step: 1 },
+    { label: "head length", atom: headLength, min: 6, max: 28, step: 1 },
+    { label: "head width", atom: headWidth, min: 4, max: 20, step: 1 },
   ];
 
   return { scene, camera, sliders };
@@ -198,7 +264,7 @@ export default function Demo1() {
         }}
       >
         <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
-          axes2d origin + arrows sandbox
+          numberLine2d sandbox
         </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />

@@ -46,6 +46,23 @@ export type ThreeSceneTypes = {
     labels: Axes2DLabelObject[];
     layoutKey: string | null;
   };
+  numberline2d: {
+    kind: "numberline2d";
+    line: {
+      geometry: LineGeometry;
+      material: LineMaterial;
+      mesh: Line2;
+    } | null;
+    ticks: {
+      geometry: LineSegmentsGeometry;
+      material: LineMaterial;
+      mesh: LineSegments2;
+    } | null;
+    arrowStart: Axes2DArrowObject | null;
+    arrowEnd: Axes2DArrowObject | null;
+    labels: Axes2DLabelObject[];
+    layoutKey: string | null;
+  };
   line2d: {
     kind: "line2d";
     group: THREE.Group;
