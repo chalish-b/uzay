@@ -199,7 +199,7 @@ function createDerivativeScene(initialTheme: DemoTheme) {
         `font-family: ui-sans-serif, system-ui, sans-serif; ` +
         `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
     ),
-    arrows: true,
+    arrows: "both",
   });
 
   scene.create("function2d", {
@@ -415,7 +415,7 @@ function createIntegralScene(initialTheme: DemoTheme) {
         `font-family: ui-sans-serif, system-ui, sans-serif; ` +
         `text-shadow: ${get(themeAtom).scene.axisLabelShadow};`,
     ),
-    arrows: true,
+    arrows: "both",
   });
 
   const aCoords = scene.atom(vec2(-2.4, 0));
@@ -641,7 +641,7 @@ function createPanDisabledScene(initialTheme: DemoTheme) {
     thickness: 1.1,
     tickmarks: true,
     tickStep: "auto",
-    arrows: true,
+    arrows: "both",
   });
 
   scene.create("point2d", {

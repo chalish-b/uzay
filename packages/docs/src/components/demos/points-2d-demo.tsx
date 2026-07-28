@@ -30,7 +30,7 @@ export default function Points2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // The star of the page: a freely draggable point with a coordinate label.

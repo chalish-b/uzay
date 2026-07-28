@@ -25,15 +25,19 @@ export function getAxisRange(
   return INFINITE_RANGE;
 }
 
+// `skip` drops the tick under the axes' crossing point (the other axis's
+// origin coordinate), where a mark and label would collide with the crossing
+// axis line.
 export function buildTickPositions(
   range: readonly [number, number],
-  step: number
+  step: number,
+  skip = 0
 ): number[] {
   if (step <= 0) return [];
   const positions: number[] = [];
   const start = Math.ceil(range[0] / step) * step;
   for (let v = start; v <= range[1] + 1e-9; v += step) {
-    if (Math.abs(v) < 1e-9) continue;
+    if (Math.abs(v - skip) < 1e-9) continue;
     positions.push(v);
   }
   return positions;

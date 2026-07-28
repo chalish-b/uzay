@@ -42,7 +42,7 @@ export default function Parametric2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // The slider drives k; reading it inside the f atom rebuilds the function,

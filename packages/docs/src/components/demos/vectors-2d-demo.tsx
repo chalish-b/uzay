@@ -30,7 +30,7 @@ export default function Vectors2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // Two draggable vectors chained tip to tail. b's origin IS a's vector atom

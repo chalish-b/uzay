@@ -10,6 +10,7 @@ import {
   getTickStep,
   type AxisKey,
 } from "../../../math/axes-math";
+import { hasArrowAt } from "../../../../shared/types/arrows";
 import { createAxisTickLabel } from "../../../overlay-dom";
 import type {
   SvgAxesLabel,
@@ -33,13 +34,17 @@ function buildAxis(
 
   const range = getAxisRange(axis, item[axis], viewport);
   const wpp = viewport.worldPerPixel;
+  // The axis line sits at the origin's perpendicular coordinate; ticks skip
+  // the crossing point, where the other axis passes.
+  const base = axis === "x" ? item.origin.y : item.origin.x;
+  const crossing = axis === "x" ? item.origin.x : item.origin.y;
 
   const line = svgEl("line");
   setAttrs(
     line,
     axis === "x"
-      ? { x1: range[0], y1: 0, x2: range[1], y2: 0 }
-      : { x1: 0, y1: range[0], x2: 0, y2: range[1] }
+      ? { x1: range[0], y1: base, x2: range[1], y2: base }
+      : { x1: base, y1: range[0], x2: base, y2: range[1] }
   );
   applyStrokePx(line, item.color, item.thickness);
   g.appendChild(line);
@@ -48,11 +53,11 @@ function buildAxis(
     const tickStep = getTickStep(item.tickStep, viewport);
     const half = item.thickness * BASE_TICK_HALF_LENGTH_PX * wpp;
     const parts: string[] = [];
-    for (const tick of buildTickPositions(range, tickStep)) {
+    for (const tick of buildTickPositions(range, tickStep, crossing)) {
       parts.push(
         axis === "x"
-          ? `M ${tick} ${-half} L ${tick} ${half}`
-          : `M ${-half} ${tick} L ${half} ${tick}`
+          ? `M ${tick} ${base - half} L ${tick} ${base + half}`
+          : `M ${base - half} ${tick} L ${base + half} ${tick}`
       );
     }
     const ticks = svgEl("path");
@@ -61,19 +66,31 @@ function buildAxis(
     g.appendChild(ticks);
   }
 
-  if (item.arrows) {
-    // Unit arrow pointing along its axis: tip at (1, 0) / (0, 1), base at the
-    // origin, scaled into pixel-sized world units with the BASE at the axis
-    // endpoint so ticks at integer positions stay clear of the tip.
-    const lengthWorld = item.thickness * BASE_ARROW_LENGTH_PX * wpp;
-    const halfWidthWorld = item.thickness * BASE_ARROW_HALF_WIDTH_PX * wpp;
+  // Unit arrows pointing along the axis, scaled into pixel-sized world units
+  // with the BASE at the axis endpoint so ticks at integer positions stay
+  // clear of the tip. "end" is the range's max side, "start" the min side.
+  const lengthWorld = item.thickness * BASE_ARROW_LENGTH_PX * wpp;
+  const halfWidthWorld = item.thickness * BASE_ARROW_HALF_WIDTH_PX * wpp;
+  const heads: { which: "start" | "end"; d: string; at: number }[] = [
+    {
+      which: "end",
+      d: axis === "x" ? "M 1 0 L 0 0.5 L 0 -0.5 Z" : "M 0 1 L 0.5 0 L -0.5 0 Z",
+      at: range[1],
+    },
+    {
+      which: "start",
+      d: axis === "x" ? "M -1 0 L 0 0.5 L 0 -0.5 Z" : "M 0 -1 L 0.5 0 L -0.5 0 Z",
+      at: range[0],
+    },
+  ];
+  for (const head of heads) {
+    if (!hasArrowAt(item.arrows, head.which)) continue;
     const arrow = svgEl("path");
-    arrow.setAttribute(
-      "d",
-      axis === "x" ? "M 1 0 L 0 0.5 L 0 -0.5 Z" : "M 0 1 L 0.5 0 L -0.5 0 Z"
-    );
+    arrow.setAttribute("d", head.d);
     const translate =
-      axis === "x" ? `translate(${range[1]} 0)` : `translate(0 ${range[1]})`;
+      axis === "x"
+        ? `translate(${head.at} ${base})`
+        : `translate(${base} ${head.at})`;
     const scale =
       axis === "x"
         ? `scale(${lengthWorld} ${halfWidthWorld * 2})`
@@ -99,13 +116,15 @@ function buildLabels(
     if (item[axis] === false) continue;
 
     const range = getAxisRange(axis, item[axis], viewport);
-    for (const tick of buildTickPositions(range, tickStep)) {
+    const base = axis === "x" ? item.origin.y : item.origin.x;
+    const crossing = axis === "x" ? item.origin.x : item.origin.y;
+    for (const tick of buildTickPositions(range, tickStep, crossing)) {
       const { wrapper } = createAxisTickLabel(item, axis, tick, tickStep);
       wrapper.style.position = "absolute";
       overlay.appendChild(wrapper);
       labels.push({
         wrapper,
-        world: axis === "x" ? { x: tick, y: 0 } : { x: 0, y: tick },
+        world: axis === "x" ? { x: tick, y: base } : { x: base, y: tick },
       });
     }
   }
@@ -145,6 +164,8 @@ export const axes2dSvgRenderer: SvgItemRenderer<"axes2d"> = {
       yRange,
       tickStep,
       worldPerPixel: ctx.viewport.worldPerPixel,
+      origin: { x: item.origin.x, y: item.origin.y },
+      arrows: item.arrows,
       labels: item.labels,
       labelClassName: item.labelClassName,
       labelStyle: item.labelStyle,

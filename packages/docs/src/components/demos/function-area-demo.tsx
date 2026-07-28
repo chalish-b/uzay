@@ -47,7 +47,7 @@ export default function FunctionAreaDemo() {
       // Tick labels are DOM; a class drops the library's default look and
       // lets the site CSS theme them, same as overlays.
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // The bounds: two handles draggable along the x axis. Their x coordinates

@@ -41,7 +41,7 @@ export default function CurvePoint2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     scene.create("parametricfunction2d", {

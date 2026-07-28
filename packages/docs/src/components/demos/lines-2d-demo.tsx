@@ -30,7 +30,7 @@ export default function Lines2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // Two draggable endpoints. The line is the star, so the handles are kept

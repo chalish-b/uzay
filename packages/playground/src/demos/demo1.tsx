@@ -1,28 +1,29 @@
 import { useMemo } from "react";
-import { Scene2D, functionArea2D, vec2, type WritableBoundAtom } from "uzay";
-import type { FunctionArea2DBaseline, SceneAtom } from "uzay";
-import { Scene2DView, useAtomState, useAtomValue } from "uzay/react";
+import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
+import type { ArrowEnds } from "uzay";
+import { Scene2DView, useAtomState } from "uzay/react";
 
-// functionArea2D baseline sandbox, threejs and svg side by side (shared
+// axes2d origin + arrows sandbox, threejs and svg side by side (shared
 // camera, so pan/zoom stays in sync for comparison).
 //
-// - dodgerblue curve: f(x) = amp·sin(1.1x) + 0.5, amp reactive via slider.
-// - orange curve: the baseline. The mode slider swaps what the SAME baseline
-//   atom holds: the number 0, the number c, a line 0.4x + c, or a parabola
-//   0.25x² + c − 3. Switching number ↔ function live must restyle the fill
-//   with no rebuild; c morphs both the numeric and function baselines.
-// - fill: green lobes where f is above the baseline, tomato below, white
-//   stroke outlining every lobe. Lobes must split exactly at each crossing,
-//   for function baselines too.
-// - signed / absolute area readouts (bottom panel) must track every slider:
-//   signed = ∫(f − baseline), absolute = lobes summed unsigned. With the
-//   region fully one-sided the two must agree up to sign.
-// - edge cases to try: drag a past b (bounds swap, area unchanged), a = b
-//   (zero width, both areas 0, nothing drawn, no crash), amp = 0 with mode
-//   "constant c" and c = 0.5 (f coincides with the baseline: everything
-//   vanishes, areas 0), samples = 1 (clamps to 2, coarse but alive).
+// - white axes: the main pair, viewport-backed (x: true, y: true) with ticks
+//   and labels. The ox / oy sliders move its origin live: lines, ticks,
+//   labels and arrowheads must all shift together, and the tick under the
+//   crossing point must stay skipped (watch it hop as ox/oy pass integers).
+//   The arrows slider cycles none / start / end / both on BOTH axes.
+// - skyblue row: a lone x-axis number line at origin (0, 4), range [-8, 8],
+//   arrows "end" only. The head must sit at the max side.
+// - orange row: number line at origin (2, 6), range [-4, 8], arrows "both".
+//   Its origin.x is 2, so the tick and label at x = 2 are skipped even
+//   though no y-axis crosses there (current crossing-skip semantics).
+// - mediumseagreen column: a lone y-axis at origin (-7, 0), range [-3, 7],
+//   arrows "both". Tests the vertical offset path; the y = 0 tick is
+//   skipped (crossing = origin.y = 0).
+// - edge cases to try: drag the origin far off screen (viewport-backed
+//   ranges must keep covering the view), zoom in/out (tick re-stepping and
+//   pixel-sized arrowheads/ticks at offset positions), pan while zoomed.
 
-const BASELINE_MODES = ["0", "constant c", "line 0.4x + c", "parabola"] as const;
+const ARROW_MODES: ArrowEnds[] = ["none", "start", "end", "both"];
 
 type SliderSpec = {
   label: string;
@@ -36,114 +37,86 @@ type SliderSpec = {
 function buildScene() {
   const scene = new Scene2D();
   const camera = scene.create("camera2d", {
-    center: vec2(0, 0),
-    zoom: 0.9,
+    center: vec2(0, 2),
+    zoom: 0.55,
   });
 
   scene.create("grid2d", {
     rangeX: [-14, 14],
-    rangeY: [-10, 10],
+    rangeY: [-10, 12],
     gap: 1,
     color: "white",
     opacity: 0.12,
   });
+
+  const originX = scene.atom(0);
+  const originY = scene.atom(0);
+  const arrowMode = scene.atom(3);
+
+  // The main axes: viewport-backed, origin and arrows fully reactive.
   scene.create("axes2d", {
-    x: [-13, 13],
-    y: [-9, 9],
+    x: true,
+    y: true,
+    origin: scene.atom((get) => vec2(get(originX), get(originY))),
     color: "white",
     thickness: 1.2,
     tickmarks: true,
-    tickStep: 2,
-    arrows: true,
+    tickStep: 1,
+    labels: true,
+    arrows: scene.atom((get) => ARROW_MODES[Math.round(get(arrowMode))]),
   });
 
-  const boundA = scene.atom(-5);
-  const boundB = scene.atom(5);
-  const amp = scene.atom(1.6);
-  const baselineMode = scene.atom(3);
-  const baselineC = scene.atom(0);
-  const samples = scene.atom(128);
-
-  // Reactive f: the closure is rebuilt whenever amp changes.
-  const f = scene.atom((get) => {
-    const a = get(amp);
-    return (x: number) => a * Math.sin(1.1 * x) + 0.5;
+  // Number line rows: lone x-axes at fixed off-origin positions.
+  scene.create("axes2d", {
+    x: [-8, 8],
+    y: false,
+    origin: vec2(0, 4),
+    color: "skyblue",
+    thickness: 1.2,
+    tickmarks: true,
+    tickStep: 1,
+    labels: true,
+    arrows: "end",
   });
-
-  // The baseline atom holds a number OR a function depending on the mode, so
-  // the union reactivity is exercised in one place.
-  const baseline = scene.atom((get): FunctionArea2DBaseline => {
-    const mode = Math.round(get(baselineMode));
-    const c = get(baselineC);
-    switch (mode) {
-      case 0:
-        return 0;
-      case 1:
-        return c;
-      case 2:
-        return (x: number) => 0.4 * x + c;
-      default:
-        return (x: number) => 0.25 * x * x + c - 3;
-    }
-  });
-
-  const area = functionArea2D(scene, {
-    f,
-    a: boundA,
-    b: boundB,
-    baseline,
-    samples,
-    color: "mediumseagreen",
-    colorBelow: "tomato",
-    opacity: 0.4,
-    strokeColor: "white",
-    strokeOpacity: 0.5,
-    strokeThickness: 1,
-  });
-
-  scene.create("function2d", {
-    f,
-    domain: "infinite",
-    color: "dodgerblue",
-    thickness: 2.5,
-  });
-
-  // The baseline drawn as a curve, normalized to a function so the numeric
-  // modes show as a horizontal line.
-  scene.create("function2d", {
-    f: scene.atom((get) => {
-      const b = get(baseline);
-      return typeof b === "number" ? () => b : b;
-    }),
-    domain: "infinite",
+  scene.create("axes2d", {
+    x: [-4, 8],
+    y: false,
+    origin: vec2(2, 6),
     color: "orange",
-    thickness: 1.5,
-    opacity: 0.8,
+    thickness: 1.2,
+    tickmarks: true,
+    tickStep: 1,
+    labels: true,
+    arrows: "both",
+  });
+
+  // A lone y-axis column, offset horizontally.
+  scene.create("axes2d", {
+    x: false,
+    y: [-3, 7],
+    origin: vec2(-7, 0),
+    color: "mediumseagreen",
+    thickness: 1.2,
+    tickmarks: true,
+    tickStep: 1,
+    labels: true,
+    arrows: "both",
   });
 
   const sliders: SliderSpec[] = [
-    { label: "a", atom: boundA, min: -8, max: 8, step: 0.01 },
-    { label: "b", atom: boundB, min: -8, max: 8, step: 0.01 },
-    { label: "f amplitude", atom: amp, min: 0, max: 3, step: 0.01 },
+    { label: "origin x", atom: originX, min: -5, max: 5, step: 0.01 },
+    { label: "origin y", atom: originY, min: -5, max: 5, step: 0.01 },
     {
-      label: "baseline",
-      atom: baselineMode,
+      label: "arrows",
+      atom: arrowMode,
       min: 0,
-      max: BASELINE_MODES.length - 1,
+      max: ARROW_MODES.length - 1,
       step: 1,
-      display: (value) => BASELINE_MODES[Math.round(value)],
+      display: (value) => ARROW_MODES[Math.round(value)],
     },
-    { label: "baseline c", atom: baselineC, min: -3, max: 3, step: 0.01 },
-    { label: "samples", atom: samples, min: 1, max: 300, step: 1 },
   ];
 
-  return {
-    scene,
-    camera,
-    sliders,
-    signedArea: area.signedArea,
-    absoluteArea: area.absoluteArea,
-  };
+  return { scene, camera, sliders };
 }
 
 function Slider({ spec }: { spec: SliderSpec }) {
@@ -169,22 +142,6 @@ function Slider({ spec }: { spec: SliderSpec }) {
   );
 }
 
-function AreaReadout({
-  signedArea,
-  absoluteArea,
-}: {
-  signedArea: SceneAtom<number>;
-  absoluteArea: SceneAtom<number>;
-}) {
-  const signed = useAtomValue<number>(signedArea);
-  const absolute = useAtomValue<number>(absoluteArea);
-  return (
-    <span style={{ fontSize: 11, color: "#ccc", fontFamily: "monospace" }}>
-      signed = {signed.toFixed(3)} · absolute = {absolute.toFixed(3)}
-    </span>
-  );
-}
-
 function PaneLabel({ text }: { text: string }) {
   return (
     <span
@@ -204,10 +161,7 @@ function PaneLabel({ text }: { text: string }) {
 }
 
 export default function Demo1() {
-  const { scene, camera, sliders, signedArea, absoluteArea } = useMemo(
-    buildScene,
-    []
-  );
+  const { scene, camera, sliders } = useMemo(buildScene, []);
 
   return (
     <div
@@ -244,12 +198,11 @@ export default function Demo1() {
         }}
       >
         <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
-          functionArea2D baseline sandbox
+          axes2d origin + arrows sandbox
         </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />
         ))}
-        <AreaReadout signedArea={signedArea} absoluteArea={absoluteArea} />
       </div>
     </div>
   );

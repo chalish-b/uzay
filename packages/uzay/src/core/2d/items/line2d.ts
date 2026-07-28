@@ -1,5 +1,6 @@
 import type { ItemTags } from "../../shared/types/tags";
 import { vec2, type Vec2 } from "../../shared/types/vec2";
+import type { ArrowEnds } from "../../shared/types/arrows";
 import type { Color } from "../../shared/types/colors";
 import type { AtomLikeOptions } from "../../shared/atom-wrapper";
 import {
@@ -10,7 +11,7 @@ import { defineItem2D } from "../types/define-item";
 
 export type PointerEvents = "auto" | "none";
 
-export type Line2DArrows = "none" | "start" | "end" | "both";
+export type Line2DArrows = ArrowEnds;
 
 export type Line2DFields = {
   tags: ItemTags;

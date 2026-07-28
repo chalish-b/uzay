@@ -36,7 +36,7 @@ export default function Functions2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // domain "infinite" re-samples across the viewport on every pan and zoom,

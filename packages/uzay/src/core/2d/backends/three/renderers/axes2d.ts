@@ -20,28 +20,35 @@ import {
   getTickStep,
   type AxisKey,
 } from "../../../math/axes-math";
+import { hasArrowAt } from "../../../../shared/types/arrows";
 import { createAxisTickLabel } from "../../../overlay-dom";
 
+// The axis line sits at `base`, the origin's perpendicular coordinate.
 function buildAxisLineGeometry(
   axis: AxisKey,
-  range: readonly [number, number]
+  range: readonly [number, number],
+  base: number
 ): LineGeometry {
   const positions =
     axis === "x"
-      ? [range[0], 0, Z_DEFAULT, range[1], 0, Z_DEFAULT]
-      : [0, range[0], Z_DEFAULT, 0, range[1], Z_DEFAULT];
+      ? [range[0], base, Z_DEFAULT, range[1], base, Z_DEFAULT]
+      : [base, range[0], Z_DEFAULT, base, range[1], Z_DEFAULT];
   const geom = new LineGeometry();
   geom.setPositions(positions);
   return geom;
 }
 
+// Tick geometry stays centered on its axis; the base offset lives on the
+// mesh position, so the before-render pixel scaling (which scales around the
+// mesh origin) never distorts it.
 function buildTickGeometry(
   axis: AxisKey,
   range: readonly [number, number],
   step: number,
-  halfLength: number = 1
+  halfLength: number,
+  crossing: number
 ): LineSegmentsGeometry {
-  const ticks = buildTickPositions(range, step);
+  const ticks = buildTickPositions(range, step, crossing);
   const positions: number[] = [];
   for (const t of ticks) {
     if (axis === "x") {
@@ -55,15 +62,20 @@ function buildTickGeometry(
   return geom;
 }
 
-// Unit arrow pointing along its axis. Base sits at origin, tip extends one
-// unit forward. Mesh position places the BASE at the axis endpoint, so the
-// scaled tip lands `arrowLengthPx` pixels beyond the line — keeping ticks at
-// integer positions clear of the tip and matching axes3d's conventions.
-function buildUnitArrowGeometry(axis: AxisKey): THREE.BufferGeometry {
+// Unit arrow pointing along its axis, toward the range's max ("end") or min
+// ("start") side. Base sits at origin, tip extends one unit outward. Mesh
+// position places the BASE at the axis endpoint, so the scaled tip lands
+// `arrowLengthPx` pixels beyond the line — keeping ticks at integer positions
+// clear of the tip and matching axes3d's conventions.
+function buildUnitArrowGeometry(
+  axis: AxisKey,
+  which: "start" | "end"
+): THREE.BufferGeometry {
+  const tip = which === "end" ? 1 : -1;
   const positions =
     axis === "x"
-      ? [1, 0, Z_DEFAULT, 0, 0.5, Z_DEFAULT, 0, -0.5, Z_DEFAULT]
-      : [0, 1, Z_DEFAULT, 0.5, 0, Z_DEFAULT, -0.5, 0, Z_DEFAULT];
+      ? [tip, 0, Z_DEFAULT, 0, 0.5, Z_DEFAULT, 0, -0.5, Z_DEFAULT]
+      : [0, tip, Z_DEFAULT, 0.5, 0, Z_DEFAULT, -0.5, 0, Z_DEFAULT];
   const geom = new THREE.BufferGeometry();
   geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geom.setIndex([0, 1, 2]);
@@ -78,12 +90,14 @@ function createAxis(
 ): ThreeSceneTypes["axes2d"]["x"] {
   const enabled = item[axis] !== false;
   const range = getAxisRange(axis, item[axis], viewport);
+  const base = axis === "x" ? item.origin.y : item.origin.x;
+  const crossing = axis === "x" ? item.origin.x : item.origin.y;
 
   const lineMaterial = new LineMaterial({
     color: checkedColor(item.color, "Axes2D.color"),
     linewidth: item.thickness,
   });
-  const lineGeometry = buildAxisLineGeometry(axis, range);
+  const lineGeometry = buildAxisLineGeometry(axis, range, base);
   const lineMesh = new Line2(lineGeometry, lineMaterial);
   lineMesh.visible = item.visible && enabled;
   lineMesh.userData.itemId = item.id;
@@ -99,13 +113,19 @@ function createAxis(
       axis,
       range,
       tickStep,
-      tickHalfLength
+      tickHalfLength,
+      crossing
     );
     const tickMaterial = new LineMaterial({
       color: checkedColor(item.color, "Axes2D.color"),
       linewidth: item.thickness,
     });
     const tickMesh = new LineSegments2(tickGeometry, tickMaterial);
+    if (axis === "x") {
+      tickMesh.position.set(0, base, 0);
+    } else {
+      tickMesh.position.set(base, 0, 0);
+    }
     tickMesh.visible = item.visible;
     tickMesh.userData.itemId = item.id;
     tickMesh.userData.axis = axis;
@@ -117,17 +137,20 @@ function createAxis(
     ticks = { geometry: tickGeometry, material: tickMaterial, mesh: tickMesh };
   }
 
-  let arrow: ThreeSceneTypes["axes2d"]["x"]["arrow"] = null;
-  if (item.arrows && enabled) {
-    const arrowGeometry = buildUnitArrowGeometry(axis);
+  const buildArrow = (
+    which: "start" | "end"
+  ): ThreeSceneTypes["axes2d"]["x"]["arrowEnd"] => {
+    if (!enabled || !hasArrowAt(item.arrows, which)) return null;
+    const arrowGeometry = buildUnitArrowGeometry(axis, which);
     const arrowMaterial = new THREE.MeshBasicMaterial({
       color: checkedColor(item.color, "Axes2D.color"),
     });
     const arrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
+    const at = which === "end" ? range[1] : range[0];
     if (axis === "x") {
-      arrowMesh.position.set(range[1], 0, Z_DEFAULT);
+      arrowMesh.position.set(at, base, Z_DEFAULT);
     } else {
-      arrowMesh.position.set(0, range[1], Z_DEFAULT);
+      arrowMesh.position.set(base, at, Z_DEFAULT);
     }
     arrowMesh.visible = item.visible;
     arrowMesh.userData.itemId = item.id;
@@ -135,13 +158,14 @@ function createAxis(
     arrowMesh.userData.thickness = item.thickness;
     chainOnBeforeRender(arrowMesh, onArrowBeforeRender);
     threeScene.add(arrowMesh);
-    arrow = { geometry: arrowGeometry, material: arrowMaterial, mesh: arrowMesh };
-  }
+    return { geometry: arrowGeometry, material: arrowMaterial, mesh: arrowMesh };
+  };
 
   return {
     line: { geometry: lineGeometry, material: lineMaterial, mesh: lineMesh },
     ticks,
-    arrow,
+    arrowStart: buildArrow("start"),
+    arrowEnd: buildArrow("end"),
   };
 }
 
@@ -157,10 +181,11 @@ function disposeAxis(
     axisObj.ticks.geometry.dispose();
     axisObj.ticks.material.dispose();
   }
-  if (axisObj.arrow) {
-    threeScene.remove(axisObj.arrow.mesh);
-    axisObj.arrow.geometry.dispose();
-    axisObj.arrow.material.dispose();
+  for (const arrow of [axisObj.arrowStart, axisObj.arrowEnd]) {
+    if (!arrow) continue;
+    threeScene.remove(arrow.mesh);
+    arrow.geometry.dispose();
+    arrow.material.dispose();
   }
 }
 
@@ -189,15 +214,17 @@ function createLabels(
     if (item[axis] === false) continue;
 
     const range = getAxisRange(axis, item[axis], viewport);
-    const ticks = buildTickPositions(range, tickStep);
+    const base = axis === "x" ? item.origin.y : item.origin.x;
+    const crossing = axis === "x" ? item.origin.x : item.origin.y;
+    const ticks = buildTickPositions(range, tickStep, crossing);
     for (const tick of ticks) {
       const { wrapper, element } = createAxisTickLabel(item, axis, tick, tickStep);
 
       const cssObject = new CSS2DObject(wrapper);
       if (axis === "x") {
-        cssObject.position.set(tick, 0, Z_DEFAULT);
+        cssObject.position.set(tick, base, Z_DEFAULT);
       } else {
-        cssObject.position.set(0, tick, Z_DEFAULT);
+        cssObject.position.set(base, tick, Z_DEFAULT);
       }
       threeScene.add(cssObject);
       labels.push({ cssObject, element });
@@ -254,6 +281,8 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
       yRange,
       tickStep,
       worldPerPixel: ctx.viewport.worldPerPixel,
+      origin: { x: item.origin.x, y: item.origin.y },
+      arrows: item.arrows,
       labels: item.labels,
       labelClassName: item.labelClassName,
       labelStyle: item.labelStyle,

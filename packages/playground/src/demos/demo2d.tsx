@@ -25,7 +25,7 @@ function createScene() {
     thickness: 1.2,
     tickmarks: true,
     tickStep: 1,
-    arrows: true,
+    arrows: "both",
   });
 
   // Two draggable endpoints with a line connecting them. The line uses the

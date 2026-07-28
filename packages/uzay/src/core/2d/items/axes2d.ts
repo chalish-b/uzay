@@ -1,5 +1,7 @@
+import type { ArrowEnds } from "../../shared/types/arrows";
 import type { Color } from "../../shared/types/colors";
 import type { ItemTags } from "../../shared/types/tags";
+import { vec2, type Vec2 } from "../../shared/types/vec2";
 import type { AtomLikeOptions } from "../../shared/atom-wrapper";
 import {
   field,
@@ -16,6 +18,11 @@ export type Axes2DFields = {
   tags: ItemTags;
   x: boolean | [number, number];
   y: boolean | [number, number];
+  // World point where the two axes cross. Axis lines, tickmarks and arrows
+  // shift with it; tick values and labels stay absolute world coordinates.
+  // Off-origin axes also make single-axis number lines (e.g. stacked rows):
+  // enable one axis and place its baseline with the origin's other component.
+  origin: Vec2;
   color: Color;
   thickness: number;
   visible: boolean;
@@ -36,7 +43,9 @@ export type Axes2DFields = {
    * don't set fall back to inherited/browser values, not to the defaults.
    */
   labelStyle: string;
-  arrows: boolean;
+  // Arrowheads at the axes' ends: "end" is the range's max side, "start" the
+  // min side. One value applies to both enabled axes.
+  arrows: ArrowEnds;
 };
 export type Axes2DOptions = AtomLikeOptions<Axes2DFields>;
 
@@ -46,6 +55,7 @@ export const axes2dDefinition = defineItem2D({
     tags: field<ItemTags>(() => []),
     x: field<boolean | [number, number]>(true),
     y: field<boolean | [number, number]>(true),
+    origin: field<Vec2>(() => vec2(0, 0)),
     color: field<Color>("white"),
     thickness: field(1),
     visible: field(true),
@@ -57,7 +67,7 @@ export const axes2dDefinition = defineItem2D({
     labels: field(false),
     labelClassName: field(""),
     labelStyle: field(""),
-    arrows: field(true),
+    arrows: field<ArrowEnds>("both"),
   },
 });
 

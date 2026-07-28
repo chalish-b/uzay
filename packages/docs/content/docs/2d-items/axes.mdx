@@ -5,7 +5,7 @@ description: 2D coordinate axes
 
 ## What is Axes2D?
 
-`Axes2D` renders X and Y coordinate axes through the origin, with optional arrowheads, tick marks, and numeric labels. It provides orientation and scale reference for a plane visualization.
+`Axes2D` renders X and Y coordinate axes, with optional arrowheads, tick marks, and numeric labels. It provides orientation and scale reference for a plane visualization. The axes cross at the world origin by default, and the `origin` option moves that crossing point anywhere.
 
 ## Basic Usage
 
@@ -56,13 +56,46 @@ scene.create("axes2d", {
 
 ### Arrows
 
-Axes show arrowheads at their positive ends by default. Toggle them off:
+`arrows` picks which ends of the axes carry an arrowhead: `"none"`, `"start"` (the range's min side), `"end"` (the max side), or `"both"` (the default). One value applies to both enabled axes.
 
 ```typescript
 scene.create("axes2d", {
   x: true,
   y: true,
-  arrows: false,
+  arrows: "none",
+});
+
+// A time axis: arrowhead only in the forward direction
+scene.create("axes2d", {
+  x: [0, 10],
+  y: false,
+  arrows: "end",
+});
+```
+
+## Origin
+
+`origin` sets the world point where the two axes cross, `(0, 0)` by default. Axis lines, tick marks, and arrowheads shift with it, while tick values and labels stay absolute world coordinates. The tick under the crossing point is skipped, so it never collides with the crossing axis line.
+
+```typescript
+// Axes crossing at (2, 1)
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  origin: vec2(2, 1),
+});
+```
+
+Off-origin single axes make number lines, e.g. stacked rows in one scene: enable one axis and place its baseline with the origin's other component.
+
+```typescript
+// A number line at height y = 1.5
+scene.create("axes2d", {
+  x: [-5, 5],
+  y: false,
+  origin: vec2(0, 1.5),
+  tickmarks: true,
+  labels: true,
 });
 ```
 
@@ -147,9 +180,10 @@ scale.set(10);
 |----------|------|---------|-------------|
 | `x` | `boolean \| [number, number]` | `true` | X-axis configuration |
 | `y` | `boolean \| [number, number]` | `true` | Y-axis configuration |
+| `origin` | `Vec2` | `vec2(0, 0)` | World point where the axes cross |
 | `color` | `string` | `"white"` | Axis color |
 | `thickness` | `number` | `1` | Line width |
-| `arrows` | `boolean` | `true` | Show arrowheads at positive ends |
+| `arrows` | `"none" \| "start" \| "end" \| "both"` | `"both"` | Which axis ends carry an arrowhead |
 | `tickmarks` | `boolean` | `false` | Show tick marks |
 | `tickStep` | `number \| "auto"` | `1` | Interval between ticks, or `"auto"` to adapt to zoom |
 | `labels` | `boolean` | `false` | Show numeric labels at ticks |
@@ -174,9 +208,10 @@ scale.set(10);
 | `id` | `string` | Unique identifier |
 | `x` | `BoundAtom<boolean \| [number, number]>` | X-axis config atom |
 | `y` | `BoundAtom<boolean \| [number, number]>` | Y-axis config atom |
+| `origin` | `BoundAtom<Vec2>` | Origin atom |
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
-| `arrows` | `BoundAtom<boolean>` | Arrows atom |
+| `arrows` | `BoundAtom<ArrowEnds>` | Arrows atom |
 | `tickmarks` | `BoundAtom<boolean>` | Tick marks atom |
 | `tickStep` | `BoundAtom<number \| "auto">` | Tick step atom |
 | `labels` | `BoundAtom<boolean>` | Labels atom |

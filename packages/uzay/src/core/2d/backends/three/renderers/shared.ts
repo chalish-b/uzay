@@ -122,7 +122,14 @@ export type Circle2DStrokeObject = {
   mesh: Line2;
 };
 
-// Per-axis bundle for axes2d: a line plus optional tick and arrow meshes.
+// Per-axis bundle for axes2d: a line plus optional tick and arrowhead
+// meshes, one arrowhead slot per axis end.
+export type Axes2DArrowObject = {
+  geometry: THREE.BufferGeometry;
+  material: THREE.MeshBasicMaterial;
+  mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+};
+
 export type Axes2DAxisObject = {
   line: {
     geometry: LineGeometry;
@@ -134,11 +141,8 @@ export type Axes2DAxisObject = {
     material: LineMaterial;
     mesh: LineSegments2;
   } | null;
-  arrow: {
-    geometry: THREE.BufferGeometry;
-    material: THREE.MeshBasicMaterial;
-    mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
-  } | null;
+  arrowStart: Axes2DArrowObject | null;
+  arrowEnd: Axes2DArrowObject | null;
 };
 
 export type Axes2DLabelObject = {

@@ -29,7 +29,7 @@ export default function Circle2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // The center rides a draggable handle: passing its coords as the circle's

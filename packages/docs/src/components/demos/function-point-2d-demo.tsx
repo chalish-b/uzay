@@ -36,7 +36,7 @@ export default function FunctionPoint2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // domain "infinite" refills the curve across the viewport, so the handle has

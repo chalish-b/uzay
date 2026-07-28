@@ -51,6 +51,7 @@ export type { DragEvent, ClickEvent, HoverEvent, DragHandler, ClickHandler, Hove
 
 // Overlay types
 export type { OverlayFormat, OverlayAnchor } from "./core/shared/types/overlay"
+export type { ArrowEnds } from "./core/shared/types/arrows"
 export type { Color } from "./core/shared/types/colors"
 export type { ItemTags } from "./core/shared/types/tags"
 

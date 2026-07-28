@@ -30,7 +30,7 @@ export default function AngleMark2DDemo() {
       tickStep: "auto",
       labels: true,
       labelClassName: "text-xs text-fd-muted-foreground",
-      arrows: true,
+      arrows: "both",
     });
 
     // Two draggable arms from a fixed vertex.
