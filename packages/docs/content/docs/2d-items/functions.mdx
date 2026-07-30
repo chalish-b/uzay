@@ -103,6 +103,8 @@ scene.create("function2d", {
 });
 ```
 
+Set `dashed` to draw the curve with a dashed stroke. Dashed curves are the usual convention for auxiliary graphs: a reference curve behind the main one, an envelope, a trend line.
+
 ## Examples
 
 ### Reactive Function
@@ -159,6 +161,7 @@ graph.thickness.set(3);
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `dashed` | `boolean` | `false` | Draw a dashed stroke |
 | `visible` | `boolean` | `true` | Whether the graph is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the graph receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
@@ -176,6 +179,7 @@ graph.thickness.set(3);
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |
+| `dashed` | `BoundAtom<boolean>` | Dashed stroke atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

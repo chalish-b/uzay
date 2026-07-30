@@ -31,6 +31,8 @@ const circle = scene.create("parametricfunction2d", {
 });
 ```
 
+Set `dashed` to draw the curve with a dashed stroke.
+
 ## Sampling
 
 Sampling is automatic: the library decides how densely to evaluate `f` from the shape of the curve and the current zoom, so tight loops and sharp corners render smoothly without any configuration. The curve breaks wherever `f(t)` returns a non-finite point.
@@ -149,6 +151,7 @@ To make a point the user can **drag along** a curve, use the [curvePoint2D](/doc
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
+| `dashed` | `boolean` | `false` | Draw a dashed stroke |
 | `visible` | `boolean` | `true` | Whether the curve is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the curve receives pointer events |
 | `tags` | `string[]` | `[]` | Custom tags |
@@ -164,6 +167,7 @@ To make a point the user can **drag along** a curve, use the [curvePoint2D](/doc
 | `color` | `BoundAtom<string>` | Color atom |
 | `thickness` | `BoundAtom<number>` | Thickness atom |
 | `opacity` | `BoundAtom<number>` | Opacity atom |
+| `dashed` | `BoundAtom<boolean>` | Dashed stroke atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |
 | `pointerEvents` | `BoundAtom<string>` | Pointer events atom |
 | `tags` | `BoundAtom<string[]>` | Tags atom |

@@ -1,44 +1,26 @@
 import { useMemo } from "react";
-import { Scene2D, vec2, type Vec2, type WritableBoundAtom } from "uzay";
-import type { ArrowEnds } from "uzay";
+import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
-// The line's value-to-world mapping, restated demo-side: a value v lands at
-// position + direction(angle) · scale · v, and a world point projects back
-// to a value via the dot product with the direction.
-const valueToWorld = (position: Vec2, angle: number, scale: number, value: number) =>
-  position.add(vec2(Math.cos(angle), Math.sin(angle)).scale(scale * value));
-const worldToValue = (position: Vec2, angle: number, scale: number, point: Vec2) =>
-  point.sub(position).dot(vec2(Math.cos(angle), Math.sin(angle))) / scale;
-
-// numberLine2d sandbox, threejs and svg side by side (shared camera, so
-// pan/zoom stays in sync for comparison).
+// Dashed function2d / parametricfunction2d sandbox, threejs and svg side by
+// side (shared camera, so pan/zoom stays in sync for comparison).
 //
-// - orange line: the main number line, fully reactive. Sliders drive its
-//   position, angle, scale, range, tick step, and arrow mode. Ticks and
-//   labels are the line's OWN values: move/rotate/scale it and they travel
-//   with it. scale stretches tick spacing in world space while the values
-//   stay put; range controls which values are visible.
-// - hotpink point: draggable anywhere. It projects orthogonally onto the
-//   main line; the white foot marker sits at the projected value and the
-//   label reads it. This checks the demo-side mapping stays consistent with
-//   the item's own rendering under every slider (the foot must ride the
-//   drawn line exactly, its label matching the tick labels).
-// - skyblue line: a fixed vertical number line (angle π/2, scale 0.5) with
-//   no controls, to check an off-axis orientation stays correct while the
-//   main one changes.
-// - the faint white axes2d pair is world scaffolding, for seeing that the
-//   number lines' labels are independent of world coordinates.
-// - a tick landing on an end that carries an arrowhead is dropped, label
-//   included (the head replaces it); switch arrows to none to get it back.
-//   tick length / head length / head width are the px size dials.
-// - edge cases to try: scale close to 0.2 with tickStep 0.5 (dense ticks),
-//   angle full circle (labels flip sides at ±90°), range min > max is not
-//   guarded and draws nothing, zoom in/out (pixel-constant ticks, arrows,
-//   label offsets), "auto" tick step re-stepping under zoom.
-
-const ARROW_MODES: ArrowEnds[] = ["none", "start", "end", "both"];
-const TICK_STEPS: (number | "auto")[] = [0.5, 1, 2, "auto"];
+// - orange curve: a·sin(x) on an infinite domain. The dashed toggle, thickness
+//   and opacity sliders drive it; amplitude changes the function itself, so
+//   every geometry rebuild recomputes the dash distances. Pan and zoom to
+//   check the dash rhythm stays pixel-constant while the curve resamples.
+// - cyan curve: 1/(x − 2) with a discontinuity at x = 2, always dashed. The
+//   dash pattern must not bleed across the asymptote gap, and the two branches
+//   each read as cleanly dashed.
+// - lime curve: a finite domain [−6, −1] with a closed start and open end
+//   marker, always dashed. The endpoint markers stay solid (a filled disc and
+//   a ring), only the stroke dashes.
+// - hotpink curve: a parametric spiral, following the same dashed toggle. The
+//   turns slider changes f while dashed, same rebuild check as amplitude.
+// - edge cases to try: thickness at 0.5 (dash floor of 4px/3px kicks in),
+//   thickness at 6 (long dashes), deep zoom in/out on the infinite curve
+//   (resampling under a constant on-screen pattern), toggling dashed while
+//   zoomed (solid and dashed must agree on geometry).
 
 type SliderSpec = {
   label: string;
@@ -52,13 +34,13 @@ type SliderSpec = {
 function buildScene() {
   const scene = new Scene2D();
   const camera = scene.create("camera2d", {
-    center: vec2(0, 1),
-    zoom: 0.55,
+    center: vec2(0, 0),
+    zoom: 0.8,
   });
 
   scene.create("grid2d", {
     rangeX: [-14, 14],
-    rangeY: [-10, 12],
+    rangeY: [-10, 10],
     gap: 1,
     color: "white",
     opacity: 0.1,
@@ -71,115 +53,77 @@ function buildScene() {
     arrows: "none",
   });
 
-  const posX = scene.atom(0);
-  const posY = scene.atom(3);
-  const angle = scene.atom(0);
-  const scale = scene.atom(1);
-  const rangeMin = scene.atom(-5);
-  const rangeMax = scene.atom(5);
-  const tickStepIndex = scene.atom(1);
-  const arrowMode = scene.atom(3);
-  const tickLength = scene.atom(12);
-  const headLength = scene.atom(14);
-  const headWidth = scene.atom(10);
+  const dashedNum = scene.atom(1);
+  const thickness = scene.atom(2);
+  const opacity = scene.atom(1);
+  const amplitude = scene.atom(2);
+  const turns = scene.atom(3);
 
-  scene.create("numberline2d", {
-    position: scene.atom((get) => vec2(get(posX), get(posY))),
-    angle,
-    scale,
-    range: scene.atom((get): [number, number] => [get(rangeMin), get(rangeMax)]),
-    tickStep: scene.atom((get) => TICK_STEPS[Math.round(get(tickStepIndex))]),
-    arrows: scene.atom((get) => ARROW_MODES[Math.round(get(arrowMode))]),
-    tickLength,
-    headLength,
-    headWidth,
+  const dashed = scene.atom((get) => get(dashedNum) > 0.5);
+
+  // The main curve: infinite domain, all sliders wired.
+  scene.create("function2d", {
+    f: scene.atom((get) => {
+      const a = get(amplitude);
+      return (x: number) => a * Math.sin(x);
+    }),
+    domain: "infinite",
     color: "orange",
-    thickness: 1.5,
+    thickness,
+    opacity,
+    dashed,
   });
 
-  // The fixed off-axis line: vertical, half world scale.
-  scene.create("numberline2d", {
-    position: vec2(-9, -2),
-    angle: Math.PI / 2,
-    scale: 0.5,
-    range: [-4, 8],
-    color: "skyblue",
+  // Dashes across an asymptote break.
+  scene.create("function2d", {
+    f: (x) => 1 / (x - 2),
+    domain: "infinite",
+    discontinuities: [2],
+    color: "cyan",
     thickness: 1.5,
-    arrows: "end",
-  });
-
-  // A free point projecting onto the main line.
-  const freePoint = scene.atom(vec2(3, 6));
-  const projectedValue = scene.atom((get) =>
-    worldToValue(vec2(get(posX), get(posY)), get(angle), get(scale), get(freePoint)),
-  );
-  const foot = scene.atom((get) =>
-    valueToWorld(vec2(get(posX), get(posY)), get(angle), get(scale), get(projectedValue)),
-  );
-
-  scene.create("line2d", {
-    start: freePoint,
-    end: foot,
-    color: "white",
-    thickness: 1,
     dashed: true,
-    opacity: 0.5,
-    pointerEvents: "none",
   });
-  scene.create("point2d", {
-    coords: foot,
-    draggable: "none",
-    color: "white",
-    radius: 4,
-    pointerEvents: "none",
+
+  // Dashes with endpoint markers on a finite domain.
+  scene.create("function2d", {
+    f: (x) => 0.25 * (x + 3.5) * (x + 3.5) - 4,
+    domain: [-6, -1],
+    endpoints: { start: "closed", end: "open" },
+    color: "lime",
+    thickness: 2,
+    dashed: true,
   });
-  scene.create("overlay2d", {
-    position: foot,
-    content: scene.atom((get) => `value: ${get(projectedValue).toFixed(2)}`),
-    format: "text",
-    anchor: "bottom-left",
-    offset: vec2(10, -10),
-    style: "color: #eee; font-size: 12px; text-shadow: 0 1px 2px black;",
-  });
-  scene.create("point2d", {
-    coords: freePoint,
-    draggable: "xy",
+
+  // The parametric counterpart: a spiral, sharing the dashed toggle.
+  scene.create("parametricfunction2d", {
+    f: scene.atom((get) => {
+      const k = get(turns);
+      return (t: number) => {
+        const th = t * k * Math.PI * 2;
+        const r = 0.4 + 3 * t;
+        return vec2(7 + r * Math.cos(th), 3 + r * Math.sin(th));
+      };
+    }),
+    tStart: 0,
+    tEnd: 1,
     color: "hotpink",
+    thickness,
+    dashed,
   });
 
   const sliders: SliderSpec[] = [
-    { label: "position x", atom: posX, min: -8, max: 8, step: 0.01 },
-    { label: "position y", atom: posY, min: -6, max: 8, step: 0.01 },
     {
-      label: "angle",
-      atom: angle,
-      min: -Math.PI,
-      max: Math.PI,
-      step: 0.01,
-      display: (v) => `${((v * 180) / Math.PI).toFixed(0)}°`,
-    },
-    { label: "scale", atom: scale, min: 0.2, max: 3, step: 0.01 },
-    { label: "range min", atom: rangeMin, min: -10, max: 0, step: 0.5 },
-    { label: "range max", atom: rangeMax, min: 0, max: 10, step: 0.5 },
-    {
-      label: "tick step",
-      atom: tickStepIndex,
+      label: "dashed",
+      atom: dashedNum,
       min: 0,
-      max: TICK_STEPS.length - 1,
+      max: 1,
       step: 1,
-      display: (v) => `${TICK_STEPS[Math.round(v)]}`,
+      display: (v) => (v > 0.5 ? "on" : "off"),
     },
-    {
-      label: "arrows",
-      atom: arrowMode,
-      min: 0,
-      max: ARROW_MODES.length - 1,
-      step: 1,
-      display: (v) => ARROW_MODES[Math.round(v)],
-    },
-    { label: "tick length", atom: tickLength, min: 4, max: 24, step: 1 },
-    { label: "head length", atom: headLength, min: 6, max: 28, step: 1 },
-    { label: "head width", atom: headWidth, min: 4, max: 20, step: 1 },
+    { label: "thickness", atom: thickness, min: 0.5, max: 6, step: 0.1 },
+    { label: "opacity", atom: opacity, min: 0.1, max: 1, step: 0.01 },
+    { label: "amplitude", atom: amplitude, min: 0.5, max: 4, step: 0.01 },
+    { label: "spiral turns", atom: turns, min: 1, max: 6, step: 0.01 },
   ];
 
   return { scene, camera, sliders };
@@ -264,7 +208,7 @@ export default function Demo1() {
         }}
       >
         <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
-          numberLine2d sandbox
+          dashed curves sandbox
         </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />

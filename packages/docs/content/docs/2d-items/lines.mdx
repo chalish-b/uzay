@@ -90,7 +90,7 @@ scene.create("line2d", {
 });
 ```
 
-The dash pattern is derived from the thickness, so thicker lines get proportionally longer dashes, and it keeps a constant on-screen rhythm at any zoom, just like the thickness itself. Dashed strokes are the usual convention for auxiliary geometry: extensions of a side, implied segments, construction lines.
+Dashed strokes are the usual convention for auxiliary geometry: extensions of a side, implied segments, construction lines.
 
 ### Arrows
 
@@ -195,7 +195,7 @@ line.opacity.set(0.5);
 | `color` | `string` | `"white"` | CSS color string |
 | `thickness` | `number` | `1` | Line width |
 | `opacity` | `number` | `1` | Opacity (0 to 1) |
-| `dashed` | `boolean` | `false` | Draw a dashed stroke (pattern derived from `thickness`) |
+| `dashed` | `boolean` | `false` | Draw a dashed stroke |
 | `arrows` | `"none" \| "start" \| "end" \| "both"` | `"none"` | Arrowheads at the ends: tips at the endpoints, pointing outward |
 | `visible` | `boolean` | `true` | Whether the line is shown |
 | `pointerEvents` | `"auto" \| "none"` | `"auto"` | Whether the line receives pointer events |

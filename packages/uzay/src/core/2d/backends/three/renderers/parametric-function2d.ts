@@ -6,12 +6,31 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { checkedColor } from "../../../../shared/types/colors";
+import { dashPatternPx } from "../../../../shared/math/dash-pattern";
 import {
   createParametricSamplingPlan,
   parametricPlanFitsViewport,
   sampleParametricRuns,
   type ParametricSamplingPlan,
 } from "../../../math/parametric-sampling";
+
+// dashSize/gapSize are compared against the line distance scaled by dashScale.
+// The distances are world units (computeLineDistances, cumulative along the
+// sampled segments), and layout() sets dashScale to pixels-per-world-unit, so
+// the pattern here is CSS pixels: the same unit as linewidth, constant on
+// screen at any zoom.
+function applyDash(
+  material: LineMaterial,
+  item: ItemSnapshot<"parametricfunction2d">
+): void {
+  material.dashed = item.dashed;
+  if (item.dashed) {
+    const { dashPx, gapPx } = dashPatternPx(item.thickness);
+    material.dashSize = dashPx;
+    material.gapSize = gapPx;
+  }
+  material.needsUpdate = true;
+}
 
 function buildGeometry(
   item: ItemSnapshot<"parametricfunction2d">,
@@ -62,6 +81,7 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
       transparent: item.opacity < 1,
       opacity: item.opacity,
     });
+    applyDash(material, item);
     const mesh = new LineSegments2(geometry, material);
     mesh.visible = false;
     mesh.userData.itemId = item.id;
@@ -84,7 +104,7 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
     obj.material.linewidth = item.thickness;
     obj.material.opacity = item.opacity;
     obj.material.transparent = item.opacity < 1;
-    obj.material.needsUpdate = true;
+    applyDash(obj.material, item);
     applyVisibility(item, obj);
     obj.plan = null;
   },
@@ -94,6 +114,10 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
     obj: ThreeSceneTypes["parametricfunction2d"],
     ctx
   ): void {
+    if (item.dashed && ctx.viewport.worldPerPixel > 0) {
+      obj.material.dashScale = 1 / ctx.viewport.worldPerPixel;
+    }
+
     if (obj.plan && parametricPlanFitsViewport(obj.plan, ctx.viewport)) return;
 
     const plan = createParametricSamplingPlan(ctx.viewport);
@@ -102,6 +126,7 @@ export const parametricFunction2dRenderer: ItemRenderer<"parametricfunction2d"> 
     obj.geometry = built.geometry;
     obj.mesh.geometry = built.geometry;
     obj.hasSegments = built.hasSegments;
+    if (item.dashed) obj.mesh.computeLineDistances();
     obj.plan = plan;
     applyVisibility(item, obj);
   },

@@ -36,6 +36,9 @@ export type Function2DFields = {
   color: Color;
   thickness: number;
   opacity: number;
+  // Draw the curve with a dashed stroke. The dash pattern is derived from
+  // the thickness and keeps a constant on-screen rhythm at any zoom.
+  dashed: boolean;
   visible: boolean;
   pointerEvents: PointerEvents;
 };
@@ -54,6 +57,7 @@ export const function2dDefinition = defineItem2D({
     color: field<Color>("white"),
     thickness: field(1),
     opacity: field(1),
+    dashed: field(false),
     visible: field(true),
     pointerEvents: field<PointerEvents>("auto"),
   },

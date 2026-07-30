@@ -83,6 +83,7 @@ export type SvgSceneTypes = {
     kind: "parametricfunction2d";
     path: SVGPathElement;
     plan: ParametricSamplingPlan | null;
+    dashWorldPerPixel: number | null;
   };
   function2d: {
     kind: "function2d";
@@ -92,6 +93,7 @@ export type SvgSceneTypes = {
     markerGroup: SVGGElement;
     markerCircles: SVGCircleElement[];
     plan: FunctionSamplingPlan | null;
+    dashWorldPerPixel: number | null;
   };
   overlay2d: {
     kind: "overlay2d";

@@ -7,6 +7,7 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { checkedColor } from "../../../../shared/types/colors";
 import { getWorldPerPixel, chainOnBeforeRender } from "../screen-space";
+import { dashPatternPx } from "../../../../shared/math/dash-pattern";
 import {
   createFunctionSamplingPlan,
   planFitsViewport,
@@ -15,6 +16,24 @@ import {
   type FunctionGeometry,
   type FunctionSamplingPlan,
 } from "../../../math/function-sampling";
+
+// dashSize/gapSize are compared against the line distance scaled by dashScale.
+// The distances are world units (computeLineDistances, cumulative along the
+// sampled segments), and layout() sets dashScale to pixels-per-world-unit, so
+// the pattern here is CSS pixels: the same unit as linewidth, constant on
+// screen at any zoom.
+function applyDash(
+  material: LineMaterial,
+  item: ItemSnapshot<"function2d">
+): void {
+  material.dashed = item.dashed;
+  if (item.dashed) {
+    const { dashPx, gapPx } = dashPatternPx(item.thickness);
+    material.dashSize = dashPx;
+    material.gapSize = gapPx;
+  }
+  material.needsUpdate = true;
+}
 
 const MARKER_SEGMENTS = 48;
 // Floor for the hollow ring's inner radius, as a fraction of the marker
@@ -117,6 +136,7 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
       transparent: item.opacity < 1,
       opacity: item.opacity,
     });
+    applyDash(material, item);
     const mesh = new LineSegments2(geometry, material);
     mesh.visible = false;
     mesh.userData.itemId = item.id;
@@ -141,12 +161,16 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
     obj.material.linewidth = item.thickness;
     obj.material.opacity = item.opacity;
     obj.material.transparent = item.opacity < 1;
-    obj.material.needsUpdate = true;
+    applyDash(obj.material, item);
     applyVisibility(item, obj);
     obj.plan = null;
   },
 
   layout(item: ItemSnapshot<"function2d">, obj: ThreeSceneTypes["function2d"], ctx): void {
+    if (item.dashed && ctx.viewport.worldPerPixel > 0) {
+      obj.material.dashScale = 1 / ctx.viewport.worldPerPixel;
+    }
+
     if (obj.plan && planFitsViewport(item, obj.plan, ctx.viewport)) return;
 
     const plan = createFunctionSamplingPlan(item, ctx.viewport);
@@ -155,6 +179,7 @@ export const function2dRenderer: ItemRenderer<"function2d"> = {
     obj.geometry = built.geometry;
     obj.mesh.geometry = built.geometry;
     obj.hasSegments = built.hasSegments;
+    if (item.dashed) obj.mesh.computeLineDistances();
 
     disposeMarkers(obj);
     obj.markerMeshes = built.markers.map((marker) => {
