@@ -49,29 +49,30 @@ Dragging requires a writable atom. If you pass a derived (read-only) atom for th
 
 Setting `draggable` to `"custom"` tells the engine that you'll handle all drag logic yourself. The engine will still show the grab cursor and fire drag events, but it won't compute a projected world position or update the item's position. You provide your own logic via `.on("drag")`.
 
-This is useful when the built-in axis and plane constraints don't fit your use case, for example snapping to a grid, constraining to a curved surface, or implementing entirely custom movement rules.
+This is useful when the item should be constrained to a shape rather than an axis or plane: a curve, a surface, or any custom movement rule. The built-in [curve point](/docs/constructions/curve-point) and [surface point](/docs/constructions/surface-point) constructions are built exactly this way.
 
 ```typescript
 const point = scene.create("point3d", {
-  coords: vec3(0, 0, 0),
+  coords: vec3(2, 0, 0),
   color: "gold",
   draggable: "custom",
 });
 
-// Snap to integer grid positions on the xz-plane
+// Constrain the point to a circle of radius 2 in the xz-plane
 point.on("drag", (event) => {
   if (event.phase === "start") return;
 
-  const pos = event.worldPosition;
-  point.coords.set(vec3(
-    Math.round(pos.x),
-    0,
-    Math.round(pos.z),
-  ));
+  // Intersect the pointer ray with the xz-plane (y = 0)
+  const { origin, direction } = event.ray;
+  const t = -origin.y / direction.y;
+  const planeHit = origin.add(direction.scale(t));
+
+  // Project the hit onto the circle
+  point.coords.set(vec3(planeHit.x, 0, planeHit.z).unit().scale(2));
 });
 ```
 
-In `"custom"` mode, `event.worldPosition` and `event.delta` are not updated by the engine (since there's no projection to compute them from). Use `event.ray` if you need to project the pointer into 3D space yourself. The ray contains the camera position (`origin`) and the direction through the pointer (`direction`), and it updates every frame as the user drags.
+In 3D views, `"custom"` mode leaves `event.worldPosition` and `event.delta` untouched (there's no projection to compute them from). Use `event.ray` to project the pointer into 3D space yourself, as in the example above: the ray contains the camera position (`origin`) and the direction through the pointer (`direction`), and it updates every frame as the user drags. In 2D views the pointer maps directly to world coordinates, so `event.worldPosition` always tracks the pointer, even in `"custom"` mode.
 
 ## Event Handlers
 
