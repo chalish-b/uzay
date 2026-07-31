@@ -126,6 +126,21 @@ scene.create("axes2d", {
 });
 ```
 
+### Label Placement
+
+By default x labels hang below their axis and y labels sit to its left. `labelAnchor` picks the side per axis, using the [overlay](/docs/2d-items/overlays) anchor vocabulary: the anchor names the label-box edge pinned at the tick, so the label extends away from it. An omitted axis keeps its default.
+
+```typescript
+// y labels on the right side of the axis, x labels above
+scene.create("axes2d", {
+  x: true,
+  y: true,
+  tickmarks: true,
+  labels: true,
+  labelAnchor: { x: "bottom", y: "left" },
+});
+```
+
 ### Styling Labels
 
 Tick labels carry a default look (color, font, and a subtle text-shadow for legibility). Providing `labelClassName` or `labelStyle` replaces that default styling entirely, so you can theme labels without fighting inline styles:
@@ -181,6 +196,7 @@ scale.set(10);
 | `headLength` | `number` | `14` | Arrowhead length, CSS pixels |
 | `headWidth` | `number` | `10` | Arrowhead base width, CSS pixels |
 | `labels` | `boolean` | `false` | Show numeric labels at ticks |
+| `labelAnchor` | `{ x?: OverlayAnchor; y?: OverlayAnchor }` | `{}` | Which side of each axis its labels sit on; omitted axes default to `x: "top"`, `y: "right"` |
 | `labelClassName` | `string` | `""` | CSS class for tick labels (replaces default label styling) |
 | `labelStyle` | `string` | `""` | Inline CSS for tick labels (replaces default label styling) |
 | `visible` | `boolean` | `true` | Whether the axes are shown |
@@ -212,6 +228,7 @@ scale.set(10);
 | `headLength` | `BoundAtom<number>` | Head length atom |
 | `headWidth` | `BoundAtom<number>` | Head width atom |
 | `labels` | `BoundAtom<boolean>` | Labels atom |
+| `labelAnchor` | `BoundAtom<AxesLabelAnchor>` | Label anchor atom |
 | `labelClassName` | `BoundAtom<string>` | Label class atom |
 | `labelStyle` | `BoundAtom<string>` | Label style atom |
 | `visible` | `BoundAtom<boolean>` | Visibility atom |

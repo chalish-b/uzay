@@ -29,7 +29,7 @@ export type { ParametricSurface3D, ParametricSurface3DSamples } from "./core/3d/
 export type { Camera2D } from "./core/2d/items/camera2d"
 export type { Point2D } from "./core/2d/items/point2d"
 export type { Grid2D } from "./core/2d/items/grid2d"
-export type { Axes2D, TickStep } from "./core/2d/items/axes2d"
+export type { Axes2D, TickStep, AxesLabelAnchor } from "./core/2d/items/axes2d"
 export type { NumberLine2D } from "./core/2d/items/number-line2d"
 export type { Line2D } from "./core/2d/items/line2d"
 export type { Vector2D } from "./core/2d/items/vector2d"

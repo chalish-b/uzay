@@ -1,7 +1,11 @@
 import katex from "katex";
 import type { ItemSnapshot } from "./types/item-registry";
-import { anchorToTranslate } from "../shared/types/overlay";
+import {
+  anchorToTranslate,
+  type OverlayAnchor,
+} from "../shared/types/overlay";
 import { formatTick, type AxisKey } from "./math/axes-math";
+import { NUMBER_LINE_LABEL_OFFSET_PX } from "./math/number-line-math";
 
 // DOM construction and styling for the HTML pieces of a 2D scene (overlay2d
 // content, axis tick labels). Backends position the produced elements their
@@ -77,30 +81,66 @@ function createTickLabel(
   return { wrapper, element };
 }
 
-// Axis tick label: the anchor offset pushing it clear of the axis line
-// depends on which axis it belongs to.
+// The unit direction a label box extends away from its anchored edge, in
+// screen axes (y down). Scaled by a clearance, it pushes the box clear of
+// the line its tick sits on.
+const ANCHOR_AWAY_DIR: Record<OverlayAnchor, [number, number]> = {
+  center: [0, 0],
+  top: [0, 1],
+  bottom: [0, -1],
+  left: [1, 0],
+  right: [-1, 0],
+  "top-left": [1, 1],
+  "top-right": [-1, 1],
+  "bottom-left": [1, -1],
+  "bottom-right": [-1, -1],
+};
+
+// The element transform for a tick label anchored at its tick's world point:
+// the anchor translate plus a pixel push away from the line.
+function anchorClearanceTransform(
+  anchor: OverlayAnchor,
+  clearancePx: number
+): string {
+  const [dx, dy] = ANCHOR_AWAY_DIR[anchor];
+  return `${anchorToTranslate(anchor)} translate(${dx * clearancePx}px, ${dy * clearancePx}px)`;
+}
+
+const AXIS_LABEL_CLEARANCE_PX = 10;
+
+// Axis tick label, pushed clear of its axis on the side labelAnchor picks
+// (per axis, x defaulting to "top" and y to "right").
 export function createAxisTickLabel(
   item: ItemSnapshot<"axes2d">,
   axis: AxisKey,
   tick: number,
   tickStep: number
 ): { wrapper: HTMLDivElement; element: HTMLDivElement } {
+  const anchor =
+    axis === "x"
+      ? (item.labelAnchor.x ?? "top")
+      : (item.labelAnchor.y ?? "right");
   return createTickLabel(
     formatTick(tick, tickStep),
     item,
-    axis === "x"
-      ? `${anchorToTranslate("top")} translate(0px, 10px)`
-      : `${anchorToTranslate("right")} translate(-10px, 0px)`
+    anchorClearanceTransform(anchor, AXIS_LABEL_CLEARANCE_PX)
   );
 }
 
-// Number line tick label: the backends position the wrapper at an already
-// offset world point (pushed off the line along its normal), so the element
-// just centers on it.
+// Number line tick label. With labelAnchor "auto" the backends position the
+// wrapper at an already offset world point (pushed off the line along its
+// normal), so the element just centers on it; an explicit anchor places the
+// wrapper on the line and pushes here instead, like axes2d.
 export function createNumberLineTickLabel(
   item: ItemSnapshot<"numberline2d">,
   value: number,
   tickStep: number
 ): { wrapper: HTMLDivElement; element: HTMLDivElement } {
-  return createTickLabel(formatTick(value, tickStep), item, "");
+  return createTickLabel(
+    formatTick(value, tickStep),
+    item,
+    item.labelAnchor === "auto"
+      ? ""
+      : anchorClearanceTransform(item.labelAnchor, NUMBER_LINE_LABEL_OFFSET_PX)
+  );
 }

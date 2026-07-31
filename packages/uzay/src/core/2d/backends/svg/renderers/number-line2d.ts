@@ -85,7 +85,12 @@ function rebuild(
 
   if (!item.labels) return [];
 
-  const labelOffset = normal.scale(-NUMBER_LINE_LABEL_OFFSET_PX * wpp);
+  // With an explicit labelAnchor the element's own transform does the push
+  // (overlay-dom), so the wrapper sits right on the line.
+  const labelOffset =
+    item.labelAnchor === "auto"
+      ? normal.scale(-NUMBER_LINE_LABEL_OFFSET_PX * wpp)
+      : vec2(0, 0);
   const labels: SvgAxesLabel[] = [];
   for (const value of buildTickPositions(item.range, step, skip)) {
     const world = valueToWorld(item, value).add(labelOffset);
@@ -116,6 +121,7 @@ export const numberLine2dSvgRenderer: SvgItemRenderer<"numberline2d"> = {
       step,
       worldPerPixel: ctx.viewport.worldPerPixel,
       labels: item.labels,
+      labelAnchor: item.labelAnchor,
       labelClassName: item.labelClassName,
       labelStyle: item.labelStyle,
       visible: item.visible,

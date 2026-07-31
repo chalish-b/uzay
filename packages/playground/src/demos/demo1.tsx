@@ -1,26 +1,27 @@
 import { useMemo } from "react";
-import { Scene2D, vec2, type WritableBoundAtom } from "uzay";
+import { Scene2D, vec2, type OverlayAnchor, type WritableBoundAtom } from "uzay";
 import { Scene2DView, useAtomState } from "uzay/react";
 
-// Dashed function2d / parametricfunction2d sandbox, threejs and svg side by
+// labelAnchor sandbox for axes2d and numberline2d, threejs and svg side by
 // side (shared camera, so pan/zoom stays in sync for comparison).
 //
-// - orange curve: a·sin(x) on an infinite domain. The dashed toggle, thickness
-//   and opacity sliders drive it; amplitude changes the function itself, so
-//   every geometry rebuild recomputes the dash distances. Pan and zoom to
-//   check the dash rhythm stays pixel-constant while the curve resamples.
-// - cyan curve: 1/(x − 2) with a discontinuity at x = 2, always dashed. The
-//   dash pattern must not bleed across the asymptote gap, and the two branches
-//   each read as cleanly dashed.
-// - lime curve: a finite domain [−6, −1] with a closed start and open end
-//   marker, always dashed. The endpoint markers stay solid (a filled disc and
-//   a ring), only the stroke dashes.
-// - hotpink curve: a parametric spiral, following the same dashed toggle. The
-//   turns slider changes f while dashed, same rebuild check as amplitude.
-// - edge cases to try: thickness at 0.5 (dash floor of 4px/3px kicks in),
-//   thickness at 6 (long dashes), deep zoom in/out on the infinite curve
-//   (resampling under a constant on-screen pattern), toggling dashed while
-//   zoomed (solid and dashed must agree on geometry).
+// - center axes: tick labels on, anchors driven by the two toggle sliders.
+//   x flips between "top" (labels below the axis, the default) and "bottom"
+//   (above); y flips between "right" (labels left of the axis, the default)
+//   and "left" (right). Both are atoms, so flipping must restyle in place.
+// - left pair: two vertical number lines sharing a range. The first keeps
+//   labelAnchor "auto", which lands labels on the line's clockwise side
+//   (screen right for an upward line); the second sets "right", the chart
+//   y-axis case, labels to the left.
+// - bottom line: a horizontal number line with "bottom", labels above the
+//   line instead of the default below.
+// - diagonal line: angle and anchor both driven by sliders. On "auto" the
+//   labels ride the rotating normal and stay clear of the line at any angle;
+//   an explicit anchor keeps them on a fixed screen side while the line
+//   rotates under them.
+// - edge cases to try: pan/zoom (labels are HTML, they must track their
+//   ticks), rotating the diagonal through vertical, toggling anchors while
+//   zoomed, arrows swallowing end ticks.
 
 type SliderSpec = {
   label: string;
@@ -30,6 +31,11 @@ type SliderSpec = {
   step: number;
   display?: (value: number) => string;
 };
+
+const DIAGONAL_ANCHORS = ["auto", "bottom", "top", "left", "right"] as const;
+
+const CAPTION_STYLE =
+  "color:#888;font-size:11px;font-family:monospace;white-space:nowrap";
 
 function buildScene() {
   const scene = new Scene2D();
@@ -43,87 +49,127 @@ function buildScene() {
     rangeY: [-10, 10],
     gap: 1,
     color: "white",
-    opacity: 0.1,
+    opacity: 0.08,
   });
+
+  const xFlip = scene.atom(0);
+  const yFlip = scene.atom(0);
+  const diagonalAngle = scene.atom(0.6);
+  const diagonalAnchorIndex = scene.atom(0);
+
+  // The axes: label anchors from the toggles, restyled reactively.
   scene.create("axes2d", {
     x: true,
     y: true,
     color: "white",
     thickness: 1,
     arrows: "none",
+    tickmarks: true,
+    tickStep: 1,
+    labels: true,
+    labelAnchor: scene.atom((get) => ({
+      x: (get(xFlip) > 0.5 ? "bottom" : "top") as OverlayAnchor,
+      y: (get(yFlip) > 0.5 ? "left" : "right") as OverlayAnchor,
+    })),
   });
 
-  const dashedNum = scene.atom(1);
-  const thickness = scene.atom(2);
-  const opacity = scene.atom(1);
-  const amplitude = scene.atom(2);
-  const turns = scene.atom(3);
+  const caption = (position: ReturnType<typeof vec2>, content: string) => {
+    scene.create("overlay2d", {
+      position,
+      content,
+      format: "text",
+      anchor: "top",
+      offset: vec2(0, 6),
+      style: CAPTION_STYLE,
+    });
+  };
 
-  const dashed = scene.atom((get) => get(dashedNum) > 0.5);
-
-  // The main curve: infinite domain, all sliders wired.
-  scene.create("function2d", {
-    f: scene.atom((get) => {
-      const a = get(amplitude);
-      return (x: number) => a * Math.sin(x);
-    }),
-    domain: "infinite",
+  // Two vertical lines: "auto" labels land on the right, "right" moves them
+  // to the left side, the chart y-axis case.
+  scene.create("numberline2d", {
+    position: vec2(-6.5, -3.5),
+    angle: Math.PI / 2,
+    range: [0, 7],
     color: "orange",
-    thickness,
-    opacity,
-    dashed,
+    thickness: 1.5,
+    tickStep: 1,
+    arrows: "end",
   });
+  caption(vec2(-6.5, -3.7), "auto");
 
-  // Dashes across an asymptote break.
-  scene.create("function2d", {
-    f: (x) => 1 / (x - 2),
-    domain: "infinite",
-    discontinuities: [2],
+  scene.create("numberline2d", {
+    position: vec2(-4, -3.5),
+    angle: Math.PI / 2,
+    range: [0, 7],
     color: "cyan",
     thickness: 1.5,
-    dashed: true,
+    tickStep: 1,
+    arrows: "end",
+    labelAnchor: "right",
   });
+  caption(vec2(-4, -3.7), '"right"');
 
-  // Dashes with endpoint markers on a finite domain.
-  scene.create("function2d", {
-    f: (x) => 0.25 * (x + 3.5) * (x + 3.5) - 4,
-    domain: [-6, -1],
-    endpoints: { start: "closed", end: "open" },
+  // A horizontal line with labels above instead of the default below.
+  scene.create("numberline2d", {
+    position: vec2(0.5, -3.5),
+    angle: 0,
+    range: [0, 6],
     color: "lime",
-    thickness: 2,
-    dashed: true,
+    thickness: 1.5,
+    tickStep: 1,
+    arrows: "end",
+    labelAnchor: "bottom",
   });
+  caption(vec2(3.5, -4), '"bottom" (labels above)');
 
-  // The parametric counterpart: a spiral, sharing the dashed toggle.
-  scene.create("parametricfunction2d", {
-    f: scene.atom((get) => {
-      const k = get(turns);
-      return (t: number) => {
-        const th = t * k * Math.PI * 2;
-        const r = 0.4 + 3 * t;
-        return vec2(7 + r * Math.cos(th), 3 + r * Math.sin(th));
-      };
-    }),
-    tStart: 0,
-    tEnd: 1,
+  // The rotating line: compare "auto" following the normal against an
+  // explicit anchor holding a fixed screen side.
+  scene.create("numberline2d", {
+    position: vec2(3, 0.5),
+    angle: diagonalAngle,
+    range: [0, 5],
     color: "hotpink",
-    thickness,
-    dashed,
+    thickness: 1.5,
+    tickStep: 1,
+    arrows: "end",
+    labelAnchor: scene.atom(
+      (get) => DIAGONAL_ANCHORS[Math.round(get(diagonalAnchorIndex))]
+    ),
   });
+  caption(vec2(3, 0.3), "rotating");
 
   const sliders: SliderSpec[] = [
     {
-      label: "dashed",
-      atom: dashedNum,
+      label: "axes x labels",
+      atom: xFlip,
       min: 0,
       max: 1,
       step: 1,
-      display: (v) => (v > 0.5 ? "on" : "off"),
+      display: (v) => (v > 0.5 ? '"bottom" (above)' : '"top" (below)'),
     },
-    { label: "thickness", atom: thickness, min: 0.5, max: 6, step: 0.1 },
-    { label: "opacity", atom: opacity, min: 0.1, max: 1, step: 0.01 },
-    { label: "amplitude", atom: amplitude, min: 0.5, max: 4, step: 0.01 },
-    { label: "spiral turns", atom: turns, min: 1, max: 6, step: 0.01 },
+    {
+      label: "axes y labels",
+      atom: yFlip,
+      min: 0,
+      max: 1,
+      step: 1,
+      display: (v) => (v > 0.5 ? '"left" (right)' : '"right" (left)'),
+    },
+    {
+      label: "diagonal angle",
+      atom: diagonalAngle,
+      min: 0,
+      max: Math.PI,
+      step: 0.01,
+    },
+    {
+      label: "diagonal anchor",
+      atom: diagonalAnchorIndex,
+      min: 0,
+      max: DIAGONAL_ANCHORS.length - 1,
+      step: 1,
+      display: (v) => DIAGONAL_ANCHORS[Math.round(v)],
+    },
   ];
 
   return { scene, camera, sliders };
@@ -133,7 +179,7 @@ function Slider({ spec }: { spec: SliderSpec }) {
   const [value, setValue] = useAtomState(spec.atom);
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#999" }}>
-      <span style={{ width: 110, flexShrink: 0 }}>
+      <span style={{ width: 150, flexShrink: 0 }}>
         {spec.label}:{" "}
         {spec.display
           ? spec.display(value)
@@ -197,7 +243,7 @@ export default function Demo1() {
           position: "absolute",
           bottom: 12,
           left: 12,
-          width: 320,
+          width: 340,
           display: "flex",
           flexDirection: "column",
           gap: 6,
@@ -208,7 +254,7 @@ export default function Demo1() {
         }}
       >
         <span style={{ fontSize: 11, color: "#ccc", fontWeight: "bold" }}>
-          dashed curves sandbox
+          labelAnchor sandbox
         </span>
         {sliders.map((spec) => (
           <Slider key={spec.label} spec={spec} />

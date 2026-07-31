@@ -85,7 +85,20 @@ scene.create("numberline2d", {
 });
 ```
 
-Labels sit just off the line, on the clockwise side of the direction of travel (below a rightward line, to the right of an upward one). Styling follows the same contract as axes2d: `labelClassName` or `labelStyle` replaces the default label look entirely.
+With the default `labelAnchor: "auto"`, labels sit just off the line on the side that suits its angle: below a rightward line, to the right of an upward one. Pass an [overlay](/docs/2d-items/overlays) anchor instead to pick the side yourself. The anchor names the label-box edge pinned at the tick, so the label extends away from it:
+
+```typescript
+// A chart-style y axis: an upward line with labels on its left
+scene.create("numberline2d", {
+  position: vec2(-4, -2),
+  angle: Math.PI / 2,
+  range: [0, 30],
+  tickStep: 10,
+  labelAnchor: "right",
+});
+```
+
+Styling follows the same contract as axes2d: `labelClassName` or `labelStyle` replaces the default label look entirely.
 
 `tickLength` sets the full tick length in CSS pixels, rendered constant across zoom.
 
@@ -125,6 +138,7 @@ scene.create("numberline2d", {
 | `headLength` | `number` | `14` | Arrowhead length, CSS pixels |
 | `headWidth` | `number` | `10` | Arrowhead base width, CSS pixels |
 | `labels` | `boolean` | `true` | Show value labels at ticks |
+| `labelAnchor` | `OverlayAnchor \| "auto"` | `"auto"` | Which side of the line labels sit on; `"auto"` picks it from the angle |
 | `labelClassName` | `string` | `""` | CSS class for tick labels (replaces default label styling) |
 | `labelStyle` | `string` | `""` | Inline CSS for tick labels (replaces default label styling) |
 | `arrows` | `"none" \| "start" \| "end" \| "both"` | `"both"` | Which ends carry an arrowhead |
@@ -149,6 +163,7 @@ scene.create("numberline2d", {
 | `headLength` | `BoundAtom<number>` | Head length atom |
 | `headWidth` | `BoundAtom<number>` | Head width atom |
 | `labels` | `BoundAtom<boolean>` | Labels atom |
+| `labelAnchor` | `BoundAtom<OverlayAnchor \| "auto">` | Label anchor atom |
 | `labelClassName` | `BoundAtom<string>` | Label class atom |
 | `labelStyle` | `BoundAtom<string>` | Label style atom |
 | `arrows` | `BoundAtom<ArrowEnds>` | Arrows atom |

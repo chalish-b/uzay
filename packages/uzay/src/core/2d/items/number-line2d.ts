@@ -1,5 +1,6 @@
 import type { ArrowEnds } from "../../shared/types/arrows";
 import type { Color } from "../../shared/types/colors";
+import type { OverlayAnchor } from "../../shared/types/overlay";
 import type { ItemTags } from "../../shared/types/tags";
 import { vec2, type Vec2 } from "../../shared/types/vec2";
 import type { AtomLikeOptions } from "../../shared/atom-wrapper";
@@ -38,6 +39,14 @@ export type NumberLine2DFields = {
   headWidth: number;
   labels: boolean;
   /**
+   * Which side of the line the tick labels sit on, as the overlay anchor
+   * vocabulary: the anchor names the label-box edge pinned at the tick, so
+   * the label extends away from it ("right" puts labels to the left of a
+   * vertical line, "top" hangs them below a horizontal one). "auto" places
+   * them clear of the line based on its angle.
+   */
+  labelAnchor: OverlayAnchor | "auto";
+  /**
    * CSS class for tick labels. Providing this (or labelStyle) removes the
    * default label look entirely, same contract as axes2d.
    */
@@ -69,6 +78,7 @@ export const numberLine2dDefinition = defineItem2D({
     headLength: field(14),
     headWidth: field(10),
     labels: field(true),
+    labelAnchor: field<OverlayAnchor | "auto">("auto"),
     labelClassName: field(""),
     labelStyle: field(""),
     arrows: field<ArrowEnds>("both"),

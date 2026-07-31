@@ -289,6 +289,7 @@ export const axes2dRenderer: ItemRenderer<"axes2d"> = {
       origin: { x: item.origin.x, y: item.origin.y },
       arrows: item.arrows,
       labels: item.labels,
+      labelAnchor: item.labelAnchor,
       labelClassName: item.labelClassName,
       labelStyle: item.labelStyle,
       visible: item.visible,
